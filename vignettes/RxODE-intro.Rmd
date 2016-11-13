@@ -1,10 +1,13 @@
-<!--
-%\VignetteEngine{knitr::knitr}
-%\VignetteIndexEntry{Introduction to RxODE}
-%\VignetteKeyword{ordinary differential equations}
-%\VignetteKeyword{PK/PD}
-%\VignetteKeyword{simulations}
--->
+---
+title: "Introduction to RxODE"
+author: "Melissa Hallow and Wenping Wang"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_document
+vignette: >
+  %\VignetteIndexEntry{Introduction to RxODE}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
 ```{r setup, include = FALSE}
 library(knitr)
 ```
@@ -12,11 +15,6 @@ library(knitr)
 ## RxODE: A tool for performing simulations from 
 Ordinary Differential Equation (ODE) models, with 
 applications for pharmacometrics
-***  
-
-##### Authors: Melissa Hallow, Wenping Wang, David A. James
-
-***
 
 #### Introduction
 `RxODE` is an R package that facilitates simulation with ODE models in
@@ -162,12 +160,14 @@ matplot(t(cp.q), type="l", lty=c(2,1,2), col=c(2,1,2), ylab="Central Concentrati
 
 #### Facilities for generating R shiny applications
 
- R Shiny applications (http://shiny.rstudio.com)
- may be programmatically created with the experimental function
+An example of creating an R [shiny application](http://shiny.rstudio.com) to
+interactively explore responses of various complex dosing regimens is available
+at http://qsp.engr.uga.edu:3838/RxODE/RegimenSimulator.  Shiny applications
+like this one may be programmatically created with the experimental function
 `genShinyApp.template()`.
 
 The above application includes widgets for varying the dose, dosing
-regimen, dose cycle, and number of cycles.  However, the user may then edit and tailor the shiny app server.R and ui.R files as needed. 
+regimen, dose cycle, and number of cycles.  
 
 ```
 
@@ -178,6 +178,7 @@ runApp("shinyExample")
 
 ```
 
+### [Click here to go to the Shiny App](http://qsp.engr.uga.edu:3838/RxODE/RegimenSimulator)
 
 ```{r cleanup, include = FALSE}
 mod1$dynUnload()   # otherwise we can't unlink(work)
