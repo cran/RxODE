@@ -4,7 +4,6 @@ CFLAGS = `"$(R_HOME)/bin/R" CMD config CFLAGS`
 FFLAGS = `"$(R_HOME)/bin/R" CMD config FFLAGS`
 include $(R_HOME)/etc/$(R_ARCH)/Makeconf
 
-
 # Run make in subdirs
 all: libodeaux libdparse libtran
 
