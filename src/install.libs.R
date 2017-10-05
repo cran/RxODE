@@ -1,31 +1,17 @@
-# Copy libs, headers, and binaries to to
-# R_PACKAGE_DIR/{libs,include,bin} as per architecture
+## Simialr to default behavior according to R extension manual
+files <- Sys.glob(paste0("*", SHLIB_EXT))
+dest <- file.path(R_PACKAGE_DIR, paste0('libs', R_ARCH))
+dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+file.copy(files, dest, overwrite = TRUE)
+## for (f in files)
+##     file.copy(f,file.path(dest,paste0("lib",f)),overwrite = TRUE)
+if(file.exists("symbols.rds"))
+    file.copy("symbols.rds", dest, overwrite = TRUE)
 
-bin  <- file.path(R_PACKAGE_DIR, paste0("bin", R_ARCH))
-libs <- file.path(R_PACKAGE_DIR, paste0("libs", R_ARCH))
-incl <- file.path(R_PACKAGE_DIR, "include")
-
-if(!file.exists(bin))
-   dir.create(bin, recursive = TRUE, showWarnings = FALSE)
-
-if(!file.exists(libs))
-   dir.create(libs, recursive = TRUE, showWarnings = FALSE)
-
-if(!file.exists(incl))
-   dir.create(incl, recursive = TRUE, showWarnings = FALSE)
-
-# binary files
-files <- file.path(".", "tran.exe")
-message("Installing ", files, " to ", bin)
-file.copy(files, bin, overwrite = TRUE)
-
-# libs
-files <- file.path("ode", "libodeaux.a")
-message("Installing ", files, " to ", libs)
-file.copy(files, libs, overwrite = TRUE)
-
-# header files
-files <- file.path("ode", "dop853.h")
-message("Installing ", files, " to ", incl)
-file.copy(files, incl, overwrite = TRUE)
-
+## Add headers
+incl <- file.path(R_PACKAGE_DIR, "include");
+headers <- Sys.glob("*.h");
+if (any(file.exists(headers))){
+    dir.create(incl,recursive=TRUE,showWarnings = FALSE);
+    file.copy(headers,incl,overwrite=TRUE);
+}
