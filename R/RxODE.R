@@ -518,7 +518,7 @@ RxODE <- function(model, modName = basename(wd), wd = ifelse(RxODE.cache.directo
         names(inits) <- state
         names(params) <- pars;
 
-        time <- event.table$time;
+        time <- event.table$time; ## Changing this to as.double fails tests
         evid <- as.integer(event.table$evid);
         amt <- as.double(event.table$amt[event.table$evid>0]);
         ## Covariates
@@ -567,13 +567,11 @@ RxODE <- function(model, modName = basename(wd), wd = ifelse(RxODE.cache.directo
                             transit_abs,
                             ## Passed to build solver object.
                             env,
-                            extra.args,
-                            do.matrix,
-                            add.cov,
-                            state.ignore)
+                            as.integer(c(state.ignore, add.cov, do.matrix)),
+                            extra.args)
                 rc <- ret[[2]];
                 ret <- ret[[1]];
-                ## attr(ret, "solveRxDll")$matrix <- attr(ret, "solveRxDll")$matrix[events$get.obs.rec(), ];
+                            ## attr(ret, "solveRxDll")$matrix <- attr(ret, "solveRxDll")$matrix[events$get.obs.rec(), ];
                 ## Change sensitivities to be d/dt(d(A)/d(B)) form.
                 ## dim <- dimnames(attr(ret, "solveRxDll")$matrix);
                 ## dim[[2]] <- gsub(regSens,"d/dt(d(\\1)/d(\\2))",dim[[2]]);
@@ -581,55 +579,53 @@ RxODE <- function(model, modName = basename(wd), wd = ifelse(RxODE.cache.directo
                 if (rc != 0)
                     stop(sprintf("could not solve ODE, IDID = %d (see further messages)", rc))
                 ret
-            })
+            }, silent=TRUE)
             if (inherits(ret, "try-error")){
                 ## Error solving, try the other solver.
                 ## errs <- paste(suppressWarnings({readLines(sink.file)}), collapse="\n");
                 stiff <- 1L - stiff;
                 ## sink(sink.file);
-                try({ret <- .sexp(## Parameters
-                         params,
-                         inits,
-                         as.double(scale),
-                         lhs_vars,
-                         ## events
-                         time,
-                         evid,
-                         amt,
-                         ## Covariates
-                         pcov,
-                         cov,
-                         isLocf,
-                         ## Solver options (double)
-                         atol,
-                         rtol,
-                         hmin,
-                         hmax,
-                         hini,
-                         ## Solver options ()
-                         maxordn,
-                         maxords,
-                         maxsteps,
-                         stiff,
-                         transit_abs,
-                         ## Passed to build solver object.
-                         env,
-                         extra.args,
-                         do.matrix,
-                         add.cov,
-                         state.ignore)
-                    rc <- ret[[2]];
-                    ret <- ret[[1]];
-                    ## attr(ret, "solveRxDll")$matrix <- attr(ret, "solveRxDll")$matrix[events$get.obs.rec(), ];
-                    ## Change sensitivities to be d/dt(d(A)/d(B)) form.
-                    ## dim <- dimnames(attr(ret, "solveRxDll")$matrix);
-                    ## dim[[2]] <- gsub(regSens,"d/dt(d(\\1)/d(\\2))",dim[[2]]);
-                    ## dimnames(attr(ret, "solveRxDll")$matrix) <- dim;
+                ret <- try({ret <- .sexp(## Parameters
+                                params,
+                                inits,
+                                as.double(scale),
+                                lhs_vars,
+                                ## events
+                                time,
+                                evid,
+                                amt,
+                                ## Covariates
+                                pcov,
+                                cov,
+                                isLocf,
+                                ## Solver options (double)
+                                atol,
+                                rtol,
+                                hmin,
+                                hmax,
+                                hini,
+                                ## Solver options ()
+                                maxordn,
+                                maxords,
+                                maxsteps,
+                                stiff,
+                                transit_abs,
+                                ## Passed to build solver object.
+                                env,
+                                as.integer(c(state.ignore, add.cov, do.matrix)),
+                                extra.args)
+                                rc <- ret[[2]];
+                                ret <- ret[[1]];
+                                ## attr(ret, "solveRxDll")$matrix <- attr(ret, "solveRxDll")$matrix[events$get.obs.rec(), ];
+                                ## Change sensitivities to be d/dt(d(A)/d(B)) form.
+                                ## dim <- dimnames(attr(ret, "solveRxDll")$matrix);
+                                ## dim[[2]] <- gsub(regSens,"d/dt(d(\\1)/d(\\2))",dim[[2]]);
+                                ## dimnames(attr(ret, "solveRxDll")$matrix) <- dim;
 
-                    if (rc != 0)
-                        stop(sprintf("Could not solve ODE, IDID = %d (see further messages).", rc))
-                    ret
-                })
+                                if (rc != 0)
+                                    stop(sprintf("Could not solve ODE, IDID = %d (see further messages).", rc))
+                                ret
+                }, silent=TRUE);
                 ## sink();
                 if (inherits(ret, "try-error")){
                     stop("Tried both LSODA and DOP853, but could not solve the system.")
@@ -1680,7 +1676,7 @@ rxCompile.character <-  function(model,           # Model
                                  force   = FALSE, # Force compile
                                  modName = NULL,  # Model Name
                                  calcJac=NULL, # Calculate Jacobian
-                                 calcSens=NULL, # Calculate Sensitivity
+                                  calcSens=NULL, # Calculate Sensitivity
                                  collapseModel=FALSE,
                                  ...){
     ## rxCompile returns the DLL name that was created.
@@ -1778,12 +1774,21 @@ rxCompile.character <-  function(model,           # Model
                 try(rx.do.call(sh, list(cmd, ignore.stdout = FALSE, ignore.stderr = FALSE)),
                     silent = FALSE)
                 rxCat("\n\nModel:\n", paste(readLines(mFile), collapse="\n"), "\n")
+                rxCat(sprintf("cFile: %s\n", cFile))
+                rxCat(sprintf("cmd: %s\n", cmd))
+                rxCat(sprintf("wd: %s\n", dir))
                 stop(sprintf("error compiling %s", cFile));
             }
             if (dllCopy){
                 file.copy(cDllFile, finalDll);
             }
-            try(dyn.load(finalDll, local = FALSE), silent = TRUE);
+            tmp <- try(dyn.load(finalDll, local = FALSE), silent=TRUE);
+            if (inherits(tmp, "try-error")){
+                tmp <- try(dyn.load(basename(finalDll), local = FALSE), silent=TRUE);
+                if (inherits(tmp, "try-error")){
+                    stop("Error loading model.")
+                }
+            }
             modVars <- sprintf("%smodel_vars", prefix);
             if (is.loaded(modVars)){
                 allModVars <- eval(parse(text = sprintf(".Call(\"%s\")", modVars)), envir = .GlobalEnv)

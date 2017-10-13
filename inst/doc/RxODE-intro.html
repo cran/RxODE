@@ -12,7 +12,7 @@
 
 <meta name="author" content="Matthew L. Fidler, Melissa Hallow, and Wenping Wang" />
 
-<meta name="date" content="2017-10-05" />
+<meta name="date" content="2017-10-12" />
 
 <title>Introduction to RxODE</title>
 
@@ -70,7 +70,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Introduction to RxODE</h1>
 <h4 class="author"><em>Matthew L. Fidler, Melissa Hallow, and Wenping Wang</em></h4>
-<h4 class="date"><em>2017-10-05</em></h4>
+<h4 class="date"><em>2017-10-12</em></h4>
 
 
 
@@ -168,7 +168,7 @@ ev<span class="op">$</span><span class="kw">add.sampling</span>(<span class="dv"
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">predict</span>(mod1,theta, ev, inits)
 <span class="kw">print</span>(x)</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpwLOv85\Rx_intro-f645ccf35c0/mod1.d/mod1_x64.dll
+## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpgHLtwg\Rx_intro-37a078a95b4a/mod1.d/mod1_x64.dll
 ## 
 ## Parameters:
 ##      V2      V3      KA      CL       Q     Kin    Kout    EC50 
@@ -195,7 +195,7 @@ ev<span class="op">$</span><span class="kw">add.sampling</span>(<span class="dv"
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">solve</span>(mod1,theta, ev, inits)
 <span class="kw">print</span>(x)</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpwLOv85\Rx_intro-f645ccf35c0/mod1.d/mod1_x64.dll
+## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpgHLtwg\Rx_intro-37a078a95b4a/mod1.d/mod1_x64.dll
 ## 
 ## Parameters:
 ##      V2      V3      KA      CL       Q     Kin    Kout    EC50 
@@ -222,7 +222,7 @@ ev<span class="op">$</span><span class="kw">add.sampling</span>(<span class="dv"
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span>mod1 <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">solve</span>(theta, ev, inits)
 <span class="kw">print</span>(x)</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpwLOv85\Rx_intro-f645ccf35c0/mod1.d/mod1_x64.dll
+## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpgHLtwg\Rx_intro-37a078a95b4a/mod1.d/mod1_x64.dll
 ## 
 ## Parameters:
 ##      V2      V3      KA      CL       Q     Kin    Kout    EC50 
@@ -274,7 +274,7 @@ x</code></pre></div>
 <pre><code>## Updating object with new initial conditions.</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpwLOv85\Rx_intro-f645ccf35c0/mod1.d/mod1_x64.dll
+## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpgHLtwg\Rx_intro-37a078a95b4a/mod1.d/mod1_x64.dll
 ## 
 ## Parameters:
 ##      V2      V3      KA      CL       Q     Kin    Kout    EC50 
@@ -303,7 +303,7 @@ x</code></pre></div>
 <pre><code>## Updating sampling times in the event table updating object.</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpwLOv85\Rx_intro-f645ccf35c0/mod1.d/mod1_x64.dll
+## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpgHLtwg\Rx_intro-37a078a95b4a/mod1.d/mod1_x64.dll
 ## 
 ## Parameters:
 ##      V2      V3      KA      CL       Q     Kin    Kout    EC50 
@@ -335,7 +335,7 @@ x</code></pre></div>
 <pre><code>## Updating object with new parameter values.</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpwLOv85\Rx_intro-f645ccf35c0/mod1.d/mod1_x64.dll
+## Dll: C:\Users\fidlema3\AppData\Local\Temp\ep\RtmpgHLtwg\Rx_intro-37a078a95b4a/mod1.d/mod1_x64.dll
 ## 
 ## Parameters:
 ##    V2    V3    KA    CL     Q   Kin  Kout  EC50 
@@ -387,7 +387,7 @@ x</code></pre></div>
 <p>This can be solved with the following command:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(x &lt;-<span class="st"> </span>mod2 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(theta, ev))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_494ba4320e937b1f710d6255452d166e_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_cc5428ef72de11dcf799b881dee6547a_x64.dll
 ## 
 ## Parameters:
 ##      KA      V2      CL       Q      V3     Kin    Kout    EC50 
@@ -414,7 +414,7 @@ x</code></pre></div>
 <p>This can be solved for different initial conditions easily:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(x &lt;-<span class="st"> </span>mod2 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(theta, ev,<span class="kw">c</span>(<span class="dt">eff=</span><span class="dv">2</span>)))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_494ba4320e937b1f710d6255452d166e_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_cc5428ef72de11dcf799b881dee6547a_x64.dll
 ## 
 ## Parameters:
 ##      KA      V2      CL       Q      V3     Kin    Kout    EC50 
@@ -456,7 +456,7 @@ x</code></pre></div>
 
 (x &lt;-<span class="st"> </span>mod3 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(ev))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_d06f75c26aa39d3eb9f090731e814c0f_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_a96ab6c393837232ef0776245b3c42a0_x64.dll
 ## 
 ## Parameters:
 ##      KA      CL      V2       Q      V3     Kin    Kout    EC50 
@@ -482,7 +482,7 @@ x</code></pre></div>
 <p>Note that you do not specify the parameters when solving the system since they are built into the model, but you can override the parameters:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(x &lt;-<span class="st"> </span>mod3 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(<span class="kw">c</span>(<span class="dt">KA=</span><span class="dv">10</span>),ev))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_d06f75c26aa39d3eb9f090731e814c0f_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_a96ab6c393837232ef0776245b3c42a0_x64.dll
 ## 
 ## Parameters:
 ##    KA    CL    V2     Q    V3   Kin  Kout  EC50 
@@ -539,7 +539,7 @@ cov.df  &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span c
 <p>Now there is a covariate present, the system can be solved using the cov option</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(r1 &lt;-<span class="st"> </span><span class="kw">solve</span>(mod3, ev, <span class="dt">covs=</span>cov.df,<span class="dt">covs_interpolation=</span><span class="st">&quot;linear&quot;</span>))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_959251cbcf8ecd07da1f3caf59999e0b_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_4780fbffa6b2d111771a4be0ab39df5f_x64.dll
 ## 
 ## Parameters:
 ##         KA         CL         V2          Q         V3       Kin0 
@@ -576,7 +576,7 @@ cov.df  &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span c
 <p>In RxODE, covariate interpolation can also be the last observation carried forward, or constant approximation. This is equivalent to R’s <code>approxfun</code> with <code>method=&quot;constant&quot;</code>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(r2 &lt;-<span class="st"> </span><span class="kw">solve</span>(mod3, ev, <span class="dt">covs=</span>cov.df,<span class="dt">covs_interpolation=</span><span class="st">&quot;constant&quot;</span>))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_959251cbcf8ecd07da1f3caf59999e0b_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_4780fbffa6b2d111771a4be0ab39df5f_x64.dll
 ## 
 ## Parameters:
 ##         KA         CL         V2          Q         V3       Kin0 
@@ -691,7 +691,7 @@ et<span class="op">$</span><span class="kw">add.dosing</span>(<span class="dv">2
 
 (s1 &lt;-<span class="st"> </span>Vtpol2 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(et))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_1dc2e3e9cc03b1f0fa7e1c4c4c85323a_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_2257a2a61f22998cf71203eb769025e5_x64.dll
 ## 
 ## Parameters:
 ## mu 
@@ -717,7 +717,7 @@ et<span class="op">$</span><span class="kw">add.dosing</span>(<span class="dv">2
 <p>While this is not stiff at mu=1, mu=1000 is a stiff system</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(s2 &lt;-<span class="st"> </span>Vtpol2 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(<span class="kw">c</span>(<span class="dt">mu=</span><span class="dv">1000</span>), et))</code></pre></div>
 <pre><code>## Solved RxODE object
-## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/RtmpCYGt6N/Rbuild2ca063a475a1/RxODE/vignettes/rx_1dc2e3e9cc03b1f0fa7e1c4c4c85323a_x64.dll
+## Dll: C:/Users/fidlema3/AppData/Local/Temp/ep/Rtmp2pDK5l/Rbuild311c418e6c4d/RxODE/vignettes/rx_2257a2a61f22998cf71203eb769025e5_x64.dll
 ## 
 ## Parameters:
 ##   mu 
@@ -782,12 +782,12 @@ theta.all &lt;-<span class="st"> </span>
     <span class="dt">Kin=</span><span class="dv">1</span>, <span class="dt">Kout=</span><span class="dv">1</span>, <span class="dt">EC50=</span><span class="dv">200</span>)                <span class="co"># effects  </span>
 <span class="kw">head</span>(theta.all)</code></pre></div>
 <pre><code>##         KA       CL   V2    Q  V3 Kin Kout EC50
-## [1,] 0.294 25.23714 40.2 10.5 297   1    1  200
-## [2,] 0.294 18.96262 40.2 10.5 297   1    1  200
-## [3,] 0.294 17.86298 40.2 10.5 297   1    1  200
-## [4,] 0.294 19.00681 40.2 10.5 297   1    1  200
-## [5,] 0.294 18.54742 40.2 10.5 297   1    1  200
-## [6,] 0.294 18.13774 40.2 10.5 297   1    1  200</code></pre>
+## [1,] 0.294 16.69295 40.2 10.5 297   1    1  200
+## [2,] 0.294 20.04386 40.2 10.5 297   1    1  200
+## [3,] 0.294 19.21716 40.2 10.5 297   1    1  200
+## [4,] 0.294 20.87767 40.2 10.5 297   1    1  200
+## [5,] 0.294 25.19626 40.2 10.5 297   1    1  200
+## [6,] 0.294 15.96079 40.2 10.5 297   1    1  200</code></pre>
 <p>Each subproblem can be simulated by using an explicit loop (or the <code>apply()</code> function) to run the simulation for each set of parameters of in the parameter matrix.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nobs &lt;-<span class="st"> </span>ev<span class="op">$</span><span class="kw">get.nobs</span>()
 <span class="kw">set.seed</span>(<span class="dv">1</span>)
@@ -800,11 +800,11 @@ cp.all &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class=
 }
 
 <span class="kw">matplot</span>(cp.all, <span class="dt">type=</span><span class="st">&quot;l&quot;</span>, <span class="dt">ylab=</span><span class="st">&quot;Central Concentration&quot;</span>)</code></pre></div>
-<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
 <p>It is now straightforward to perform calculations and generate plots with the simulated data. Below, the 5th, 50th, and 95th percentiles of the simulated data are plotted.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cp.q &lt;-<span class="st"> </span><span class="kw">apply</span>(cp.all, <span class="dv">1</span>, quantile, <span class="dt">prob =</span> <span class="kw">c</span>(<span class="fl">0.05</span>, <span class="fl">0.50</span>, <span class="fl">0.95</span>))
 <span class="kw">matplot</span>(<span class="kw">t</span>(cp.q), <span class="dt">type=</span><span class="st">&quot;l&quot;</span>, <span class="dt">lty=</span><span class="kw">c</span>(<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">2</span>), <span class="dt">col=</span><span class="kw">c</span>(<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">2</span>), <span class="dt">ylab=</span><span class="st">&quot;Central Concentration&quot;</span>)</code></pre></div>
-<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA8AAAAEgCAMAAABM0+oCAAAATlBMVEUAAAAAADoAAGYAOpAAZrY6AAA6ADo6AGY6kNtmAABmADpmtv+QOgCQZgCQ2/+2ZgC2/7a2///bkDrb////AAD/tmb/25D//7b//9v///+VO7rqAAAACXBIWXMAAA7DAAAOwwHHb6hkAAALhUlEQVR4nO3djVLiyhYGUBz1jo7e4Q6Cyvu/6CUJCagkgU4CvWGtqimnzgF6l+NnJ/2X2RoIa3bpAoB0AgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAENguwJ+vs9KvfxcsBzjFLsBzyYVomgB/PD9dsg4gwV6AXy5ZB5CgCfDn68Ml6wAS7O6BVzNdMASzdwk9MwoNwZgHhsAEGALbC/D74+YC+u7v5WoBTrQ/iFVMBC8MZUEce9NI1UKOxf3bxYoBTvNjIcfKKDSEoQeGwNwDQ2BGoSEw88AQmABDYAIMgVUB/nh+spkB4tEDQ2C7hRx/qvHnYQs5ZsAIkgO8GBbgAe8Ftk4N8HwX/UFn2wkwjCC9Bz5Tu0C70wM8rLkjL92Xo7QG1y4hwPU80pT3wAIMx0gI8Pz+bfGwfn8ctJmhL8AuseEICffAz0/r1f3bwO2Efe3qguEIKQF+Wb///lf+ma5dAYYjnB7gYkN/MRI9bYBdQsMREu6BixUc86eJL6ElGI6QMo00fyhGooftZRBgGMGZ54GP/zg3wdAv7R641+drz1yxAMMI0kah+yzqhdKrthXT/QF2DQ29Ei6h+/cR7nXSbUNd/e3qgqFXSg8861tKuddJt6VdgGEEkwxijdIDu4SGXunbCbuupJtT39PvgSUY+k10Ikd9nd262EOAYQQZn8gxcxcMPTI+kUOAoc9EK7GGL+RYr5cCDD0SAtwbzlEWcqx1wdAr5USO8yzkEGDolXYiR4/2hRwnnUdtGBp6TLIWeqQeWIKhR8pupIfeF4+ykEOAoU/KZoZZ/3akMRZyrJdugqHbJJsZRmpXgKFHtidyrIv9SAIMnSYK8GLTQ5cX2m0rpo/6OF0wdEsJ8OYi+v5t3jWZtLj7u3lVMdglwDChlEGsu7+L+7eu6eBqGunztXh+w5AAG4aGbmmH2i06orneTRUXT1EaFGAJhk5pCzmKAHds6G8WcswfBBgmlN4DzzuezFDHtv389+PaXc4MREOH5HvgRedyjvr/fr4OC7ANDdAlcRR6Nrsbtq3/yHaNQ0OXnBdyrHXB0C3zANsUDF2Snk5YjEEPO9PuYr844KqknMhRDj9XC62mb1eCoV36hv7+RySN0e5SgKFd+uNFOw92H63dIsDugqFFwiV0Ncf7/phyE3zSmVgl49DQLmUw6f3xbPPAAgxdsp9GkmBol3+ATQVDq2mezDBiuye+Fm7KJE9mGLPdk18MN2SSJzOM2a6pYGg3yZMZxmzXVDC0m+bJDCO2uzYODa0mejLDGM8HbuiCocU0T2YY5/nADV0wHDbJPPBYTyfcf7kEw0+TBLj9+cBJH5fyergJk6yFHr8HFmA4JGkQq4hn56mUIz0fuLGUYDhkwH7gjnOhx3k+8E4VYLfB8E3uJ3JsLY1jwQET9cDjtVvRBcMh09wDj7uQo3mLAMNX05zIMfJCjuYtEgxfBFnIkfweuGpnXshx+qF2NTNJ8NPJAa42I3WfSTlFD7xMeRNcuVMD/PFcJbL+etjYCzkKBqLhh1MD3DzWu/tgjpEXchS2XbAEw86JAT7i4njkdne2d8ESDI0TA3zEPqOR2/35NgmG2skB3vXAlwiwcSzYd/I9cHMg1vzcl9CD3gdX6dQAvz++fPvLAc2pO+2LKZOCaCoJvjp5Hng7MbRomx8qfb72XV+n5bBOsNtgKKXsRio61p6jZXvPnk0PsLkkaEz1cLO+s2cTr4R1wbAvwtMJD71XgmEdM8ASDFshA2woGirxAmwuCRrxArxLsKtobl7AAEsw1E5eC927xmrkdg+RYKhE7IH3PkGCuW1xA7w+/VwtuDYJAa4vo1MuodMPtftquVeTXpjblRDg+f3b4qFzN9KY7baQYFinPRvpab26fzv/kTpffUmwCHOj0h5u9v77X/nnDO222iZYJ8wtS3u42cefvxcP8NdPkmBuUsI9cHEY1vzp0pfQex9lNJqblTKNNH8oRqIHreMYKcDbfleEuVWB54EL9fCVVR3cprR74DO222e5N5hlNJpbkzYKfcZ2j/9EEeb2JFxCD3skw6ntHuXLlJJLaW5HSg988d1IPy2/zgov9cTchuCDWDtNhHdD0kLM1Uvogf/8Lb9e5OFmx332TE/MjUgP8GUebtZtl9cvPbEgc61OfrjZbkPgoNmkqXrg/ah+37coxFyd9B74TO0m2e9z9zYgb/+rHpmrcTWDWAe1BPnA/4WQEgJcPd2sexqp9zXnXb18KMi7QC+/9czfv0K2Uk7k6B+9ah4+umq7U77M9oNDEf0e6J+W25eN+rWlmuv4eo5/S0ppJ3L02Fsu3bbpMNf9Q+f6Ee//tRFZxy8uX0/92v0DO8la6L2XfJst3v0bH9su0C5lN1LPs7tD98AQSspmhp5nd6+Le+CX+rVZ3QPDlZloM0P9otZjdwQYRnCxeWBgBBcK8IWbSaO4VFkXl3d1YxW39zmb6+P7t/kYB+t0NpMfxaXKuri8qxs/wKu7v4v7tyOmg4c1kyHFpcq6uLyrGz3AxRxRMTk0bDthbzM5UlyqrIvLu7rRA1ys0igCPMrRWO3N5EhxqbIuLu/qJuuB54OezNDbTI4Ulyrr4vKubqp74EX/co5hzWRIcamyLi7v6qYZhZ7N7sbY1t/ZTH4Ulyrr4vKuboIAT+kmvpeTUFyyrKsLFmBgCnWAq81I74/TrOMAJrEN8MdzNfhcfwUiqI+VrXM70UosYApVgI/Yqg/kpwpw+2E5QMbqAO96YAGGMOp74OZArGmWUgJT2Ab4/fHl21+A/NXzwNtj6hbDnm0GnNXebqTiJJ7eo2WBjFhKCYEJMAR2jgCvJtulOEx511De82daYTUjkGNx74/b260ci1svNv+u5VhsdtW9/y4naZu6hhd4hgCvNiWu8vo+lj5fN0Utip/DTCtclQfo51jcalPYx3Ou37lFUVSR4Oyq+3guV1k0dY1Q4PQBrpZpzvMbHqtmzBa//mVaYXnMb5bfvqqmXL9z1ca6TVHZVbeqnnvS1DVGgdMHuMnJ5C0l2fwCzLTCxf1/NwHOsbj3/2w7jRyL2wU4t+pWs6dyoXJT1xgFniHA5b92tkus55vvY5YVbqoq7oFzLG7163/P5ehBjsXtLqEzrK4KcF3XGAVOH+DqGj+rW5E9xQKWLCssLq+KAOdY3KK4Eiw6uhyLWzdDQxlWV4a1qWuMAm88wKt6DCu7CusjfnMsbnG37TlyLK68qCrPlsmwuogBzvBCplEtIM2xwrKmXC+hq7u2zR1cjsXt3WLmV13ES+jchhL2bFd+51jhYvuUyZcci6t+5DY/fjkWt+vgMqwu4iBWdoP5jfoQ+2wrnGc6jVSd/7DKdBqpikWe1a0CTiPlN52+tTuCM9cK57ku5FjUv1lyLK65B86wulXAhRzl5WBW38Wt7VVqUVqmFVZLKXMsblUvQs2xuPU82+q297tNXcMLtJkBAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAIbD/A85VDPgpQeeXAAAAAElFTkSuQmCC" /><!-- --></p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA8AAAAEgCAMAAABM0+oCAAAATlBMVEUAAAAAADoAAGYAOpAAZrY6AAA6ADo6AGY6kNtmAABmADpmtv+QOgCQZgCQ2/+2ZgC2/7a2///bkDrb////AAD/tmb/25D//7b//9v///+VO7rqAAAACXBIWXMAAA7DAAAOwwHHb6hkAAALlUlEQVR4nO3djVLbSBYGUBNgA4GNNwYDfv8XXUuyZAOWZLUkuy8+p2qWmVqHvkXypX/VWmyAsBaXLgBIJ8AQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIEJMAQmwBCYAENgAgyBCTAEJsAQmABDYAIMgQkwBCbAEJgAQ2ACDIHtA/zxvCj9+nfBcoAh9gFeSi5E0wT4/fHhknUACQ4C/HTJOoAETYA/nu8uWQeQYD8HXi90wRDMwRB6YRUagrEPDIEJMAR2EOC3++0A+ubv5WoBBjpcxCo2gleWsiCOg22k6iDH6vblYsUAw3w7yLG2Cg1h6IEhMHNgCMwqNARmHxgCE2AITIAhsCrA748PHmaAePTAENj+IMefav153EGOBTCB5ACvxgV4xK8FdoYGeLmP/qi77QQYJpDeA5+pXaDd8ACPa+7EofvrJK3BT5cQ4Hofac45sADDKRICvLx9Wd1t3u5HPczQF2BDbDhBwhz48WGzvn0Z+ThhX7u6YDhBSoCfNm+//5X/zNeuAMMJhge4eKC/WImeN8CG0HCChDlwcYJj+TDzEFqC4QQp20jLu2IletyzDAIMEzjzPvDp384kGPqlzYF7fTz37BULMEwgbRW6z6o+KL1uOzHdH2AJhl4JQ+j+5wgPOum2pa7+dgUYeqX0wIu+o5QHnXRb2vvbXUgw9JllEWuSHtgyNPRKf5ywayTd3PqePgeWYOg3040c9Ti79bCHAMMEMr6RwyQY+mR8I4cAQ5+ZTmKNP8hhJxj6JQS4N5yTHOQoHuqXYOiWciPHeQ5yCDD0SruRo0f7QY5B91FbhoYes5yFnqYHlmDok/I00l3vhyc5yCHA0CflYYZF/+NIUxzkMAmGPrM8zDBRuwIMPbK9kWNTPFAowdBppgCvtj10OdBuOzF90rfTBUO3lABvB9G3L8uuzaTVzd/tp4rFrpEBPrU6uE4pi1g3f1e3L13bwdU20sdz8f6GMQG2DA3d0i61W3VEc7PfKi7eojQqwBIMndIOchQB7nigvznIsbwbHWCzYGiX3gMvO97MUMe2/f7309p9FWDokjwHXnUe56j/34/ncQG2kQRdElehF4ubcY/1nxxgXTC0y/kgx8YYGrrlHmDr0NAh6e2ExRr0uDvtLvYXB/woKTdylMvP1UGr+duVYGiX/kB//yuSJmnXMha0S3+9aOfF7pO1ax0aOiQMoas93rf7lEnwoDuxCq/uh4Z2KYtJb/fn2gfe6IKhS+bbSAIMXbIPsK1gaDfPmxkmbHfgZ+GqzPJmhinbHfhZuCqzvJlhynarD5sFwzGzvJlhynYtY0G7ed7MMGG71VawBMMxM72ZYYr3A9cEGNrM82aGSd4P3Cg3kiQYvptlH3iqtxPuvFqIhuNmCXD7+4GTvt3wj8OVmOUs9MQ9cMrn4SokLWIV8ey8lXKi9wN//rxZMHw14nngjnuhp3k/8J6FaDgq/xs5Cq+6YDhmph54unZLrxtdMBwxzxx40oMcBV0wHDPPjRzTHuTY1F0w8FmEgxxjfg38aGc+yDH4UrsvJRhEw6HBAa4eRuq+k3KmHliC4YuhAX5/rBJZfz1u+oMc9SxYgOHA0AA3r/Xuvphj4oMcm11yJRg+GRjgEwbHE7fbqBeiJRgaAwN8wnNGE7fbqLtgoDE4wPse+MwBlmD4ZvAcuLkQa3nmIfTBrzOKhsrQAL/dP335lyOaW3faD1Mm96QSDHuD94F3G0Ortv2h0sdz3/g6fShsIQsaKU8jFR1rz9WyvXfPJgX4tfmlEgyFuV5u1nf3bFoPbB0LPsn/7YSH9l0wsIkW4MMEG0VDtAAf/moJhsABlmCIGWAJhlK8AFvIgsbgs9C9Z6wmbvc7CYZavB74c4KNorlqEQNcJ9haNFcvIcD1MDplCD3qUrvjNb2KMNcrIcDL25fVXefTSFO2e8J3kWCuVsq7kR4269uXs1+p80mdWUtZXLe0l5u9/f5X/nOGdls0CdYJc83SXm72/ufvhQO8n/ouPv8nXJOEOXBxGdby4bJD6MLXTliEuT4p20jLu2IletQ5jmknr9OsaUM8IfeBW7+dXpgrkzYHPmO7Pb6Mo7cRlmGuSNoq9Bnb7fP6NcJwRRKG0ONeyTC03X5HIqwb5kqk9MAXfhqp67seRFiGuQI/ZBGrSevnY9ZSzA+X0AP/+Vt+PffLzbodRvUwxHpifrT0AJ/95WY9Pif1a08syPxIg19utn8gcNRu0jxz4O8h/rw2Lcj8MOk98JnaHeh7QI89gCzI/BA/ZBHri2MB7QqyNBNUQoCrt5t1byP1fuY8py72AX092C3+rPnkkc9//3qWsuFUKTdy9K9eNS8fXbfNlC9zbOpYIL8Gutv211X/O9/Xo3Ve11dOlnYjR4+D49JtDx3mcu4xjz+wzddhf5v8WOXPw9fmL/QOs5yFPvjIl93i/e/Rqe0C7VKeRup5d3eoHhhCS3mYoefd3ZtiDvxUfzarOTD8MDM9zFB/qPXaHQGGCVxsHxiYwIUCfOFm0iguVdbF5V3dVMUdfJ/t+Pj2ZTnFxTqdzeRHcamyLi7v6qYP8Prm7+r25YTt4HHNZEhxqbIuLu/qJg9wsUdUbA6Ne5ywt5kcKS5V1sXlXd3kAS5OaRQBnuRqrPZmcqS4VFkXl3d1s/XAy1FvZuhtJkeKS5V1cXlXN9cceNV/nGNcMxlSXKqsi8u7unlWoReLmyke6+9sJj+KS5V1cXlXN0OA53QVP8tZKC5Z1tUFCzAwhzrA1cNIb/fznOMAZrEL8PtjtfhcfwUiqK+VrXM700ksYA5VgE94VB/ITxXg9stygIzVAd73wAIMYdRz4OZCrHmOUgJz2AX47f7py78A+av3gXfX1K3GvdsMOKuDp5GKm3h6r5YFMuIoJQQmwBDYOQK8nu0pxXHKWUM558+0wmpHIMfi3u53060ci9ustr+v5VpsdtW9/S43aZu6xhd4hgCvtyWu8/o5lj6et0Wtij+HmVa4Li/Qz7G49baw98dcf3KroqgiwdlV9/5YnrJo6pqgwPkDXB3TXOa3PFbtmK1+/cu0wvKa3yx/fFVNuf7kqgfrtkVlV926eu9JU9cUBc4f4CYns7eUZPsXYKYVrm7/uw1wjsW9/WfXaeRY3D7AuVW3XjyUB5WbuqYo8AwBLn+3sz1ivdz+HLOscFtVMQfOsbj1r/89lqsHORa3H0JnWF0V4LquKQqcP8DVGD+rqciB4gBLlhUWw6siwDkWtypGgkVHl2Nxm2ZpKMPqyrA2dU1R4JUHeF2vYWVXYX3Fb47FrW52PUeOxZWDqvJumQyrixjgDAcyjeoAaY4VljXlOoSuZm3bGVyOxR1MMfOrLuIQOrelhAO7k985VrjavWXyKcfiqj9y2z9+ORa37+AyrC7iIlZ2i/mN+hL7bCtcZrqNVN3/sM50G6mKRZ7VrQNuI+W3nb6zv4Iz1wqXuR7kWNV/s+RYXDMHzrC6dcCDHOVwMKuf4s5ulFqUlmmF1VHKHItb14dQcyxus8y2ut18t6lrfIEeZoDABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AITIAhMAGGwAQYAhNgCEyAITABhsAEGAITYAhMgCEwAYbABBgCE2AI7P9fMgkLSpUtOQAAAABJRU5ErkJggg==" /><!-- --></p>
 </div>
 <div id="facilities-for-generating-r-shiny-applications" class="section level4">
 <h4>Facilities for generating R shiny applications</h4>

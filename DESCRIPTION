@@ -1,6 +1,6 @@
 Package: RxODE
-Version: 0.6-0
-Date: 2017-09-20
+Version: 0.6-1
+Date: 2017-10-09
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -16,8 +16,7 @@ Depends: R (>= 3.2.0)
 Suggests: knitr, nlme, shiny, tcltk, testthat, devtools, covr,
         rmarkdown, SnakeCharmR, rSymPy, dplyr, tidyr, tibble, curl
 Imports: utils, methods, digest, rex, dparser (>= 0.1.7), brew,
-        memoise, magrittr, lbfgs, Rcpp (>= 0.12.3), inline, Matrix,
-        R.utils, numDeriv
+        memoise, magrittr, Rcpp (>= 0.12.3), inline, Matrix, R.utils
 Description: Facilities for running simulations from ordinary
     differential equation (ODE) models, such as pharmacometrics and other
     compartmental models.  A compilation manager translates the ODE model
@@ -34,10 +33,11 @@ NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: GNU make
 License: GPL (>= 2)
-URL: https://www.r-project.org, https://github.com/hallowkm/RxODE
+URL: https://www.r-project.org,
+        https://github.com/nlmixrdevelopment/RxODE
 RoxygenNote: 6.0.1
 LinkingTo: dparser(>= 0.1.7), Rcpp (>= 0.12.3), RcppArmadillo(>=
-        0.5.600.2.0), lamW
-Packaged: 2017-10-05 17:03:10 UTC; wangwez
+        0.5.600.2.0)
+Packaged: 2017-10-13 12:39:26 UTC; annie
 Repository: CRAN
-Date/Publication: 2017-10-05 22:10:58 UTC
+Date/Publication: 2017-10-13 22:11:44 UTC
