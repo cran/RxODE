@@ -1,9 +1,9 @@
-# event table (dosing + sampling obs from the system)
+                                        # event table (dosing + sampling obs from the system)
 # An eventTable object contains a numeric matrix with
 # a time vector, an event id  describing two types
 # of timed records, doses (input) and sampling times
 # (state variables); in the future there could be
-# other events (e.g., re-setting after "washoout"
+                                        # other events (e.g., re-setting after "washoout"
 # periods, resetting of compartments (e.g., urine),
 # etc.
 # TODO:
@@ -109,6 +109,9 @@
 #'    \item{copy}{makes a copy of the current event table. To create
 #'        a copy of an event table object use \code{qd2 <- qd$copy()}.}
 #'
+#'    \item{expand}{Expands the event table for multi-subject solving.
+#'    This is done by qd$expand(400) for a 400 subject data expansion}
+#'
 #' @author Melissa Hallow and Wenping Wang
 #'
 #' @seealso \code{\link{RxODE}}
@@ -164,16 +167,11 @@
 #' @export
 eventTable <- function(amount.units = NA, time.units = "hours")
 {
-    if (!missing(amount.units)){
-        if (is(amount.units, "solveRxODE")){
-            return(attr(amount.units,".env")$extra.args$events)
-        }
-    }
     .EventTable <- NULL
     .obs.rec <- logical(0)     # flag for observation records
 
-    .amount.units <- amount.units  # preferred units
-    .time.units <- time.units
+    .amount.units <- as.vector(amount.units)  # preferred units
+    .time.units <- as.vector(time.units)
 
     "add.dosing" <-
         function(dose,      # amount per dose,
@@ -186,9 +184,16 @@ eventTable <- function(amount.units = NA, time.units = "hours")
                  do.sampling=FALSE,
                  time.units = NA, ...)
         {
+            if(nbr.doses < 1L){
+                stop("Number of Doses must be at least one.");
+            }
+            tmp <- as.integer(nbr.doses)
+            if(nbr.doses != tmp){
+                stop("Number of doses must be a integer >= 1.")
+            }
             if(!is.na(amount.units)){
                 if(is.na(.amount.units))
-                    .amount.units <<- amount.units   # initialize
+                    .amount.units <<- as.vector(amount.units)   # initialize
                 else if(tolower(.amount.units)!=tolower(amount.units)){
                     stop("dosing units differ from EventTable's")
                 }
@@ -196,7 +201,7 @@ eventTable <- function(amount.units = NA, time.units = "hours")
 
             if(!is.na(time.units)){
                 if(is.na(.time.units))
-                    .time.units <<- time.units   # initialize
+                    .time.units <<- as.vector(time.units)   # initialize
                 else if(tolower(.time.units)!=tolower(time.units)){
                     stop("time units differ from EventTable's")
                 }
@@ -215,16 +220,16 @@ eventTable <- function(amount.units = NA, time.units = "hours")
             }
             time <- start.time+(1:nbr.doses-1)*dosing.interval
 
-                                        # TODO: should we code individual flags (infusion vs bolus, etc)
-                                        # in the table and convert to a mask integer just prior to
-                                        # invoking the C code?
-                                        # TODO: Handle units. Check that add.dosing() units don't conflict
-                                        # with the eventTable definition (preferred units)
+            ## TODO: should we code individual flags (infusion vs bolus, etc)
+            ## in the table and convert to a mask integer just prior to
+            ## invoking the C code?
+            ## TODO: Handle units. Check that add.dosing() units don't conflict
+            ## with the eventTable definition (preferred units)
             if (is.null(rate)) {#-- bolus
-                wh <- 100*dosing.to+1
+                wh <- floor(dosing.to / 100) * 1e5 + 100*(dosing.to %% 100) + 1
                 inp <- data.frame(time=time, evid=wh, amt=dose)
             } else {         #-- infusion
-                wh <- 10000+100*dosing.to+1
+                wh <- floor(dosing.to / 100) * 1e5 + 1e4 +100 * (dosing.to %% 100) + 1
                 toff <- dose/rate
                 if (rate<=0) {
                     inp <- NULL
@@ -247,7 +252,7 @@ eventTable <- function(amount.units = NA, time.units = "hours")
             else sampling.interval <- 1
 
             if (do.sampling)
-                add.sampling(0:(nbr.doses*dosing.interval), time.units = time.units)
+                add.sampling(0:(nbr.doses*dosing.interval), time.units = as.vector(time.units))
             invisible()
         }
 
@@ -256,7 +261,7 @@ eventTable <- function(amount.units = NA, time.units = "hours")
         {
             if(!is.na(time.units)){
                 if(is.na(.time.units))
-                    .time.units <<- time.units   # initialize
+                    .time.units <<- as.vector(time.units)   # initialize
                 else if(tolower(.time.units)!=tolower(time.units)){
                     stop("time units differ from EventTable's")
                 }
@@ -273,7 +278,7 @@ eventTable <- function(amount.units = NA, time.units = "hours")
     "clear.sampling" <- function(){
         ## Clears all sampling.
         .EventTable <<- .EventTable[!.obs.rec, ,drop = TRUE] ;
-        if (class(.EventTable) == "list"){
+        if (is(.EventTable,"list")){
             .EventTable <<- as.data.frame(.EventTable);
         }
         .obs.rec <<- .EventTable$evid == 0
@@ -282,7 +287,7 @@ eventTable <- function(amount.units = NA, time.units = "hours")
 
     "clear.dosing" <- function(){
         .EventTable <<- .EventTable[.obs.rec, ,drop = TRUE] ;
-        if (class(.EventTable) == "list"){
+        if (is(.EventTable,"list")){
             .EventTable <<- as.data.frame(.EventTable);
         }
         .obs.rec <<- .EventTable$evid==0
@@ -336,7 +341,7 @@ eventTable <- function(amount.units = NA, time.units = "hours")
             get.units = function() c(dosing = .amount.units, time = .time.units),
             import.EventTable = import.EventTable,
             copy = copy
-        )
+            )
     class(out) <- "EventTable"
     out
 }
@@ -364,15 +369,29 @@ function(x, ...)
 ##' piping syntax through magrittr
 ##'
 ##' @param eventTable eventTable object
-##' @param ... arguments sent to eventTable$add.dosing.
+##' @param dose numeric scalar, dose amount in \code{amount.units};
+##' @param nbr.doses integer, number of doses;
+##' @param dosing.interval required numeric scalar, time between doses
+##'      in \code{time.units}, defaults to 24 of \code{time.units="hours"};
+##' @param dosing.to integer, compartment the dose goes into
+##'        (first compartment by default);
+##' @param rate for infusions, the rate of infusion (default
+##'            is \code{NULL}, for bolus dosing;
+##' @param amount.units optional string indicating the dosing units.
+##'           Defaults to \code{NA} to indicate as per the original \code{EventTable}
+##'           definition.
+##' @param start.time required dosing start time;
+##' @param do.sampling logical, should observation sampling records
+##'            be added at the dosing times? Defaults to \code{FALSE}.
+##' @param time.units optional string indicating the time units.
+##'           Defaults to \code{"hours"} to indicate as per the original \code{EventTable} definition.
+##' @param ... Other parameters (ignored)
 ##' @return eventTable with updated dosing (note the event table will be updated anyway)
 ##' @author Matthew L. Fidler
 ##' @seealso \code{\link{eventTable}}, \code{\link{RxODE}}
 ##' @export
-add.dosing <- function(eventTable, ...) {
-    args <- as.list(match.call())[-(1:2)];
-    do.call(eventTable$add.dosing, args)
-    return(eventTable)
+add.dosing <- function(eventTable, dose, nbr.doses = 1L, dosing.interval = 24, dosing.to = 1L, rate = NULL, amount.units = NA_character_, start.time = 0.0, do.sampling = FALSE, time.units = NA_character_, ...) {
+    .Call(`_RxODE_add_dosing_`, eventTable, dose, nbr.doses, dosing.interval, dosing.to, rate, amount.units, start.time, do.sampling, time.units)
 }
 ##' Add sampling to eventTable
 ##'
@@ -384,17 +403,38 @@ add.dosing <- function(eventTable, ...) {
 ##' @param time.units an optional string specifying the time
 ##'     units. Defaults to the units specified when the
 ##'     \code{EventTable} was initialized.
+##' @param ... Other parameters (ignored)
 ##' @return eventTable with updated sampling.  (Note the event table
 ##'     will be updated even if you don't reassign the eventTable)
 ##' @author Matthew L. Fidler
 ##' @seealso \code{\link{eventTable}}, \code{\link{RxODE}}
 ##' @export
-add.sampling <- function(eventTable, time, time.units = NA){
-    eventTable$add.sampling(time=time, time.units=time.units)
-    return(eventTable)
+add.sampling <- function(eventTable, time, time.units = NA, ...){
+    .Call(`_RxODE_add_sampling_`, eventTable, time, time.units)
 }
 
 
 ##' @importFrom magrittr %>%
 ##' @export
 magrittr::`%>%`
+
+
+##' @export
+print.RxODE.multi.data <- function(x, ...){
+    message("RxODE multi-subject data:")
+    message(sprintf("  Number of Subjects: %s", x$nSub))
+    message(sprintf("  Number of Observations: %s (t=%s to %s%s)", x$nObs, x$min.time, x$max.time, ifelse(is.na(x$time.units), "", paste0(" ", x$time.units))))
+    if (x$nDose == 0){
+        message("  No Dosing Records.")
+    } else {
+        message(sprintf("  Number of Dosing Records: %s%s", x$nDose, ifelse(is.na(x$amount.units), "", paste0(" (in ", x$amount.units, ")"))))
+    }
+    obs.cov <- x$cov.names;
+    sim.cov <- x$simulated.vars;
+    if (!is.null(obs.cov)){
+        message(sprintf("  Covariates: %s", paste(obs.cov, collapse=", ")))
+    }
+    if (!is.null(sim.cov)){
+        message(sprintf("  Simulated Variables: %s", paste(sim.cov, collapse=", ")))
+    }
+}

@@ -5,12 +5,17 @@
 \alias{rxParam}
 \title{Parameters specified by the model}
 \usage{
-rxParams(obj)
+rxParams(obj, constants = TRUE)
 
-rxParam(obj)
+rxParam(obj, constants = TRUE)
 }
 \arguments{
 \item{obj}{RxODE family of objects}
+
+\item{constants}{is a boolean indicting if constants should be
+included in the list of parameters. Currently RxODE parses
+constants into variables in case you wish to change them
+without recompiling the RxODE model.}
 }
 \value{
 a character vector listing the parameters in the model.

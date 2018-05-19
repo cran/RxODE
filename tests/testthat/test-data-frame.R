@@ -4,6 +4,7 @@ library(digest)
 rxPermissive({
 
     context("rxSolve objects behave as data-frames")
+
     ## RxODE instance 1
     m1 <-
         RxODE(
@@ -17,8 +18,7 @@ rxPermissive({
 
     test_that("RxODE instance 1 is created",{
         expect_equal(class(m1),"RxODE");
-    })
-
+    });
     et1 <- eventTable(amount.units="ug", time.units = "hours")
     et1$add.dosing(dose=10000, nbr.doses=5, dosing.interval = 24)
     et1$add.sampling(0:24)
@@ -32,15 +32,16 @@ rxPermissive({
         expect_equal(length(et1$get.dosing()[,1]), 5);
     })
 
-    o1.first <- rxSolve(m1, params = c(KA=.291, CL=18.6, V2=40.2, Q=10.5, V3=297.0,
-                                       Kin=1.0, Kout=1.0, EC50=200.0),
-                        events = et1,
-                        inits = c(0, 0, 0, 1))
+    o1.first <- NULL;
+    test_that("", {
+        expect_warning(o1.first <<- rxSolve(m1, params = c(KA=.291, CL=18.6, V2=40.2, Q=10.5, V3=297.0,
+                                                           Kin=1.0, Kout=1.0, EC50=200.0),
+                                            events = et1,
+                                            inits = c(0, 0, 0, 1)))
+    })
 
     o1.df <- as.data.frame(o1.first);
     o1.df2 <- as_data_frame(o1.first);
-
-
 
     test_that("Numeric Data frame lookup operators [] make sense",{
         expect_equal(o1.first[],o1.df[]);
@@ -65,11 +66,11 @@ rxPermissive({
 
     test_that("Character data frame assignment operators [] make sense",{
         o1.assign <- o1.first;
-        expect_equal(class(o1.assign), c("solveRxODE", "data.frame"))
+        expect_equal(as.vector(class(o1.assign)), c("rxSolve", "data.frame"))
         o1.assign[,"depot"] <- 0;
         expect_equal(rep(0,times = length(as.data.frame(o1.assign)[,1])),as.data.frame(o1.assign)[,"depot"]);
         expect_equal(rep(0,times = length(o1.assign$depot)),o1.assign$depot);
-        expect_false(any(class(o1.assign) == "solveRxODE"));
+        expect_false(any(as.vector(class(o1.assign)) == "rxSolve"));
     })
 
     test_that("Numeric data frame lookup operators [[]] make sense",{
@@ -89,13 +90,12 @@ rxPermissive({
 
     test_that("Character data frame assignment operators [[]] make sense",{
         o1.assign <- o1.first;
-        expect_equal(class(o1.assign), c("solveRxODE", "data.frame"))
+        expect_equal(as.vector(class(o1.assign)), c("rxSolve", "data.frame"))
         o1.assign[["depot"]] <- 0;
         expect_equal(rep(0,times = length(as.data.frame(o1.assign)[,1])),as.data.frame(o1.assign)[["depot"]]);
         expect_equal(rep(0,times = length(o1.assign$depot)),o1.assign$depot);
-        expect_false(any(class(o1.assign) == "solveRxODE"));
+        expect_false(any(as.vector(class(o1.assign)) == "rxSolve"));
     })
-
 
     test_that("Character data frame lookup operators $ make sense",{
         expect_equal(o1.first$centr,o1.df$centr);
@@ -104,11 +104,11 @@ rxPermissive({
 
     test_that("Character data frame assignment operators $ make sense",{
         o1.assign <- o1.first;
-        expect_equal(class(o1.assign), c("solveRxODE", "data.frame"))
+        expect_equal(as.vector(class(o1.assign)), c("rxSolve", "data.frame"))
         o1.assign$depot <- 0;
         expect_equal(rep(0,times = length(as.data.frame(o1.assign)[,1])),as.data.frame(o1.assign)$depot);
         expect_equal(rep(0,times = length(o1.assign$depot)),o1.assign$depot);
-        expect_false(any(class(o1.assign) == "solveRxODE"));
+        expect_false(any(as.vector(class(o1.assign)) == "rxSolve"));
     })
 
     test_that("rownames lookup & assignment makes sense",{

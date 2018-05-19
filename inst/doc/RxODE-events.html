@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>RxODE: Event coding</title>
+
+<script type="text/javascript">
+window.onload = function() {
+  var imgs = document.getElementsByTagName('img'), i, img;
+  for (i = 0; i < imgs.length; i++) {
+    img = imgs[i];
+    // center an image if it is the only element of its parent
+    if (img.parentElement.childElementCount === 1)
+      img.parentElement.style.textAlign = 'center';
+  }
+};
+</script>
+
+
+
+
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 1em;
+  line-height: 20px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 {
+   font-size:2.2em;
+}
+
+h2 {
+   font-size:1.8em;
+}
+
+h3 {
+   font-size:1.4em;
+}
+
+h4 {
+   font-size:1.0em;
+}
+
+h5 {
+   font-size:0.9em;
+}
+
+h6 {
+   font-size:0.8em;
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre, img {
+  max-width: 100%;
+}
+pre {
+  overflow-x: auto;
+}
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * {
+      background: transparent !important;
+      color: black !important;
+      filter:none !important;
+      -ms-filter: none !important;
+   }
+
+   body {
+      font-size:12pt;
+      max-width:100%;
+   }
+
+   a, a:visited {
+      text-decoration: underline;
+   }
+
+   hr {
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote {
+      padding-right: 1em;
+      page-break-inside: avoid;
+   }
+
+   tr, img {
+      page-break-inside: avoid;
+   }
+
+   img {
+      max-width: 100% !important;
+   }
+
+   @page :left {
+      margin: 15mm 20mm 15mm 10mm;
+   }
+
+   @page :right {
+      margin: 15mm 10mm 15mm 20mm;
+   }
+
+   p, h2, h3 {
+      orphans: 3; widows: 3;
+   }
+
+   h2, h3 {
+      page-break-after: avoid;
+   }
+}
+</style>
+
+
+
+</head>
+
+<body>
+<h2>RxODE: Event coding</h2>
+
+<p>Event coding in RxODE is encoded in a single event number <code>evid</code>. For
+compartments under 100, this is coded as:</p>
+
+<ul>
+<li>This event is <code>0</code> for observation events.</li>
+<li>For a specified compartment a bolus dose is defined as:
+
+<ul>
+<li>100*(Compartment Number) + 1</li>
+<li>The dose is then captured in the <code>amt</code></li>
+</ul></li>
+<li>For IV bolus doses the event is defined as:
+
+<ul>
+<li>10000 + 100*(Compartment Number) + 1</li>
+<li>The infusion rate is captured in the <code>amt</code> column</li>
+<li>The infusion is turned off by subtracting <code>amt</code> with the same
+<code>evid</code> at the stop of the infusion.</li>
+</ul></li>
+</ul>
+
+<p>For compartments greater or equal to 100, the 100s place and above
+digits are transfered to the 100,000th place digit. For doses to the
+99th compartment the <code>evid</code> for a bolus dose would be <code>9901</code> and the
+<code>evid</code> for an infusion would be <code>19901</code>.  For a bolus dose to the
+<code>199</code>th compartment the <code>evid</code> for the bolus dose would be
+<code>109901</code>. An infusion dosing record for the <code>199</code>th compartment would
+be <code>119901</code>.</p>
+
+</body>
+
+</html>

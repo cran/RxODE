@@ -56,7 +56,7 @@ rex::register_shortcuts("RxODE");
 ##'     Jacobain according to the specified ODEs.
 ##'
 ##' @param collapseModel boolean indicating if RxODE will remove all
-##'     LHS variables when calculating sensitivites.
+##'     LHS variables when calculating sensitivities.
 ##'
 ##' @param ... any other arguments are passed to the function
 ##'     \code{\link{readLines}}, (e.g., encoding).
@@ -202,8 +202,6 @@ rex::register_shortcuts("RxODE");
 ##'           that dynamically loads the object code if needed.}
 ##'       \item{dynUnload}{a function with no argument that unloads
 ##'           the model object code.}
-##'       \item{cmpMgr}{a \dQuote{compilation manager} object, see
-##'           \code{\link{rx.initCmpMgr}}.}
 ##'       \item{delete}{removes all created model files, including C and DDL files.
 ##'           The model object is no longer valid and should be removed, e.g.,
 ##'           \code{rm(m1)}.}
@@ -260,7 +258,7 @@ rex::register_shortcuts("RxODE");
 ##' print(m1)
 ##'
 ##' # Step 2 - Create the model input as an EventTable,
-                                        ##' # including dosing and observation (sampling) events
+##' # including dosing and observation (sampling) events
 ##'
 ##' # QD (once daily) dosing for 5 days.
 ##'
@@ -304,444 +302,184 @@ rex::register_shortcuts("RxODE");
 ##' @concept Pharmacokinetics (PK)
 ##' @concept Pharmacodynamics (PD)
 ##' @useDynLib RxODE, .registration=TRUE
+##' @importFrom mvnfast rmvn
+##' @importFrom PreciseSums fsum
 ##' @importFrom Rcpp evalCpp
 ##' @importFrom utils getFromNamespace assignInMyNamespace download.file head sessionInfo
 ##' @importFrom stats setNames update
 ##' @importFrom methods signature is
+##' @importFrom memoise memoise
 ##' @export
 RxODE <- function(model, modName = basename(wd), wd = ifelse(RxODE.cache.directory == ".", getwd(), RxODE.cache.directory),
                   filename = NULL, do.compile = NULL, extraC = NULL,
                   debug = FALSE,
                   calcJac=NULL, calcSens=NULL,
                   collapseModel=FALSE, ...) {
-    if (missing(modName) && RxODE.delete.unnamed){
-        do.delete <- TRUE;
-    } else {
-        do.delete <- FALSE;
-    }
     if (!missing(model) && !missing(filename))
         stop("Must specify exactly one of 'model' or 'filename'.")
     if (missing(model) && !missing(filename)){
         model <- filename;
     }
     if (!missing(model) && missing(filename)){
-        if (class(substitute(model)) == "{"){
+        if (is(substitute(model),"{")){
             model <- deparse(substitute(model));
             if (model[1] == "{"){
                 model <- model[-1];
                 model <- model[-length(model)];
             }
             model <- paste(model, collapse="\n");
-        } else if (class(model) == "RxODE"){
+        } else if (rxIs(model,"RxODE")){
             model <- rxModelVars(model)$model["model"];
             if (!is.null(calcJac) && is.null(calcSens)){
                 calcSens <- FALSE;
             }
         }
-        ## else if ((class(model) == "function" || class(model) == "call")){
+        ## else if ((is(model,"function") || is(model,"call"))){
         ##     model <- deparse(body(model))[-1];
         ##     model <- paste(model[-length(model)], collapse="\n");
         ## }
     }
     model <- rxLinCmtTrans(model);
+    class(model) <- "RxODE.modeltext"
     ## RxODE compilation manager (location of parsed code, generated C,  shared libs, etc.)
-
-    cmpMgr <- rx.initCmpMgr(model, modName, wd,  extraC, debug, missing(modName),
-                            calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel);
-    ## NB: the set of model variables (modelVars) is only available
-    ## after parsing, thus it needs to be dynamically computed in cmpMgr
-    get.modelVars <- cmpMgr$get.modelVars
-
-    .version <- rxVersion()["version"]; # object version
-    .last.solve.args <- NULL   # to be populated by solve()
-
-    .c <- function(...){.C(...)};
-
-    sexp.address <- NULL
-    .sexp <- function(...){
-        if (is.null(sexp.address)){
-            sexp.address <<- getNativeSymbolInfo(as.vector(out$dll$modVars$trans["ode_solver_sexp"]),gsub("_$","",out$dll$modVars$trans["prefix"]))$address
-        }
-        .Primitive(".Call")(sexp.address,...);
-    }
-
-    solve <- function(params=NULL, events=NULL, inits = NULL, scale = c(),
-                      covs = NULL, stiff = TRUE, transit_abs = NULL,
-                      atol = 1.0e-8, rtol = 1.0e-6, maxsteps = 5000, hmin = 0, hmax = NULL, hini = 0, maxordn = 12,
-                      maxords = 5, ..., covs_interpolation = c("linear", "constant"),
-                      theta=numeric(), eta=numeric(), matrix=TRUE,add.cov=FALSE,
-                      inC=FALSE, counts=NULL, do.solve=TRUE){
-        env <- environment(.c);
-        modVars <- dll$modVars;
-        trans <- modVars$trans
-        state <- modVars$state;
-        lhs <- modVars$lhs;
-        pars <- modVars$params;
-        state.ignore <- modVars$state.ignore
-        if (!is.null(params)){
-            if (is.null(events) && class(params) == "EventTable"){
-                events <- params;
-                params <- c();
-            }
-        }
-        if (is.null(transit_abs)){
-            transit_abs <- modVars$podo;
-            if (transit_abs){
-                warning("Assumed transit compartment model since 'podo' is in the model.")
-            }
-        }
-        if (class(params) != "numeric"){
-            n <- names(params);
-            params <- as.double(params);
-            names(params) <- n;
-        }
-        ## Params and inits passed
-        extra.args <- list(events = events$copy(),
-                           covs = covs, stiff = stiff,
-                           transit_abs = transit_abs, atol = atol, rtol = rtol, maxsteps = maxsteps,
-                           hmin = hmin, hmax = hmax, hini = hini, maxordn = maxordn, maxords = maxords,
-                           covs_interpolation = covs_interpolation, add.cov=add.cov, ...);
-        params <- c(params, rxThetaEta(theta, eta));
-        event.table <- events$get.EventTable()
-        if (!is.numeric(maxordn))
-            stop("'maxordn' must be numeric.")
-        if (maxordn < 1 || maxordn > 12)
-            stop("'maxordn' must be >1 and < = 12.")
-        if (!is.numeric(maxords))
-            stop("'maxords' must be numeric.")
-        if (maxords < 1 || maxords > 5)
-            stop("'maxords' must be >1 and < = 5.")
-        if (!is.numeric(rtol))
-            stop("'rtol' must be numeric.")
-        if (!is.numeric(atol))
-            stop("'atol' must be numeric.")
-        if (!is.numeric(hmin))
-            stop("'hmin' must be numeric.")
-        if (hmin < 0)
-            stop("'hmin' must be a non-negative value.")
-        if (is.null(hmax)){
-            if (is.null(event.table$time) || length(event.table$time) == 1){
-                hmax <- 0;
-            } else {
-                hmax <- max(abs(diff(event.table$time)))
-            }
-        }
-        if (!is.numeric(hmax))
-            stop("'hmax' must be numeric.")
-        if (hmax < 0)
-            stop("'hmax' must be a non-negative value.")
-        if (hmax == Inf)
-            hmax <- 0
-        if (!is.null(hini)){
-            if (hini < 0)
-                stop("'hini' must be a non-negative value.")
+    env <- new.env(parent=baseenv())
+    env$missing.modName <- missing(modName);
+    wd <- suppressWarnings({normalizePath(wd, "/", mustWork=F)})
+    if (env$missing.modName){
+        if (RxODE.tempfiles){
+            env$mdir <- rxTempDir();
         } else {
-            hini <- 0;
+            env$mdir <- wd
         }
-        ## preserve input arguments.
-        inits <- rxInits(dll, inits, state, 0);
-        params <- rxInits(dll, params, pars, NA, !is.null(covs));
-        if (!is.null(covs)){
-            cov <- as.matrix(covs);
-            pcov <- sapply(dimnames(cov)[[2]], function(x){
-                w <- which(x == names(params));
-                if (length(w) == 1){
-                    return(w)
-                } else {
-                    return(0);
-                }
-            })
-            n_cov <- length(pcov);
-            ## Now check if there is any unspecified parameters by either covariate or parameter
-            w <- which(is.na(params));
-            if (!all(names(params)[w] %in% dimnames(cov)[[2]])){
-                print(params)
-                stop("Some model specified variables were not specified by either a covariate or parameter");
-            }
-            ## Assign all parameters matching a covariate to zero.
-            for (i in pcov){
-                if (i > 0){
-                    params[i] <- 0;
-                }
-            }
-            covnames <- dimnames(cov)[[2]]
-        } else {
-            ## For now zero out the covariates
-            pcov <- c();
-            cov <- c();
-            n_cov <- 0;
-            covnames <- c();
-        }
-        lhs_vars <- lhs
-        if (is.null(inits)){
-            n <- state;
-            inits <- rep(0.0, length(n));
-            names(inits) <- n;
-        }
-        s <- as.list(match.call(expand.dots = TRUE))
-        wh <- grep(pattern = "[Ss]\\d+$", names(s))
-        if (length(scale) > 0 && length(wh) > 0){
-            stop("Cannot specify both 'scale=c(...)' and S#=, please pick one to scale the ODE compartments.")
-        }
-        ## HACK: fishing scaling variables "S1 S2 S3 ..." from params call
-        ## to solve(). Maybe define a "scale = c(central = 7.6, ...)" argument
-        ## similar to "params = "?
-        scaler.ix <- c()
-        if (length(wh) > 0) {
-            scaler.ix <- as.numeric(substring(names(s)[wh], 2))
-            if (any(duplicated(scaler.ix))){
-                stop("Duplicate scaling factors found.");
-            }
-            scale <- unlist(s[wh]);
-            if (any(length(inits) < scaler.ix)){
-                warning(sprintf("Scaler variable(s) above the number of compartments: %s.",
-                                paste(paste0("S", scaler.ix[scaler.ix > length(inits)]), collapse=", ")))
-                scale <- scale[scaler.ix < length(inits)]
-                scaler.ix <- scaler.ix[scaler.ix < length(inits)];
-            }
-            names(scale) <- state[scaler.ix];
-        }
-        scale <- c(scale);
-        scale <- rxInits(dll, scale, state, 1, noini=TRUE);
-        isLocf <- 0;
-        if (length(covs_interpolation) > 1){
-            isLocf <- 0;
-        } else if (covs_interpolation == "constant"){
-            isLocf <- 1;
-        } else if (covs_interpolation != "linear"){
-            stop("Unknown covariate interpolation specified.");
-        }
-        ## if (event.table$time[1] != 0){
-        ##     warning(sprintf("The initial conditions are at t = %s instead of t = 0.", event.table$time[1]))
-        ## }
-        ## Ensure that inits and params have names.
-        names(inits) <- state
-        names(params) <- pars;
-
-        time <- event.table$time; ## Changing this to as.double fails tests
-        evid <- as.integer(event.table$evid);
-        amt <- as.double(event.table$amt[event.table$evid>0]);
-        ## Covariates
-        pcov=as.integer(pcov);
-        cov=as.double(cov);
-        isLocf=as.integer(isLocf);
-        ## Solver options (double)
-        atol=as.double(atol);
-        rtol=as.double(rtol);
-        hmin=as.double(hmin);
-        hmax=as.double(hmax);
-        hini=as.double(hini);
-        ## Solver options ()
-        maxordn=as.integer(maxordn);
-        maxords=as.integer(maxords);
-        maxsteps=as.integer(maxsteps);
-        stiff=as.integer(stiff);
-        transit_abs=as.integer(transit_abs);
-        do.matrix=as.integer(matrix);
-        add.cov = as.integer(add.cov)
-        if (do.solve){
-            ret <- try({ret <- .sexp(## Parameters
-                            params,
-                            inits,
-                            as.double(scale),
-                            lhs_vars,
-                            ## events
-                            time,
-                            evid,
-                            amt,
-                            ## Covariates
-                            pcov,
-                            cov,
-                            isLocf,
-                            ## Solver options (double)
-                            atol,
-                            rtol,
-                            hmin,
-                            hmax,
-                            hini,
-                            ## Solver options ()
-                            maxordn,
-                            maxords,
-                            maxsteps,
-                            stiff,
-                            transit_abs,
-                            ## Passed to build solver object.
-                            env,
-                            as.integer(c(state.ignore, add.cov, do.matrix)),
-                            extra.args)
-                rc <- ret[[2]];
-                ret <- ret[[1]];
-                            ## attr(ret, "solveRxDll")$matrix <- attr(ret, "solveRxDll")$matrix[events$get.obs.rec(), ];
-                ## Change sensitivities to be d/dt(d(A)/d(B)) form.
-                ## dim <- dimnames(attr(ret, "solveRxDll")$matrix);
-                ## dim[[2]] <- gsub(regSens,"d/dt(d(\\1)/d(\\2))",dim[[2]]);
-                ## dimnames(attr(ret, "solveRxDll")$matrix) <- dim;
-                if (rc != 0)
-                    stop(sprintf("could not solve ODE, IDID = %d (see further messages)", rc))
-                ret
-            }, silent=TRUE)
-            if (inherits(ret, "try-error")){
-                ## Error solving, try the other solver.
-                ## errs <- paste(suppressWarnings({readLines(sink.file)}), collapse="\n");
-                stiff <- 1L - stiff;
-                ## sink(sink.file);
-                ret <- try({ret <- .sexp(## Parameters
-                                params,
-                                inits,
-                                as.double(scale),
-                                lhs_vars,
-                                ## events
-                                time,
-                                evid,
-                                amt,
-                                ## Covariates
-                                pcov,
-                                cov,
-                                isLocf,
-                                ## Solver options (double)
-                                atol,
-                                rtol,
-                                hmin,
-                                hmax,
-                                hini,
-                                ## Solver options ()
-                                maxordn,
-                                maxords,
-                                maxsteps,
-                                stiff,
-                                transit_abs,
-                                ## Passed to build solver object.
-                                env,
-                                as.integer(c(state.ignore, add.cov, do.matrix)),
-                                extra.args)
-                                rc <- ret[[2]];
-                                ret <- ret[[1]];
-                                ## attr(ret, "solveRxDll")$matrix <- attr(ret, "solveRxDll")$matrix[events$get.obs.rec(), ];
-                                ## Change sensitivities to be d/dt(d(A)/d(B)) form.
-                                ## dim <- dimnames(attr(ret, "solveRxDll")$matrix);
-                                ## dim[[2]] <- gsub(regSens,"d/dt(d(\\1)/d(\\2))",dim[[2]]);
-                                ## dimnames(attr(ret, "solveRxDll")$matrix) <- dim;
-
-                                if (rc != 0)
-                                    stop(sprintf("Could not solve ODE, IDID = %d (see further messages).", rc))
-                                ret
-                }, silent=TRUE);
-                ## sink();
-                if (inherits(ret, "try-error")){
-                    stop("Tried both LSODA and DOP853, but could not solve the system.")
-                } else {
-                    if (stiff == 1L){
-                        warning("Originally tried DOP853, but it failed to solve, so used LSODA instead.")
-                    } else {
-                        warning("Originally tried LSODA, but it failed to solve, so used DOP853 instead.")
-                    }
-                }
-            }
-            ## Now do scaling
-        } else {
-            ret <- list(params=params,
-                        inits=inits,
-                        lhs_vars=lhs_vars,
-                        ## events
-                        time=time,
-                        evid=evid,
-                        amt=amt,
-                        ## Covariates
-                        pcov=pcov,
-                        cov=cov,
-                        isLocf=isLocf,
-                        ## Solver options (double)
-                        atol=atol,
-                        rtol=rtol,
-                        hmin=hmin,
-                        hmax=hmax,
-                        hini=hini,
-                        ## Solver options ()
-                        maxordn=maxordn,
-                        maxords=maxords,
-                        maxsteps=maxsteps,
-                        stiff=stiff,
-                        transit_abs=transit_abs,
-                        ## Passed to build solver object.
-                        object=env,
-                        extra.args=extra.args,
-                        scale=scale,
-                        events=events,
-                        event.table=event.table,
-                        do.matrix=do.matrix,
-                        add.cov=add.cov,
-                        state.ignore=state.ignore);
-
-            if (inC){
-                .Call("RxODE_ode_setup", inits, lhs_vars, time, evid, amt, pcov, cov, isLocf, atol, rtol, hmin, hmax,
-                      hini, maxordn, maxords, maxsteps, stiff, transit_abs,
-                      PACKAGE="RxODE");
-            }
-        }
-        return(ret);
-    }
-    force <- FALSE
-    if (class(do.compile) == "logical"){
-        if (do.compile)
-            force <- TRUE;
-    }
-    if (is.null(do.compile)){
-        do.compile <- TRUE
-    }
-    ptr.address <- NULL
-    assignPtr <- function(){
-        cmpMgr$dynLoad();
-        if (is.null(ptr.address)){
-            ptr.address <<- getNativeSymbolInfo(as.vector(out$dll$modVars$trans["ode_solver_ptr"]),gsub("_$","",out$dll$modVars$trans["prefix"]))$address;
-        }
-        .Primitive(".Call")(ptr.address);
-    }
-    if (do.compile){
-        cmpMgr$compile(force);
-        ## Add for backward compatibility.
-        tmp <- rxDll(cmpMgr$rxDll());
-        names(tmp) <- NULL;
-        cmpMgr$dllfile <- tmp;
-        tmp <- rxTrans(cmpMgr$rxDll(), calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel)["ode_solver"]
-        names(tmp) <- NULL
-        cmpMgr$ode_solver <- tmp;
-        model <- rxModelVars(cmpMgr$rxDll())$model["model"];
-        names(model) <- NULL;
-        cmpMgr$model <- model
-    }
-    out <-
-       list(modName = modName,
-            model = model,           # actual model code
-            get.modelVars = get.modelVars,  # extract model variables (pars, lhs, etc)
-            solve = solve,
-            cmpMgr = cmpMgr,
-            dynLoad = cmpMgr$dynLoad,
-            dynUnload = cmpMgr$dynUnload,
-            isValid = cmpMgr$isValid,
-            version = .version,
-            delete = cmpMgr$delete,
-            ## the next is for backward compatibility and will be deprecated
-            parse = cmpMgr$parse,
-            compile = cmpMgr$compile,
-            get.index = cmpMgr$get.index,
-            run = solve,
-            getObj = function(obj) get(obj, envir = environment(solve)),
-            assignPtr=assignPtr)
-    if (do.compile){
-        vars <- rxModelVars(cmpMgr$rxDll());
-        out$calcJac <- (length(vars$dfdy) > 0);
-        out$calcSens <- (length(vars$sens) > 0)
-        out$dll <- cmpMgr$rxDll();
-        out$dll$old <- getNativeSymbolInfo(as.vector(out$dll$modVars$trans["ode_solver"]),gsub("_$","",out$dll$modVars$trans["prefix"]))$address
-        dll <- out$dll;
     } else {
-        out$dll <- NULL;
+        env$mdir <- file.path(wd, sprintf("%s.d", modName));
     }
-    if (do.delete){
-        reg.finalizer(environment(solve), rxodeGc, onexit=TRUE);
-    }
-    class(out) <- "RxODE"
-   out
+
+    if (!file.exists(wd))
+        dir.create(wd, recursive = TRUE);
+
+    env$modName <- modName;
+    env$model <- model;
+    env$extraC <- extraC;
+    env$debug <- debug
+    env$calcJac <- calcJac;
+    env$calcSens <- calcSens;
+    env$collapseModel <- collapseModel;
+
+    env$wd <- wd;
+    env$compile <- eval(bquote(function(){
+        with(.(env), {
+            model <- as.vector(model);
+            lwd <- getwd();
+            if (!file.exists(wd))
+                dir.create(wd, recursive = TRUE)
+
+            if (!file.exists(wd))
+                setwd(wd);
+            on.exit(setwd(lwd));
+            if (missing.modName){
+                assign("rxDll", RxODE::rxCompile(model, extraC = extraC, debug = debug,
+                                          calcJac=calcJac, calcSens=calcSens,
+                                          collapseModel=collapseModel),
+                       envir=.(env));
+            } else {
+                assign("rxDll", RxODE::rxCompile(model, dir=mdir, extraC = extraC,
+                                          debug = debug, modName = modName,
+                                          calcJac=calcJac, calcSens=calcSens,
+                                          collapseModel=collapseModel),
+                       envir=.(env));
+            }
+        });
+    }));
+    env$compile();
+    env$get.modelVars <- eval(bquote(function(){
+        with(.(env), {
+            mv <- RxODE::rxModelVars(rxDll);
+            ret <- RxODE::rxModelVars(rxDll)[c("params", "state", "lhs")];
+            p <- ret["params"];
+            ini <- names(mv$ini)
+            init <- RxODE::rxInit(rxDll);
+            ret$params <- ret$params[!(ret$params %in% names(init))]
+            class(ret) <- "list"
+            return(ret);
+        })
+    }))
+    env$state <- rxModelVars(env$rxDll)$state;
+    env$lhs <- rxModelVars(env$rxDll)$lhs;
+    env$params <- rxModelVars(env$rxDll)$params;
+    env$version <- rxVersion()["version"];
+    env$solve <- eval(bquote(function(..., matrix=TRUE, object=NULL){
+        RxODE::rxSolve(object=get("rxDll", envir=.(env)), ..., matrix=matrix);
+    }))
+    env$.c <- with(env, function(...){.C(...)});
+    env$dll <- new.env(parent=baseenv())
+    env$dll$.c <- env$.c;
+    env$assignPtr <- eval(bquote(function(){
+        RxODE::rxAssignPtr(get("rxDll", envir=.(env)));
+    }))
+    env$run <- env$solve;
+    env$modName <- modName;
+    env$model <- model; # actual model code
+    ## cmpMgr = cmpMgr,
+    env$dynLoad <- eval(bquote(function(force = FALSE){
+        rx <- .(env);
+        class(rx) <- "RxODE";
+        RxODE::rxDynLoad(rx);
+    }));
+    env$load <- env$dynLoad;
+    env$dynUnload <- eval(bquote(function(){
+        rx <- .(env);
+        class(rx) <- "RxODE";
+        RxODE::rxDynUnload(rx);
+    }));
+    env$unload <- env$dynUnload;
+    env$isValid <- eval(bquote(function(){
+        return(file.exists(RxODE::rxDll(get("rxDll", envir=.(env)))));
+    }))
+    env$isLoaded <- eval(bquote(function(){
+        rx <- .(env);
+        class(rx) <- "RxODE";
+        RxODE::rxIsLoaded(rx);
+    }))
+    env$delete <- eval(bquote(function(){
+        rx <- .(env);
+        class(rx) <- "RxODE";
+        RxODE::rxDelete(rx);
+    }))
+    env$parse <- with(env, function(){
+        stop("$parse is no longer supported");
+    })
+    env$get.index <- eval(bquote(function(s){
+        return(rxState(get("rxDll", envir=.(env)), s));
+    }))
+    mv <- rxModelVars(env$rxDll);
+    env$lib.name <- mv$trans["lib.name"]
+    tmp <- list(dllfile=rxDll(env$rxDll),
+                ode_solver=as.vector(mv$trans["ode_solver"]),
+                ode_solver_ptr=as.vector(mv$trans["ode_solver_ptr"]),
+                prefix=as.vector(mv$trans["prefix"]),
+                model=model,
+                isValid=eval(bquote(function(){with(.(env), isValid())})),
+                parse = eval(bquote(function(){with(.(env), parse())})),
+                compile = eval(bquote(function(){with(.(env), compile())})),
+                dynLoad = eval(bquote(function(){with(.(env), dynLoad())})),
+                dynUnload = eval(bquote(function(){with(.(env), dynUnload())})),
+                modelDir = env$mdir, # model directory
+                get.modelVars = eval(bquote(function(){with(.(env), get.modelVars())})),
+                delete = eval(bquote(function(){with(.(env), delete())})),
+                get.index = eval(bquote(function(...){with(.(env), get.index(...))})),
+                extraC        = env$extraC,
+                .rxDll         = env$rxDll,
+                rxDll=eval(bquote(function(){with(.(env), return(rxDll))})));
+    tmp <- list2env(tmp, parent=env);
+    class(tmp) <- "RxCompilationManager"
+    env$cmpMgr <- tmp;
+    env$calcJac <- (length(mv$dfdy) > 0);
+    env$calcSens <- (length(mv$sens) > 0)
+    assign(mv$trans["prefix"], env, rxModels);
+    class(env) <- "RxODE"
+    rxForget();
+    return(env);
 }
 ##' Get model properties without compiling it.
 ##'
@@ -749,30 +487,31 @@ RxODE <- function(model, modName = basename(wd), wd = ifelse(RxODE.cache.directo
 ##' @inheritParams RxODE
 ##' @return RxODE trans list
 ##' @author Matthew L. Fidler
+##' @export
 ##' @keywords internal
-rxGetModel <- function(model, calcSens=FALSE, calcJac=FALSE, collapseModel=FALSE){
-    if (class(substitute(model)) == "call"){
+rxGetModel <- memoise::memoise(function(model, calcSens=FALSE, calcJac=FALSE, collapseModel=FALSE){
+    if (is(substitute(model),"call")){
         model <- model;
     }
-    if (class(substitute(model)) == "{"){
+    if (is(substitute(model),"{")){
         model <- deparse(substitute(model))
         if (model[1] == "{"){
             model <- model[-1];
             model <- model[-length(model)];
         }
         model <- paste(model, collapse="\n");
-    } else if (class(model) == "function" || class(model) == "call"){
+    } else if (is(model,"function") || is(model,"call")){
         model <- deparse(body(model));
         if (model[1] == "{"){
             model <- model[-1];
             model <- model[-length(model)];
         }
         model <- paste(model, collapse="\n");
-    } else if (class(model) == "character"){
+    } else if (is(model,"character")){
         if (file.exists(model)){
             ret$use_model_name <- TRUE;
         }
-    } else if (class(model) == "name"){
+    } else if (is(model,"name")){
         model <- eval(model);
     } else {
         stop(sprintf("Can't figure out how to handle the model argument (%s).", class(model)));
@@ -785,10 +524,7 @@ rxGetModel <- function(model, calcSens=FALSE, calcJac=FALSE, collapseModel=FALSE
     cat("\n");
     sink();
     return(rxTrans(parseModel, cFile, calcSens=calcSens, calcJac=calcJac, collapseModel=collapseModel, modVars=TRUE));
-}
-
-rxGetModel.slow <- NULL
-
+})
 rxAdd <- function(rx, pre, post, ...){
     base <- rxNorm(rx);
     if (!missing(pre)){
@@ -802,55 +538,6 @@ rxAdd <- function(rx, pre, post, ...){
         post <- NULL;
     }
     return(RxODE(paste(c(pre, base, post), collapse="\n"),...));
-}
-
-##' Predict an RxODE object
-##'
-##' \code{predict} solves the odinary differential equations specified by
-##'  RxODE object
-##'
-##' @param object An RxODE object
-##'
-##' @param ... Solve arguments sent to \code{rxSolve}.  See
-##'     \code{\link{rxSolve}}.
-##'
-##' @author Matthew L.Fidler
-##' @export
-predict.RxODE <- function(object, ...){
-    rxSolve(object, ...);
-}
-
-##' Solve RxODE objects
-##'
-##' @param ... Additional arguments sent to \code{rxSolve}
-##'
-##' @seealso \code{\link{rxSolve}}
-##'
-##' @author Matthew L.Fidler
-##' @export
-solve.RxODE <- function(...){
-    rxSolve(...)
-}
-##' @rdname solve.RxODE
-##' @export
-solve.RxCompilationManager <- function(...){
-    rxSolve(...)
-}
-##' @rdname solve.RxODE
-##' @export
-solve.solveRxDll <- function(...){
-    rxSolve(...)
-}
-##' @rdname solve.RxODE
-##' @export
-solve.character <- function(...){
-    rxSolve(...)
-}
-
-##' @rdname solve.RxODE
-##' @export
-solve.rxDll <- function(...){
-    rxSolve(...);
 }
 
 ##' Add item to solved system of equations
@@ -907,6 +594,34 @@ rxChain2.EventTable <- function(obj, solvedObject){
     return(do.call("rxSolve", args, envir = parent.frame(1)));
 }
 
+use.utf <- function() {
+    opt <- getOption("cli.unicode", NULL)
+    if (! is.null(opt)) {
+        isTRUE(opt)
+    } else {
+        l10n_info()$`UTF-8` && !is.latex()
+    }
+}
+
+is.latex <- function() {
+    if (!("knitr" %in% loadedNamespaces())) return(FALSE)
+    get("is_latex_output", asNamespace("knitr"))()
+}
+
+get.bound <- function(x, parent=parent.frame(2)){
+    bound <- do.call("c", lapply(ls(parent), function(cur){
+                              if (identical(parent[[cur]], x)){
+                                  return(cur)
+                              }
+                              return(NULL);
+                          }));
+    if (length(bound) > 1) bound <- bound[1];
+    if (length(bound) == 0){
+        bound  <- ""
+    }
+    return(bound)
+}
+
 ##' Print information about the RxODE object.
 ##'
 ##' This prints the model name and its status for being able to be solved
@@ -918,20 +633,63 @@ rxChain2.EventTable <- function(obj, solvedObject){
 print.RxODE <-
     function(x, ...)
 {
-    valid <- x$cmpMgr$isValid()
+    bound <- get.bound(x, parent.frame(2));
+    valid <- x$isValid()
+    ready <- FALSE
+    .msg2 <- '';
     if (!valid){
-        .msg <- "invalid object, needs to be re-created"
+        .msg <- crayon::red$bold("invalid");
+        .msg2 <- paste0(' recreate with ', crayon::blue("RxODE::"), crayon::yellow("RxODE"))
+        .ico <- crayon::red(cli::symbol$cross)
     } else {
-        .ready <- x$cmpMgr$getObj(".compiled")
-        .msg <- if (.ready) "ready to run" else "needs compilation"
+        loaded <- x$isLoaded();
+        if (loaded){
+            .msg <- crayon::green$bold("ready")
+            ready <- TRUE;
+            .ico <- crayon::green(cli::symbol$tick)
+        } else{
+            .msg <- crayon::yellow$bold("unloaded");
+            .ico <- crayon::yellow(cli::symbol$warning);
+            .msg2 <- paste0(' reload with ', crayon::blue("RxODE::"), crayon::yellow("rxLoad"));
+        }
+    }
+    if (use.utf()){
+        .ico <- paste0(.ico, " ");
+    } else {
+        .ico <- ""
     }
     dll <- basename(rxDll(x));
     dll <- substr(dll, 1, nchar(dll) - nchar(.Platform$dynlib.ext) - nchar(.Platform$r_arch) - 1)
-    cat(sprintf('RxODE model named "%s" (%s).\n', dll, .msg))
+    message(paste0(crayon::bold('RxODE '), as.vector(rxVersion()["version"]),' model named ', crayon::yellow$bold(dll), ' model (', .ico, .msg,
+                   .msg2, ').'))
     if (!any(names(list(...)) == "rxSuppress") && valid){
-        cat(sprintf('States: %s\n', paste(rxState(x), collapse=", ")))
-        cat(sprintf('Params: %s\n', paste(rxParams(x), collapse=", ")))
+        cur <- rxState(x);
+        if (length(cur) > 0)
+            message(paste0(crayon::yellow(bound), crayon::blue$bold("$state"), ": ", paste(cur, collapse=", ")))
+        cur <- rxParams(x);
+        if (length(cur) > 0)
+            message(paste0(crayon::yellow(bound), crayon::blue$bold("$params"), ": ", paste(cur, collapse=", ")))
+        cur <- rxLhs(x);
+        if (length(cur) > 0)
+            message(paste0(crayon::yellow(bound), crayon::blue$bold("$lhs"), ": ", paste(cur, collapse=", ")))
     }
+    invisible(x)
+}
+
+##'@export
+print.rxModelVars <- function(x, ...)
+{
+    bound <- get.bound(x, parent.frame(2));
+    message("RxODE model variables (see str to see all variables)");
+    cur <- x$state;
+    if (length(cur) > 0)
+        message(paste0(crayon::yellow(bound), crayon::blue$bold("$state"), ": ", paste(cur, collapse=", ")))
+    cur <- x$params;
+    if (length(cur) > 0)
+        message(paste0(crayon::yellow(bound), crayon::blue$bold("$params"), ": ", paste(cur, collapse=", ")))
+    cur <- x$lhs;
+    if (length(cur) > 0)
+        message(paste0(crayon::yellow(bound), crayon::blue$bold("$lhs"), ": ", paste(cur, collapse=", ")))
     invisible(x)
 }
 
@@ -950,17 +708,6 @@ summary.RxODE <- function(object, ...)
     invisible(object)
 }
 
-##' @rdname summary.RxODE
-##' @export
-summary.RxCompilationManager <- function(object, ...)
-{
-    print.RxCompilationManager(object);
-    summary.rxDll(object$rxDll(), noprint = TRUE)
-    invisible(object);
-}
-
-
-
 ##' Return the RxODE coefficients
 ##'
 ##' This returns the parameters , state variables
@@ -978,6 +725,7 @@ summary.RxCompilationManager <- function(object, ...)
 ##' \item{RxODE}{ is the referring RxODE object}
 ##' @author Matthew L.Fidler
 ##' @importFrom stats coef
+##'
 ##' @export
 coef.RxODE <- function(object,
                        ...){
@@ -1027,9 +775,9 @@ coef.rxDll <- function(...){
 print.rxCoef <- function(x, ...){
     rxDllObj <- x$RxODE;
     if (length(rxParams(rxDllObj)) > 0){
-        cat("\nUser supplied parameters:\n");
+        message(cli::rule(left="User supplied parameters:"));
         print(rxInits(rxDllObj, c(), rxParams(rxDllObj), NA, TRUE))
-        cat("\nUser initial conditions:\n");
+        message(cli::rule(left="User initial conditions:"));
         tmp <- rxInits(rxDllObj, c(), rxState(rxDllObj), 0, TRUE);
         if (length(x$sens) > 0){
             tmp <- tmp[regexpr(regSens, names(tmp)) == -1];
@@ -1038,17 +786,17 @@ print.rxCoef <- function(x, ...){
         print(tmp);
     }
     if (length(x$fn.ini) > 0){
-        cat("\nParameter-based initial conditions:\n");
+        message(cli::rule(left="Parameter-based initial conditions:"));
         print(x$fn.ini);
     }
-    cat("\nCompartments:\n");
+    message(cli::rule(left="Compartments:"));
     tmp <- rxState(rxDllObj);
     if (length(tmp) > 0){
         names(tmp) <- paste0("cmt=", 1:length(tmp));
         if (length(x$sens) > 0){
             tmp1 <- tmp[regexpr(regSens, tmp) == -1];
             print(tmp1);
-            cat("\nSensitivities:\n");
+            cli::rule(left="Sensitivities:")
             tmp2 <- gsub(regSens, "d/dt(d(\\1)/d(\\2))", tmp[regexpr(regSens, tmp) != -1]);
             print(tmp2);
         } else {
@@ -1095,196 +843,6 @@ print.rxCoefSolve <- function(x, ...){
     return(invisible());
 }
 
-##' A compilation manager for RxODE models
-##'
-##' This function parses, compiles, links, and loads the shared object
-##' that implements an RxODE model.
-##'
-##' The function parses and compiles (if needed) the \code{RxODE}
-##' model specified in the string \code{model} into a dynamic link
-##' library (DLL on Windows) or a shared object (\code{*.so} on
-##' Unix-like systems).
-##'
-##' It then dynamically loads this code into the current R
-##' session. (Models previously parsed and compiled in previous R
-##' sessions only need to be dynamically loaded into the current R session.)
-##'
-##' @inheritParams RxODE
-##'
-##' @param mmod A boolean telling if the modName from \code{RxODE} was
-##'     missing.  This affects how the model is created and used.
-##' @return  An object (closure) with the following member functions:
-##' \item{parse}{
-##'     this function parses (translates) the ODE-based model
-##'     specification and generates a C file to implement the model.}
-##' \item{compile}{
-##'     compiles the generated C file for the ODE system
-##'     and dynamically loads the machine code in the shared object.}
-##' \item{dynLoad}{
-##'     if needed, dynamically loads the dynamic library
-##'     produced in the \code{compile()} step.  Note that the shared
-##'     object persists across R sessions, thus the \code{dynLoad} needs
-##'     to be issued as needed.}
-##' \item{dynUnload}{
-##'     this function unloads the previously dynamically loaded
-##'     model object code.  Mainly for internal use.}
-##' \item{ode_solver}{
-##'     a string with the name of the C symbol for this model solver.}
-##' \item{dllfile}{
-##'     a string with the name of the dynamic link (or shared object) file.}
-##' \item{get.modelVars}{
-##'     function that returns a list with 3 character
-##'     vectors, \code{params}, \code{state}, and \code{lhs} of variable
-##'     names (identifiers) used in the model specification.
-##'     These will be output when the model is computed (i.e., the ODE solved).}
-##' \item{isValid}{
-##'     a function that (naively) checks for model validity,
-##'     namely that the C object code reflects the latest model
-##'     specification.}
-##' \item{get.index}{
-##'     helper function to extract the index of one or
-##'     more system variables (state, parameter, or other).}
-##' \item{getObj}{
-##'     internal (not user callable) function.}
-##' @examples
-##' \dontrun{
-##'   cmpMgt <- rx.initCmpMgr(model, "tst1", wd = ".")
-##' }
-##' @keywords internal models ODE
-##' @concept ordinary differential equations
-##' @seealso \code{\link{RxODE}}
-##' @author Matthew L.Fidler
-##' @export rx.initCmpMgr
-rx.initCmpMgr <-
-    function(model, modName, wd, extraC = NULL, debug = TRUE, mmod = FALSE, calcJac=NULL, calcSens=NULL, collapseModel=FALSE)
-{
-    ## Initialize the RxODE compilation manager.  This is a stub
-    ## function for backward compatability.
-    .model <- model;
-    .mmod <- mmod;
-    .modName <- modName;
-    .wd <- wd;
-    .parsed <- FALSE;
-    .compiled <- FALSE;
-    .calcJac <- calcJac;
-    .calcSens <- calcSens;
-    .collapseModel <- collapseModel
-    ## model-specific directory under .md (default current dir)
-    if (mmod){
-        .mdir <- .wd;
-    } else {
-        .mdir <- file.path(.wd, sprintf("%s.d", .modName));
-    }
-    .rxDll <- NULL;
-    .debug <- debug;
-    .extraC <- extraC;
-
-    ## filenames and shell command required for parsing (these are unique
-    ## within a given model directory
-
-    ## files needed for compiling the C output of the parsed ODE
-    parse <- function(force = FALSE){
-        do.it <- force || !.parsed;
-        if (!do.it)
-            return(invisible(.parsed));
-        .parsed <<- TRUE;
-        .compiled <<- FALSE;
-        invisible(.parsed);
-    }
-
-    compile <- function(force = FALSE){
-        do.it <- force|| !.compiled;
-        if (!do.it)
-            return(invisible(.compiled));
-        lwd <- getwd();
-        if (!file.exists(.wd))
-            dir.create(.wd, recursive = TRUE)
-        if (!file.exists(.wd))
-            setwd(.wd);
-        on.exit(setwd(lwd));
-        if (.mmod){
-            .rxDll <<- rxCompile(.model, extraC = .extraC, debug = .debug, calcJac=.calcJac, calcSens=.calcSens, collapseModel=.collapseModel);
-        } else {
-            .rxDll <<- rxCompile(.model, .mdir, extraC = .extraC, debug = .debug, modName = .modName,  calcJac=.calcJac, calcSens=.calcSens, collapseModel=.collapseModel);
-        }
-        if (class(.rxDll) == "rxDll"){
-            .compiled <<- TRUE;
-        }
-        invisible(.compiled);
-    }
-
-    dynLoad <- function(force = FALSE){
-        ## NB: we may need to reload (e.g., when we re-start R and
-        ## re-instantiate the RxODE object from a save.image.
-        if (!rxDllLoaded(.rxDll) && !file.exists(rxDll(.rxDll)) && RxODE.compile.on.load){
-            compile();
-        }
-        rxLoad(.rxDll);
-        return();
-    }
-
-    dynUnload <- function(){
-        return(rxUnload(.rxDll));
-    }
-    delete <- function(){
-        .parsed <<- FALSE;
-        .compiled <<- FALSE;
-        rxDelete(.rxDll);
-        ## TODO: should we remove all objects in the closure?
-        ## as the object is no longer valid. Need a valid.object()
-        ##unlink(.mdir, recursive = TRUE) # leave dir
-    }
-
-    isValid <- function(){
-        return(file.exists(rxDll(.rxDll)));
-    }
-
-    get.index <- function(s) {
-        ## return the (one) state varible index
-        if (.compiled){
-            return(rxState(.rxDll, s));
-        } else {
-            stop("Needs to be compiled first.");
-        }
-    }
-
-   out <-
-       list(parse         = parse,
-            compile       = compile,
-            model         = model,
-            dynLoad       = dynLoad,
-            dynUnload     = dynUnload,
-            ode_solver    = "Need to compile",   # name of C function
-            modelDir      = .mdir, # model directory
-            dllfile       = "Need to compile",
-            get.modelVars = function(){
-                mv <- rxModelVars(.rxDll);
-                ret <- rxModelVars(.rxDll)[c("params", "state", "lhs")];
-                init <- rxInit(.rxDll);
-                ret$params <- ret$params[!(ret$params %in% names(init))]
-                return(ret);
-            },
-            isValid       = isValid,
-            delete        = delete,
-            get.index     = get.index,
-            getObj        = function(obj) get(obj, envir = environment(parse)),
-            extraC        = .extraC,
-            rxDll         = function() .rxDll
-            )
-    class(out) <- "RxCompilationManager"
-   out
-}
-
-##' @rdname print.RxODE
-##' @export
-"print.RxCompilationManager" <-
-function(x, ...)
-{
-    modName <- x$getObj(".modName")
-    cat(sprintf("RxCompilationManager for RxODE model '%s'\n", modName))
-   invisible(x)
-}
-
 rxPrefix <- function(model,          # Model or file name of model
                      modName = NULL, # Model name, overrides calculated model name.
                      calcJac=NULL,
@@ -1295,7 +853,7 @@ rxPrefix <- function(model,          # Model or file name of model
     if (!is.null(modName)){
         modelPrefix <- sprintf("%s_", gsub("\\W", "_", modName));
     } else if (file.exists(model)){
-        modelPrefix <- sprintf("%s_", gsub("\\W", "_", gsub("[.].*$", "", base::basename(model))));
+        modelPrefix <- sprintf("%s_", gsub("\\W", "_", gsub("[.].*$", "", basename(model))));
     } else {
         parseModel <- tempfile();
         cFile <- tempfile();
@@ -1310,9 +868,6 @@ rxPrefix <- function(model,          # Model or file name of model
     modelPrefix <- sprintf("%s%s_", modelPrefix, .Platform$r_arch);
     return(modelPrefix);
 } # end function rxPrefix
-
-
-
 ##' Return the md5 of an RxODE object or file
 ##'
 ##' This md5 is based on the model and possibly the extra c code
@@ -1344,7 +899,7 @@ rxMd5 <- function(model,         # Model File
                   ...){
     ## rxMd5 returns MD5 of model file.
     ## digest(file = TRUE) includes file times, so it doesn't work for this needs.
-    if (class(model) == "character"){
+    if (is(model,"character")){
         if (length(model) == 1){
             if (file.exists(model)){
                 ret <- suppressWarnings({readLines(model)});
@@ -1357,7 +912,7 @@ rxMd5 <- function(model,         # Model File
             ret <- model;
             mod <- paste(ret, collapse="\n");
         }
-        if (class(extraC) == "character"){
+        if (is(extraC,"character")){
             if (file.exists(extraC)){
                 ret <- c(ret, gsub(rex::rex(or(any_spaces, any_newlines)), "", readLines(extraC), perl = TRUE));
             }
@@ -1478,7 +1033,12 @@ rxTrans.character <- function(model,
     out3 <- tempfile();
     on.exit(unlink(parseModel));
     rxReq("dparser");
-    ret <- .Call(trans, model, model, cFile, extraC, modelPrefix, md5, parseModel, out3, PACKAGE="RxODE");
+    ret <- try(.Call(trans, model, model, cFile, extraC, modelPrefix, md5, parseModel, out3, PACKAGE="RxODE"));
+    if (inherits(ret, "try-error")){
+        message("Model")
+        message(suppressWarnings(readLines(model)))
+        stop("Cannot Create RxODE model");
+    }
     md5 <- c(file_md5 = md5, parsed_md5 = rxMd5(c(ret$model["normModel"],
                                                   ret$ini,
                                                   ret$state,
@@ -1489,7 +1049,7 @@ rxTrans.character <- function(model,
     ## rxReload()
     if (file.exists(cFile)){
         ret$md5 <- md5
-        if (class(calcSens) == "logical"){
+        if (is(calcSens,"logical")){
             if (!calcSens){
                 calcSens <- NULL;
             }
@@ -1547,9 +1107,11 @@ rxTrans.character <- function(model,
 rxTransMakevars <- function(rxProps,                                                                              # rxTrans translation properties
                             rxDll, # Dll of file
                             cFile,
-                            compileFlags =c("parsed_md5", "ode_solver", "ode_solver_sexp", "ode_solver_0_6",
-                                            "ode_solver_ptr", "inis",
-                                            "model_vars", "calc_lhs", "calc_jac", "dydt"), # List of compile flags
+                            compileFlags =c("parsed_md5", "ode_solver", "ode_solver_sexp",
+                                            "ode_solver_ptr", "ode_solver_xptr", "inis",
+                                            "model_vars", "calc_lhs", "calc_jac", "dydt", "dydt_liblsoda",
+                                            "dydt_lsoda", "calc_jac_lsoda", "ode_solver_solvedata",
+                                            "ode_solver_get_solvedata", "neq", "nlhs", "fix_inis"), # List of compile flags
                             debug        = FALSE,                                                                 # Debug compile?
                             ...){
     ## rxTransCompileFlags returns a string for the compiler options
@@ -1557,15 +1119,8 @@ rxTransMakevars <- function(rxProps,                                            
     neededProps <- c("jac", compileFlags);
     if (all(neededProps %in% names(rxProps))){
         ret <- "";
-        if (rxProps["jac"] == "fulluser"){
-            ctxt <- gsub("__JT__", "1", ctxt)
-            ctxt <- gsub("__MF__", "21", ctxt)
-        } else if (rxProps["jac"] == "fullint"){
-            ctxt <- gsub("__JT__", "2", ctxt)
-            ctxt <- gsub("__MF__", "22", ctxt)
-        }
         tmp <- rxProps[compileFlags];
-        for (x in c("parsed_md5", "ode_solver", "ode_solver_sexp", "ode_solver_0_6", "ode_solver_ptr", "ode_solver_focei_outer",
+        for (x in c("parsed_md5", "ode_solver", "ode_solver_sexp", "ode_solver_ptr", "ode_solver_xptr", "ode_solver_focei_outer",
                     "model_vars")){
             tmp[sprintf("%s_str", x)] <- sprintf("\"%s\"", tmp[x]);
         }
@@ -1574,51 +1129,28 @@ rxTransMakevars <- function(rxProps,                                            
             ctxt <- gsub(sprintf("__%s__", toupper(flg)), tmp[flg], ctxt);
         }
         ctxt <- gsub("__R_INIT__", sprintf("R_init_%s", gsub(.Platform$dynlib.ext, "", basename(rxDll))), ctxt)
+        ctxt <- gsub("__R_UNLOAD__", sprintf("R_unload_%s", gsub(.Platform$dynlib.ext, "", basename(rxDll))), ctxt)
+        ctxt <- gsub("__TIMEID__", paste0(as.integer(Sys.time())), ctxt)
         writeLines(ctxt, cFile);
         ret <- ""
         if (debug){
             ret <- sprintf("%s -D__DEBUG__", ret);
         }
-        ret <- sprintf("PKG_CPPFLAGS=%s\nPKG_LIBS=$(BLAS_LIBS) $(LAPACK_LIBS) $(FLIBS)", ret);
+        ret <- sprintf("#RxODE Makevars\nPKG_CFLAGS=%s\nPKG_LIBS=$(BLAS_LIBS) $(LAPACK_LIBS) $(FLIBS)", ret);
+        ## ret <- paste(ret, "-g");
         cat(ret);
         return(ret);
     } else {
-        cat("Needed Variables: %s\n", paste(neededProps, collapse=","));
+        message(sprintf("Needed Variables: %s", paste(neededProps, collapse=",")));
+        print(setdiff(neededProps, names(rxProps)));
+        print(setdiff(names(rxProps), neededProps));
         stop(sprintf("Cannot compile, only found %s.", paste(names(rxProps), collapse=",")));
     }
 } # end function rxTransCompileFlags
 
-##' Determine if the rxDll is loaded or not.
-##'
-##' @param x is a RxODE family of objects
-##'
-##' @param retry is a flag to retry to load if the function can't
-##'     determine if the object is loaded or not...
-##'
-##' @return a boolean stating if the DLL is loaded
-##'
-##' @author Matthew L.Fidler
+##' @rdname rxIsLoaded
 ##' @export
-rxDllLoaded <- function(x, retry = TRUE){
-    if (is.null(x)){
-        return(FALSE);
-    }
-    m <- rxModelVars(x)$trans;
-    if (any(names(m) == "ode_solver")){
-        return(is.loaded(m["ode_solver"]));
-    } else if (retry) {
-        m <- rxCompile(x, force = FALSE);
-        return(rxDllLoaded(m, retry = FALSE))
-    } else {
-        print(m);
-        options(RxODE.echo.compile = TRUE);
-        rxSyncOptions()
-        on.exit({options(RxODE.echo.compile = TRUE);
-            rxSyncOptions();})
-        m <- rxCompile(x, force = FALSE);
-        stop(sprintf("Can't figure out if the object is loaded (%s)...", .Platform$dynlib.ext));
-    }
-}
+rxDllLoaded <- rxIsLoaded
 ##' Compile a model if needed
 ##'
 ##' This is the compilation workhorse creating the RxODE model DLL
@@ -1670,50 +1202,55 @@ rxCompile <- function(model, dir, prefix, extraC = NULL, force = FALSE, modName 
 ##' @rdname rxCompile
 ##' @export
 rxCompile.character <-  function(model,           # Model
-                                 dir,             # Directory
+                                 dir=NULL,             # Directory
                                  prefix=NULL,     # Prefix
                                  extraC  = NULL,  # Extra C File.
                                  force   = FALSE, # Force compile
                                  modName = NULL,  # Model Name
                                  calcJac=NULL, # Calculate Jacobian
-                                  calcSens=NULL, # Calculate Sensitivity
+                                 calcSens=NULL, # Calculate Sensitivity
                                  collapseModel=FALSE,
                                  ...){
     ## rxCompile returns the DLL name that was created.
-    dllCopy <- FALSE;
-    if (missing(dir)){
-        dir <- tempfile();
-        dllCopy <-  TRUE;
-        on.exit(unlink(dir, recursive = TRUE))
-    }
-    if (missing(prefix)){
-        prefix <- rxPrefix(model, modName, calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel);
+    rm.rx <- FALSE
+    if (is.null(dir)){
+        if (RxODE.cache.directory != "."){
+            dir <- RxODE.cache.directory;
+        } else if (RxODE.tempfiles){
+            dir <- rxTempDir()
+        } else {
+            dir <- getwd();
+            rm.rx <- TRUE;
+        }
+    } else {
+        if (.Platform$OS.type == "windows"){
+            dir <- suppressMessages(normalizePath(dir, mustWork=FALSE));
+        } else {
+            dir <- file.path(getwd(), dir);
+        }
     }
     if (!file.exists(dir))
         dir.create(dir, recursive = TRUE)
+    if (is.null(prefix)){
+        prefix <- rxPrefix(model, modName, calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel);
+    }
     cFile <- file.path(dir, sprintf("%s.c", substr(prefix, 0, nchar(prefix)-1)));
     cDllFile <- file.path(dir, sprintf("%s%s", substr(prefix, 0, nchar(prefix)-1), .Platform$dynlib.ext));
-    if (dllCopy){
-        finalDll <- file.path(getwd(), basename(cDllFile));
-        finalC <- file.path(getwd(), basename(cFile));
+    if (file.exists(model)){
+        mFile <- suppressWarnings({normalizePath(model)});
     } else {
-        finalDll <-  cDllFile;
-        finalC <-  cFile;
-    }
-    if (!file.exists(model)){
         mFile <- sprintf("%s.rx", substr(cFile, 0, nchar(cFile)-2));
         sink(mFile);
         cat(model);
         cat("\n");
         sink();
-    } else {
-        mFile <- model;
     }
+    on.exit(unlink(mFile));
     md5 <- rxMd5(mFile, extraC, calcJac, calcSens, collapseModel);
     allModVars <- NULL;
     needCompile <- TRUE
-    if (file.exists(finalDll)){
-        try(dyn.load(finalDll, local = FALSE), silent = TRUE);
+    if (file.exists(cDllFile)){
+        try(dynLoad(cDllFile), silent = TRUE);
         modVars <- sprintf("%smodel_vars", prefix);
         if (is.loaded(modVars)){
             allModVars <- eval(parse(text = sprintf(".Call(\"%s\")", modVars)), envir = .GlobalEnv)
@@ -1729,8 +1266,20 @@ rxCompile.character <-  function(model,           # Model
     }
     if (force || needCompile){
         Makevars <- file.path(dir, "Makevars");
-        trans <- rxTrans(mFile, cFile = cFile, md5 = md5$digest, extraC = extraC, ..., modelPrefix = prefix, calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel);
-        if (file.exists(finalDll)){
+        if (file.exists(Makevars)){
+            if ("#RxODE Makevars" == readLines(Makevars, 1)){
+                unlink(Makevars)
+                on.exit({if (file.exists(Makevars)){unlink(Makevars)}}, add=TRUE);
+            } else {
+                file.rename(Makevars, paste0(Makevars, ".bakrx"));
+                on.exit({if (file.exists(Makevars)){unlink(Makevars)};file.rename(paste0(Makevars, ".bakrx"), Makevars)}, add=TRUE)
+            }
+        } else {
+            on.exit({if (file.exists(Makevars)){unlink(Makevars)}}, add=TRUE);
+        }
+        trans <- rxTrans(mFile, cFile = cFile, md5 = md5$digest, extraC = extraC, ..., modelPrefix = prefix,
+                         calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel);
+        if (file.exists(cDllFile)){
             if (modVars["parsed_md5"] == trans["parsed_md5"]){
                 rxCat("Don't need to recompile, minimal change to model detected.\n");
                 needCompile <- FALSE;
@@ -1739,55 +1288,60 @@ rxCompile.character <-  function(model,           # Model
         if (force || needCompile){
             ## Setup Makevars
             owd <- getwd();
-            on.exit({if (file.exists(Makevars)){
-                         unlink(Makevars);
-                     };
-                         setwd(owd);
-            });
-            if (file.exists(Makevars)){
-                unlink(Makevars);
-            }
+            on.exit(setwd(owd), add=TRUE);
             ## Now create C file
-            rxTrans(mFile, cFile = cFile, md5 = md5$digest, extraC = extraC, ..., modelPrefix = prefix, calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel)
-            sink(Makevars);
-            cat(rxTransMakevars(trans, finalDll, cFile, ...));
-            sink();
-            if (dllCopy){
-                file.copy(cFile, finalC);
+            mv <- rxTrans(mFile, cFile = cFile, md5 = md5$digest, extraC = extraC, ...,
+                          modelPrefix = prefix, calcJac=calcJac, calcSens=calcSens, collapseModel=collapseModel,
+                          modVars=TRUE);
+            .j <- 0;
+            .i <- 0;
+            if (length(mv$ini) > 0){
+                fixInis <- sprintf("double _theta[%d];\n%s\n", length(mv$params),
+                                   paste(sapply(mv$params, function(x){
+                                       if (!is.na(mv$ini[x])){
+                                           ret <- sprintf("  _theta[%d] = %.16f;", .i, as.vector(mv$ini[x]));
+                                           .i <<- .i + 1;
+                                           return(ret)
+                                       } else {
+                                           ret <- sprintf("  _theta[%d] = theta[%d];", .i, .j);
+                                           .i <<- .i + 1;
+                                           .j <<- .j + 1;
+                                           return(ret);
+                                       }
+                                   }), collapse="\n"))
+            } else {
+                fixInis <- sprintf("double *_theta = theta;");
             }
+            trans <- c(mv$trans, mv$md5);
+            trans["fix_inis"] <- fixInis;
+            sink(Makevars);
+            cat(rxTransMakevars(trans, cDllFile, cFile, ...));
+            sink();
             sh <- "system"   # windows's default shell COMSPEC does not handle UNC paths
             ## Change working directory
             setwd(dir);
-            try(dyn.unload(finalDll), silent = TRUE);
-            try(unlink(finalDll));
+            try(dyn.unload(cDllFile), silent = TRUE);
+            try(unlink(cDllFile));
             cmd <- sprintf("%s/bin/R CMD SHLIB %s",
-                           Sys.getenv("R_HOME"), base::basename(cFile));
+                           Sys.getenv("R_HOME"), basename(cFile));
             if (RxODE.echo.compile){
                 cat(sprintf("%s\n", cmd));
             }
             compileFile <- tempfile();
             stdErrFile <- tempfile();
-            rc <- tryCatch(rx.do.call(sh, list(cmd, ignore.stdout = !RxODE.echo.compile, ignore.stderr = !RxODE.echo.compile)),
-                           error = function(e) "error",
-                           warning = function(w) "warning");
+            rc <- tryCatch(do.call(sh, list(cmd, ignore.stdout = !RxODE.echo.compile, ignore.stderr = !RxODE.echo.compile)),
+                           error = function(e) "error", warning = function(w) "warning");
             if (any(rc == c("error", "warning"))){
-                try(rx.do.call(sh, list(cmd, ignore.stdout = FALSE, ignore.stderr = FALSE)),
-                    silent = FALSE)
+                try(do.call(sh, list(cmd, ignore.stdout = FALSE, ignore.stderr = FALSE)), silent = FALSE)
                 rxCat("\n\nModel:\n", paste(readLines(mFile), collapse="\n"), "\n")
                 rxCat(sprintf("cFile: %s\n", cFile))
                 rxCat(sprintf("cmd: %s\n", cmd))
                 rxCat(sprintf("wd: %s\n", dir))
                 stop(sprintf("error compiling %s", cFile));
             }
-            if (dllCopy){
-                file.copy(cDllFile, finalDll);
-            }
-            tmp <- try(dyn.load(finalDll, local = FALSE), silent=TRUE);
+            tmp <- try(dynLoad(cDllFile));
             if (inherits(tmp, "try-error")){
-                tmp <- try(dyn.load(basename(finalDll), local = FALSE), silent=TRUE);
-                if (inherits(tmp, "try-error")){
-                    stop("Error loading model.")
-                }
+                stop("Error loading model.")
             }
             modVars <- sprintf("%smodel_vars", prefix);
             if (is.loaded(modVars)){
@@ -1800,13 +1354,14 @@ rxCompile.character <-  function(model,           # Model
     args <- list(model = model, dir = dir, prefix = prefix,
                  extraC = extraC, force = force, modName = modName,
                  ...);
-    ret <- list(dll     = finalDll,
-                model   = allModVars$model["model"],
-                extra   = extraC,
-                modVars = allModVars,
-                .call   = .call,
-                .c      = .c,
-                args    = args);
+    ret <- suppressWarnings({list(dll     = cDllFile,
+                                  c       = cFile,
+                                  model   = allModVars$model["model"],
+                                  extra   = extraC,
+                                  modVars = allModVars,
+                                  .call   = .call,
+                                  .c      = .c,
+                                  args    = args)});
     class(ret) <- "rxDll";
     return(ret);
 }
@@ -1835,207 +1390,31 @@ rxCompile.rxDll <- function(model, ...){
     return(do.call(getFromNamespace("rxCompile", "RxODE"), args, envir = parent.frame(1)));
 }
 
+##' @export
+print.rxC <- function(x, ...){
+    message(sprintf("C File: %s  (summary for code)", x));
+}
+
+##' @export
+summary.rxC <- function(object, ...){
+    message(sprintf("//C File: %s", object));
+    message("//");
+    suppressWarnings(message(paste(readLines(object), collapse="\n")));
+}
+
 ##' @rdname rxCompile
 ##' @export
 rxCompile.RxODE <- function(model, ...){
-    model$cmpMgr$compile()
+    model$compile()
 }
 
-
-##' Return the DLL associated with the RxODE object
-##'
-##' This will return the dynamic load library or shared object used to
-##' run the C code for RxODE.
-##'
-##' @param obj A RxODE family of objects or a character string of the
-##'     model specification or location of a file with a model
-##'     specification.
-##'
-##' @return a path of the library
-##'
-##' @keywords internal
-##' @author Matthew L.Fidler
+##' @rdname rxDynLoad
 ##' @export
-rxDll <- function(obj, ...){
-    UseMethod("rxDll");
-}
+rxLoad <- rxDynLoad
 
-##' @rdname rxDll
+##' @rdname rxDynUnload
 ##' @export
-rxDll.character <- function(obj, ...){
-    return(rxDll(rxCompile(obj, ...)))
-}
-
-##' @rdname rxDll
-##' @export
-rxDll.rxDll <- function(obj, ...){
-    return(obj$dll)
-}
-
-##' @rdname rxDll
-##' @export
-rxDll.RxODE <- function(obj, ...){
-    return(rxDll(obj$cmpMgr$rxDll()))
-}
-
-##' Load the DLL for the object
-##'
-##' This loads the DLL into the current R session to allow C functions
-##' to be called in R.
-##'
-##' @param obj a RxODE family of objects
-##'
-##' @author Matthew L.Fidler
-##' @export
-rxLoad <- function(obj){
-    if (!(rxDllLoaded(obj))){
-        dll <- obj$cmpMgr$dllfile;
-        rc <- try(dyn.load(dll), silent = TRUE);
-        if (inherits(rc, "try-error")){
-            if (RxODE.compile.on.load){
-                rxCompile(obj);
-                rc <- try(dyn.load(dll), silent = TRUE);
-                if (inherits(rc, "try-error")){ #nocov start
-                    ## Should not get here.
-                    ## rxDelete(obj);
-                    obj <- RxODE(obj);
-                    if (rxDllLoaded(obj)){
-                        return(invisible());
-                    }
-                    stop(sprintf("Error loading DLL file '%s', even after trying to recompile.", dll));
-                } # nocov end
-            } else {
-                stop(sprintf("Error loading DLL file '%s'.", dll));
-            }
-        }
-    }
-    return(invisible());
-}
-
-##' Unload the DLL for the object
-##'
-##' This unloads the DLL in the R session so that the DLL can be
-##' deleted.  All the c functions will no longer be accessible.
-##'
-##' @param obj a RxODE family of objects
-##'
-##' @author Matthew L.Fidler
-##' @export
-rxUnload <- function(obj){
-    if ((rxDllLoaded(obj))){
-        dll <- rxDll(obj);
-        rc <- try(dyn.unload(dll), silent = TRUE)
-        if (inherits(rc, "try-error"))
-            stop(sprintf("Error unloading DLL file '%s'.", dll));
-    }
-    return(invisible());
-}
-
-##' Delete the DLL for the model
-##'
-##' This function deletes the DLL, but doesn't delete the model
-##' information in the object.
-##'
-##' @param obj RxODE family of objects
-##'
-##' @return A boolean stating if the operation was successful.
-##'
-##' @author Matthew L.Fidler
-##' @export
-rxDelete <- function(obj){
-    if (class(obj) == "RxODE"){
-        obj$delete();
-    } else {
-        dll <- rxDll(obj);
-        cFile <- sub(rex::rex(.Platform$dynlib.ext,end), ".c", dll)
-        if (file.exists(cFile)){
-            unlink(cFile);
-        }
-        rxUnload(obj)
-        unlink(dll);
-        return(!file.exists(dll));
-    }
-}
-
-##' Parameters specified by the model
-##'
-##' This return the model's parameters that are required to solve the
-##' ODE system.
-##'
-##' @inheritParams rxModelVars
-##'
-##' @return a character vector listing the parameters in the model.
-##'
-##' @author Matthew L.Fidler
-##' @export
-rxParams <- function(obj){
-    return(rxModelVars(obj)$params);
-}
-
-##' @rdname rxParams
-##' @export
-rxParam <- rxParams
-
-
-##' Jacobain and parameter derivates
-##'
-##' Return Jacobain and parameter derivates
-##'
-##' @inheritParams rxModelVars
-##'
-##' @return A list of the jacobian parameters defined in this RxODE
-##'     object.
-##' @author Matthew L. Fidler
-##' @export
-rxDfdy <- function(obj){
-    return(rxModelVars(obj)$dfdy);
-}
-
-##' State variables
-##'
-##' This returns the model's compartments or states.
-##'
-##' @inheritParams rxModelVars
-##'
-##' @param state is a string indicating the state or compartment that
-##'     you would like to lookup.
-##'
-##' @return If state is missing, return a character vector of all the states.
-##'
-##' If state is a string, return the compartment number of the named state.
-##'
-##' @seealso \code{\link{RxODE}}
-##'
-##' @author Matthew L.Fidler
-##' @export
-rxState <- function(obj, state){
-    if (missing(state)){
-        return(rxModelVars(obj)$state);
-    } else {
-        objState <- rxState(obj);
-        if (length(objState) == 1)
-            warning("Only one state variable should be input.", immediate = TRUE);
-        w <- which(objState == state)
-        if (length(w) != 1){
-            stop(sprintf("Cannot locate compartment \"%s\".", state));
-        }
-        return(w);
-    }
-}
-##' Left handed Variables
-##'
-##' This returns the model calculated variables
-##'
-##' @inheritParams rxModelVars
-##'
-##' @return a character vector listing the calculated parameters
-##' @seealso \code{\link{RxODE}}
-##'
-##' @author Matthew L.Fidler
-##' @export
-rxLhs <- function(obj){
-    return(rxModelVars(obj)$lhs);
-}
+rxUnload <- rxDynUnload
 
 rxConditionLst <- list();
 ##' Current Condition for RxODE object
@@ -2110,7 +1489,7 @@ rxNorm <- function(obj, condition=NULL, removeInis, removeJac, removeSens){
         }
         return(paste(ret, collapse="\n"))
     } else {
-        if (class(condition) == "logical"){
+        if (is(condition,"logical")){
             if (!condition){
                 condition <- NULL;
             } else {
@@ -2125,7 +1504,7 @@ rxNorm <- function(obj, condition=NULL, removeInis, removeJac, removeSens){
             names(tmp) <- NULL;
             return(tmp)
         } else {
-            if (class(condition) == "character"){
+            if (is(condition,"character")){
                 tmp <- rxExpandIfElse(obj)[condition];
                 names(tmp) <- NULL;
                 return(tmp)
@@ -2136,75 +1515,9 @@ rxNorm <- function(obj, condition=NULL, removeInis, removeJac, removeSens){
     }
 }
 
-##' All model variables for a RxODE object
-##'
-##' Return all the known model variables for a specified RxODE object
-##'
-##' These items are only calculated after compilation; they are
-##' built-into the RxODE compiled DLL.
-##'
-##' @param obj RxODE family of objects
-##'
-##' @return A list of RxODE model properties including:
-##'
-##' \item{params}{ a character vector of names of the model parameters}
-##' \item{lhs}{ a character vector of the names of the model calculated parameters}
-##' \item{state}{ a character vector of the compartments in RxODE object}
-##' \item{trans}{ a named vector of translated model properties
-##'       including what type of jacobian is specified, the \code{C} function prefixes,
-##'       as well as the \code{C} functions names to be called through the compiled model.}
-##' \item{md5}{a named vector that gives the digest of the model (\code{file_md5}) and the parsed model
-##'      (\code{parsed_md5})}
-##' \item{model}{ a named vector giving the input model (\code{model}),
-##'    normalized model (no comments and standard syntax for parsing, \code{normModel}),
-##'    and interim code that is used to generate the final C file \code{parseModel}}
-##'
-##' @keywords internal
-##' @author Matthew L.Fidler
-##' @export
-rxModelVars <- function(obj){
-    UseMethod("rxModelVars");
-}
-
 ##' @rdname rxModelVars
 ##' @export
-rxModelVars.list <- function(obj){
-    if (all(c("params", "lhs", "state", "trans", "ini", "model", "md5", "podo", "dfdy") %in% names(obj))){
-        return(obj);
-    } else {
-        stop("Cannot figure out the model variables.")
-    }
-}
-
-##' @rdname rxModelVars
-##' @export
-rxModelVars.rxDll <- function(obj){
-    return(obj$modVars)
-}
-
-##' @rdname rxModelVars
-##' @export
-rxModelVars.RxCompilationManager <- function(obj){
-    return(rxModelVars.rxDll(obj$rxDll()))
-}
-
-##' @rdname rxModelVars
-##' @export
-rxModelVars.RxODE <- function(obj){
-    return(rxModelVars.rxDll(obj$cmpMgr$rxDll()))
-}
-
-##' @rdname rxModelVars
-##' @export
-rxModelVars.solveRxODE <- function(obj){
-    env <- attr(obj, ".env");
-    rxode <- env$env$out;
-    return(rxModelVars.RxODE(rxode));
-}
-
-##' @rdname rxModelVars
-##' @export
-rxModelVars.character <- function(obj){
+rxModelVars.character <- memoise::memoise(function(obj){
     if (length(obj) == 1){
         cFile <- tempfile();
         if (file.exists(obj)){
@@ -2222,9 +1535,8 @@ rxModelVars.character <- function(obj){
     } else {
         rxModelVars.character(paste(obj, collapse="\n"));
     }
-}
+})
 
-rxModelVars.character.slow <- NULL;
 
 ##' Print rxDll object
 ##'
@@ -2277,10 +1589,9 @@ summary.rxDll <- function(object, ...){
         cat("\nCalculated Variables:\n");
         print(rxLhs(object));
     }
-    cat("\nModel:\n")
-    cat(rxModelVars(object)$model["model"]);
-    cat("\n");
-
+    tmp <- as.vector(rxModelVars(object)$model["model"])
+    class(tmp) <- "RxODE.modeltext"
+    print(tmp)
     return(invisible(object))
 }
 ##' Format theta and eta for parameter estimate values in RxODE
@@ -2312,93 +1623,6 @@ rxThetaEta <- function(theta=NULL, eta=NULL){
     return(ret)
 }
 
-##' Initial Values and State values for a RxODE object
-##'
-##' Returns the initial values of the rxDll object
-##'
-##' @param rxDllObj rxDll, RxODE, or named vector representing default
-##'     initial arguments
-##'
-##' @param vec If supplied, named vector for the model.
-##'
-##' @param req Required names, and the required order for the ODE solver
-##'
-##' @param default a number or NA representing the default value for
-##'     parameters missing in \code{vec}, but required in \code{req}.
-##'
-##' @param noerror is a boolean specifying if an error should be thrown
-##'     for missing parameter values when \code{default} = \code{NA}
-##'
-##' @keywords internal
-##' @author Matthew L.Fidler
-##' @export
-rxInits <- function(rxDllObj,        # rxDll object
-                    vec,             # Supplied parameters
-                    req,             # Required names, and order
-                    default = 0,     # Default value; If NA, then throw error if doesn't exist
-                    noerror = FALSE, # no error thrown for NA
-                    noini=FALSE,
-                    ...){
-    ## rxInits returns the inits of rxDllObj
-    ##
-    ## - When vec is not specified, returns the model specified
-    ##   initialization values.
-    ##
-    ## - When vec is specified, replace rxDll inis with the values in
-    ##   this named vector, and augment with any new variables.
-    ##
-    ## - When req is specified, make sure that the required variables
-    ##   are included in the output in the order specified.
-    ##
-    ## - The default value specified, anything missing req names is
-    ##   replaced with the default value.  If the default value is NA,
-    ##   then throw an error if the values are not specified in either
-    ##   the vec or the rxDllObj.
-    if (noini){
-        ini <- c();
-    } else {
-        ini <- rxModelVars(rxDllObj)$ini;
-    }
-    miss <- c();
-    if (!missing(req)){
-        if ((is.na(default) && noerror) || !is.na(default)){
-            miss <- structure(rep(default, length(req)), .Names=req);
-        }
-    }
-    if (!missing(vec)){
-        if (length(vec) > 0){
-            nv <- names(vec)
-            if (is.null(nv)){
-                if (!missing(req) && length(req) == length(vec)){
-                    warning(sprintf("Assumed order of inputs: %s", paste(req, collapse = ", ")))
-                    return(vec)
-                } else {
-                    stop(sprintf("Length mismatch\nreq: c(%s)\nvec: c(%s)\n%s", paste(req, collapse = ", "), paste(vec, collapse = ", "), rxModelVars(rxDllObj)))
-                }
-            } else {
-                vec <- c(vec, ini, miss)
-            }
-        } else {
-            vec <- c(ini, miss);
-        }
-    } else {
-        vec <- c(ini, miss);
-    }
-    if (!(missing(req))){
-        diff <- setdiff(req, names(vec))
-        if (length(diff) && !noerror){
-            stop(paste0("Missing the following parameter(s):\n",
-                       paste(diff, collapse=" ")));
-        } else {
-            vec <- vec[req];
-        }
-    } else {
-        vec <- vec[!duplicated(names(vec))]
-    }
-    return(vec);
-
-} # end function rxInits
-
 ##' @rdname rxInits
 ##' @export
 rxInit <- rxInits;
@@ -2415,23 +1639,79 @@ rxReload <- function(){
     class(tmp) <- "list";
     dyn.unload(tmp$path);
     ret <- is.null(getLoadedDLLs()$RxODE)
-    dyn.load(tmp$path);
+    dynLoad(tmp$path);
     ret <- ret && !is.null(getLoadedDLLs()$RxODE)
     return(ret)
 }
 
-##' Garbage Collection for RxODE objects
+rxModels <- new.env(parent = emptyenv())
+##' Get the rxModels  information
+##'@param env boolean that returns the environment where models are stored (TRUE), or the currently assigned RxODE model variables (FALSE).
+##'@keywords internal
+##'@export
 ##'
-##' When objects are created without a model name/DLL name and RxODE
-##' option RxODE.delete.unnamed is TRUE, remove the associated DLL
-##' when R is done with them (i.e. when the RxODE object is deleted or
-##' R exits normally.)  If R crashes, thes files will still remain.
+rxModels_ <- function(env=TRUE){ if(env){return(rxModels);} else {return(.Call(RxODE_get_mv, PACKAGE="RxODE"))} }
+
+##' All model variables for a RxODE object
 ##'
-##' @param env RxODE environment for cleanup.
-##' @return Nothing
-##' @author Matthew L. Fidler
+##' Return all the known model variables for a specified RxODE object
+##'
+##' These items are only calculated after compilation; they are
+##' built-into the RxODE compiled DLL.
+##'
+##' @param obj RxODE family of objects
+##'
+##' @return A list of RxODE model properties including:
+##'
+##' \item{params}{ a character vector of names of the model parameters}
+##' \item{lhs}{ a character vector of the names of the model calculated parameters}
+##' \item{state}{ a character vector of the compartments in RxODE object}
+##' \item{trans}{ a named vector of translated model properties
+##'       including what type of jacobian is specified, the \code{C} function prefixes,
+##'       as well as the \code{C} functions names to be called through the compiled model.}
+##' \item{md5}{a named vector that gives the digest of the model (\code{file_md5}) and the parsed model
+##'      (\code{parsed_md5})}
+##' \item{model}{ a named vector giving the input model (\code{model}),
+##'    normalized model (no comments and standard syntax for parsing, \code{normModel}),
+##'    and interim code that is used to generate the final C file \code{parseModel}}
+##'
 ##' @keywords internal
+##' @author Matthew L.Fidler
 ##' @export
-rxodeGc <- function(env){
-    rxDelete(env$out);
+rxModelVars <- function(obj){
+    tmp <- try(obj,silent=TRUE);
+    if (inherits(tmp, "try-error")){
+        obj <- as.character(substitute(obj));
+    }
+    rxModelVars_(obj);
 }
+
+
+##' Parameters specified by the model
+##'
+##' This return the model's parameters that are required to solve the
+##' ODE system.
+##'
+##' @inheritParams rxModelVars
+##'
+##' @param constants is a boolean indicting if constants should be
+##'     included in the list of parameters. Currently RxODE parses
+##'     constants into variables in case you wish to change them
+##'     without recompiling the RxODE model.
+##'
+##' @return a character vector listing the parameters in the model.
+##'
+##' @author Matthew L.Fidler
+##' @export
+rxParams <- function(obj, constants=TRUE){
+    ret <- rxParams_(obj)
+    if (!constants){
+        init <- RxODE::rxInit(obj);
+        ret <- ret[!(ret %in% names(init))]
+    }
+    return(ret);
+}
+
+##' @rdname rxParams
+##' @export
+rxParam <- rxParams
