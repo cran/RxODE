@@ -41,17 +41,26 @@ cov.df  <- data.frame(ctime =(seq(0,48,length.out=100)+8) %% 24);
 r1 <- solve(mod3, ev, covs=cov.df,covs_interpolation="linear")
 rxHtml(r1)
 
-## ----out.width="100%"----------------------------------------------------
-par(mfrow=c(1,2))
-matplot(r1[,"C2"], type="l", ylab="Central Concentration")
-matplot(r1[,"eff"], type="l", ylab = "Effect")
+## ------------------------------------------------------------------------
+library(ggplot2)
+ggplot(r1,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+
+## ------------------------------------------------------------------------
+ggplot(r1,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
+
+## ------------------------------------------------------------------------
+ggplot(r1,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+
+## ------------------------------------------------------------------------
+ggplot(r1,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
 
 ## ----results="asis"------------------------------------------------------
-r2 <- solve(mod3, ev, covs=cov.df,covs_interpolation="constant")
+r2 <- solve(mod3, ev, covs=cov.df,covs_interpolation="nocb")
 rxHtml(r2)
 
-## ----out.width="100%"----------------------------------------------------
-par(mfrow=c(1,2))
-matplot(r2[,"C2"], type="l", ylab="Central Concentration")
-matplot(r2[,"eff"], type="l", ylab = "Effect")
+## ------------------------------------------------------------------------
+ggplot(r1,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+
+## ------------------------------------------------------------------------
+ggplot(r1,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
 

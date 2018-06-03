@@ -23,7 +23,7 @@ theta <- c(KA=2.94E-01, TCl=1.86E+01, V2=4.02E+01,  # central
                Q=1.05E+01, V3=2.97E+02,                # peripheral
                Kin=1, Kout=1, EC50=200)                # effects  
 
-## ----fig.width=10--------------------------------------------------------
+## ------------------------------------------------------------------------
 ## the column names of the omega matrix need to match the parameters specified by RxODE
 omega <- matrix(0.4^2,dimnames=list(NULL,c("eta.Cl")))
 
@@ -34,17 +34,15 @@ ev <- eventTable(amount.units="mg", time.units="hours") %>%
 sim  <- rxSolve(mod,theta,ev,omega=omega,nSub=100)
 
 library(ggplot2)
-library(gridExtra)
 
-p1 <- ggplot(sim,aes(time,centr,color=factor(sim.id))) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
+ggplot(sim,aes(time,centr,color=factor(sim.id))) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
     xlab("Time (hr)") + guides(color=FALSE)
 
-p2 <-ggplot(sim,aes(time,eff,color=factor(sim.id))) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Effect") +
+## ------------------------------------------------------------------------
+ggplot(sim,aes(time,eff,color=factor(sim.id))) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Effect") +
     xlab("Time (hr)") + guides(color=FALSE)
 
-grid.arrange(p1,p2,nrow=2)
-
-## ----fig.width=10--------------------------------------------------------
+## ------------------------------------------------------------------------
 
 library(dplyr)
 
@@ -56,13 +54,13 @@ s <-sim %>% group_by(time) %>%
                   centr.n=length(.$centr),centr.avg = mean(.$centr))) %>%
     mutate(Percentile=factor(sprintf("%d%%",p*100),levels=c("5%","50%","95%")))
 
-p1 <- ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
+ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
     xlab("Time (hr)")
 
-p2 <-ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
+## ------------------------------------------------------------------------
+ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
     xlab("Time (hr)") + guides(color=FALSE)
 
-grid.arrange(p1,p2,nrow=2)
 
 ## ------------------------------------------------------------------------
 head(sim$param)
@@ -108,13 +106,12 @@ s <-sim %>% group_by(time) %>%
                   centr.n=length(.$cp),centr.avg = mean(.$cp))) %>%
     mutate(Percentile=factor(sprintf("%d%%",p*100),levels=c("5%","50%","95%")))
 
-p1 <- ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
+ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
     xlab("Time (hr)")
 
-p2 <-ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
+## ------------------------------------------------------------------------
+ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
     xlab("Time (hr)") + guides(color=FALSE)
-
-grid.arrange(p1,p2,nrow=2)
 
 ## ------------------------------------------------------------------------
 
@@ -153,14 +150,12 @@ s <-sim %>% group_by(time) %>%
                   centr.n=length(.$cp),centr.avg = mean(.$cp))) %>%
     mutate(Percentile=factor(sprintf("%d%%",p*100),levels=c("5%","50%","95%")))
 
-p1 <- ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
+ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
     xlab("Time (hr)")
 
-p2 <-ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
+## ------------------------------------------------------------------------
+ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
     xlab("Time (hr)") + guides(color=FALSE)
-
-grid.arrange(p1,p2,nrow=2)
-
 
 ## ------------------------------------------------------------------------
 head(sim$omega.list)
@@ -181,13 +176,13 @@ s <-sim %>% group_by(time) %>%
     mutate(Percentile=factor(sprintf("%d%%",p*100),levels=c("5%","50%","95%")))
 
 
-p1 <- ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
+ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
     xlab("Time (hr)")
 
-p2 <-ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
-    xlab("Time (hr)") + guides(color=FALSE)
 
-grid.arrange(p1,p2,nrow=2)
+## ------------------------------------------------------------------------
+ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
+    xlab("Time (hr)") + guides(color=FALSE)
 
 ## ------------------------------------------------------------------------
 sim  <- rxSolve(mod, theta, ev, omega=omega, nSub=100, sigma=sigma, thetaMat=tMat, nStud=10,
@@ -202,11 +197,10 @@ s <-sim %>% group_by(time) %>%
     mutate(Percentile=factor(sprintf("%d%%",p*100),levels=c("5%","50%","95%")))
 
 
-p1 <- ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
+ggplot(s,aes(time,centr,color=Percentile)) + geom_line(size=1) + coord_trans(y = "log10") + ylab("Central Concentration") +
     xlab("Time (hr)")
 
-p2 <-ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
+## ------------------------------------------------------------------------
+ggplot(s,aes(time,eff,color=Percentile)) + geom_line(size=1) + ylab("Effect") +
     xlab("Time (hr)") + guides(color=FALSE)
-
-grid.arrange(p1,p2,nrow=2)
 

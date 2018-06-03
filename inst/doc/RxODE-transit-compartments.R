@@ -7,6 +7,7 @@ htmltools::img(src = knitr::image_uri("logo.png"),
 
 ## ----out.width="100%"----------------------------------------------------
 library(RxODE)
+library(ggplot2)
 mod <- RxODE({
     ## Table 3 from Savic 2007
     cl = 17.2 # (L/hr)
@@ -28,11 +29,10 @@ et$add.dosing(20, start.time=0);
 
 transit <- rxSolve(mod, et, transit_abs=TRUE)
 
-par(mfrow=c(1,1))
-with(transit,matplot(time,cen, type="l", ylab="Central Concentration", xlab=""))
+transit %>% ggplot(aes(time,cen))+geom_line()+ylab("Central Concentration")+
+xlab("")
 
-
-## ----out.width="100%"----------------------------------------------------
+## ------------------------------------------------------------------------
 
 mod <- RxODE({
     ## Table 3 from Savic 2007
@@ -54,6 +54,6 @@ et$add.dosing(20, start.time=0);
 
 transit <- rxSolve(mod, et)
 
-par(mfrow=c(1,1))
-with(transit,matplot(time,cen, type="l", ylab="Central Concentration", xlab=""))
+transit %>% ggplot(aes(time,cen))+geom_line()+ylab("Central Concentration") +
+xlab("")
 
