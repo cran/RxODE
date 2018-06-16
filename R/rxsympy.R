@@ -15,7 +15,7 @@ regIfOrElse <- rex::rex(or(regIf, regElse))
 ##' @return RxODE lines with inis removed.
 ##' @author Matthew L. Fidler
 ##' @keywords internal
-rxRmIni <- function(x){
+.rxRmIni <- function(x){
     x <- x[regexpr(rex::rex(start,any_spaces,or(names(rxInits(x))),any_spaces,or("=", "~")), x) == -1];
     x <- x[regexpr(rex::rex(start,any_spaces,or(names(rxInits(x))),"(0)", any_spaces,or("=", "~")), x) == -1];
     return(x);
@@ -25,22 +25,22 @@ rxRmIni <- function(x){
 ##' @return RxODE lines with df/dy removed.
 ##' @author Matthew L. Fidler
 ##' @keywords internal
-rxRmJac <- function(x){
+.rxRmJac <- function(x){
     return(x[regexpr(rex::rex(regJac, any_spaces, or("=", "~")), x) == -1])
 }
 ##' Remove sensitivity equations
 ##' @param x RxODE lines to remove
 ##' @return Lines with d/dt(rx_sens_...._) removed.
 ##' @author Matthew L. Fidler
-rxRmSens <- function(x){
+.rxRmSens <- function(x){
     return(x[regexpr(rex::rex(start, any_spaces, "d/dt(", any_spaces, regSens, any_spaces, ")", any_spaces, or("=", "~")), x) == -1]);
 }
 ##' Remove print statements
 ##' @param x RxODE lines to remove
 ##' @return RxODE with print lines removed.
 ##' @author Matthew L. Fidler
-rxRmPrint <- function(x){
-    return(x[regexpr(regPrint, x) == -1]);
+.rxRmPrint <- function(x){
+    return(x[regexpr(getFromNamespace("regPrint", "RxODE"), x) == -1]);
 }
 
 ##' Expand if/else clauses into mutiple different types of lines.
@@ -66,10 +66,10 @@ rxExpandIfElse <- memoise::memoise(function(model, removeInis=TRUE, removePrint=
     ## expand if/else blocks into a list with lines for conditions that are true
     x <- strsplit(rxNorm(model, FALSE), "\n")[[1]];
     if (removeInis){
-        x <- rxRmIni(x);
+        x <- .rxRmIni(x);
     }
     if (removePrint){
-        x <- rxRmPrint(x);
+        x <- .rxRmPrint(x);
     }
     model <- x;
     w1 <- which(regexpr(regIfOrElse, model) != -1);
@@ -85,9 +85,11 @@ rxExpandIfElse <- memoise::memoise(function(model, removeInis=TRUE, removePrint=
                     curr.expr[length(curr.expr) + 1] <- sprintf("!(%s)", last);
                 } else {
                     curr.expr[length(curr.expr) + 1] <- gsub(regIf, "!(\\1)", model[i]);
-                    known[[length(known) + 1]] <- c(paste(paste0("(", curr.expr[-1], ")"), collapse=" && "), curr.expr[-1]);
+                    known[[length(known) + 1]] <- c(paste(paste0("(", curr.expr[-1], ")"),
+                                                          collapse=" && "), curr.expr[-1]);
                     curr.expr[length(curr.expr)] <- gsub(regIf, "\\1", model[i]);
-                    known[[length(known) + 1]] <- c(paste(paste0("(", curr.expr[-1], ")"), collapse=" && "), curr.expr[-1]);
+                    known[[length(known) + 1]] <- c(paste(paste0("(", curr.expr[-1], ")"),
+                                                          collapse=" && "), curr.expr[-1]);
                 }
                 lst[[i]] <- "control";
             } else if (any(i == w2)){
@@ -150,7 +152,7 @@ rxSymPyStart <- function(){
         if (is.null(.rxSymPy$started) &&
             any(RxODE.sympy.engine == c("", python))){
             if (requireNamespace(python, quietly = TRUE)){
-                tmp <- try({rxSymPyExec("import sys", .python = python, .start = FALSE)});
+                tmp <- try({RxODE::rxSymPyExec("import sys", .python = python, .start = FALSE)});
                 if (!inherits(tmp, "try-error")){
                     try({rxSymPyExec("import gc", .python = python, .start = FALSE)});
                     tmp <- try({rxSymPyExec("from sympy import *", .python=python, .start=FALSE)})
@@ -606,7 +608,7 @@ rxSymPyDfDyFull <- memoise::memoise(function(model, vars, cond){
 ##' @param model RxODE family of objects
 ##' @return RxODE syntax for model with Jacobian specified.
 ##' @author Matthew L. Fidler
-rxSymPyJacobian <- memoise::memoise(function(model){
+.rxSymPyJacobian <- memoise::memoise(function(model){
     cnd <- rxNorm(model, TRUE); ## Get the conditional statements
     extraLines <- c();
     if (is.null(cnd)){
@@ -816,7 +818,7 @@ rxSymPySensitivity.single <- function(model, calcSens, calcJac){
         tmp <- rxSymPySensitivity2Full(state, eta, theta, model, rxCondition(model));
         all.sens <- c(all.sens, tmp$all.sens);
         extraLines <- c(extraLines, tmp$extraLines);
-        extraLines <- rxRmJac(extraLines);
+        extraLines <- .rxRmJac(extraLines);
     } else {
         extraLines <- rxSymPyDfDy(model, vars=TRUE);
         tmp <- rxSymPySensitivityFull(state, calcSens, model, rxCondition(model))
@@ -840,7 +842,7 @@ rxSymPySensitivity.single <- function(model, calcSens, calcJac){
         rxCat("\ndone.\n");
         ## extraLines <- extraLines[regexpr(rex::rex("=", any_spaces, "0", end), extraLines) == -1];
     } else {
-        extraLines <- rxRmJac(extraLines);
+        extraLines <- .rxRmJac(extraLines);
     }
     extraLines <- extraLines[regexpr(rex::rex(any_spaces, regJac, any_spaces, or("=", "~"), any_spaces,
                                               "0", any_spaces, or(";", ""), any_spaces), extraLines) == -1];
@@ -1284,7 +1286,7 @@ rxSymPySetupPred.warn <- FALSE
 rxSymPySetupPred <- function(obj, predfn, pkpars=NULL, errfn=NULL, init=NULL, grad=FALSE, sum.prod=FALSE, pred.minus.dv=TRUE,
                              theta.derivs=FALSE,only.numeric=FALSE,
                              grad.internal=FALSE, theta.internal=FALSE,
-                             run.internal=FALSE){
+                             run.internal=RxODE.sympy.run.internal){
     good.fns <- c(".GlobalEnv", "package:RxODE", "package:nlmixr")
     check.good <- function(x){
         tmp <- suppressWarnings({find(deparse(substitute(x)))})

@@ -1,3 +1,9 @@
+.normalizePath <- function(...){
+    ifelse(.Platform$OS.type=="windows",
+           suppressWarnings(utils::shortPathName(normalizePath(...))),
+           suppressWarnings(normalizePath(...)))
+}
+
 ##' Require namespace, otherwise throw error.
 ##'
 ##' @param pkg Package required for function to work.
@@ -12,28 +18,6 @@ rxReq <- function(pkg){
     }
     ## nocov end
 }
-asTbl <- function(obj){
-    if (RxODE.prefer.tbl && requireNamespace("dplyr", quietly = TRUE)){
-        return(dplyr::as.tbl(as.data.frame(obj)));
-    } else {
-        return(as.data.frame(obj))
-    }
-}
-
-rxTbl <- function(x, msg){
-    if (RxODE.prefer.tbl && is(x,"data.frame") && requireNamespace("dplyr", quietly = TRUE)){
-        if (!missing(msg)){
-            rxCat(sprintf("Change solved object to dplyr's tbl for %s.\n", msg));
-        }
-        return(dplyr::as.tbl(x))
-    } else {
-        if (!missing(msg)){
-            rxCat(sprintf("Change solved object to data.frame for %s.\n", msg))
-        }
-        attr(x, ".env") <- NULL;
-        return(x)
-    }
-}
 ##' Use cat when RxODE.verbose is TRUE
 ##'
 ##' @param ... Parameters sent to cat
@@ -43,8 +27,8 @@ rxTbl <- function(x, msg){
 rxCat <- function(a, ...){
     ## nocov start
     if (RxODE.verbose){
-        if (is(a,"RxODE")){
-            message(rxNorm(a), appendLF=FALSE);
+        if (is(a, "RxODE")){
+            message(RxODE::rxNorm(a), appendLF=FALSE);
         } else {
             message(a, ..., appendLF=FALSE);
         }
@@ -67,7 +51,8 @@ rxCat <- function(a, ...){
 ##' @keywords internal
 rxPrint <- function(x, ...){
     this.env <- environment();
-    message(invisible(paste(R.utils::captureOutput(assign("x", print(x, ...), this.env)), collapse="\n")), appendLF=TRUE);
+    message(invisible(paste(R.utils::captureOutput(assign("x", print(x, ...), this.env)),
+                            collapse="\n")), appendLF=TRUE);
     invisible(x)
 }
 
@@ -86,9 +71,9 @@ rxPrint <- function(x, ...){
 ##' @export
 rxClean <- function(wd){
     if (missing(wd)){
-        ret <- rxClean(getwd()) && rxClean(rxTempDir());
-        if (RxODE.cache.directory != "."){
-            ret <- ret && rxClean(RxODE.cache.directory)
+        ret <- rxClean(getwd()) && rxClean(.rxTempDir());
+        if (getFromNamespace("RxODE.cache.directory", "RxODE") != "."){
+            ret <- ret && rxClean(getFromNamespace("RxODE.cache.directory", "RxODE"))
         }
         return(ret);
     } else {
@@ -108,9 +93,9 @@ rxClean <- function(wd){
                 unlink(f);
             }
         }
-        if (normalizePath(wd) != normalizePath(RxODE.cache.directory)){
+        if (.normalizePath(wd) != .normalizePath(getFromNamespace("RxODE.cache.directory", "RxODE"))){
             ## rxCat("Cleaning cache directory as well.\n");
-            rxClean(RxODE.cache.directory);
+            rxClean(getFromNamespace("RxODE.cache.directory", "RxODE"));
         }
         return(length(list.files(pattern = pat)) == 0);
     }
@@ -136,7 +121,7 @@ ode.h <- function(){
     odec <- readLines(devtools::package_file("inst/ode.c"));
     solvec <- readLines(devtools::package_file("src/solve.h"));
     w <- which(regexpr("#define Rx_pow_di", odec, fixed=TRUE) != -1)[1];
-    odec <- c(odec[1:w], solvec, odec[-(1:w)])
+    odec <- c(odec[1:w], solvec, odec[-c(1:w)])
     w <- which(regexpr("// CODE HERE", odec) != -1)[1];
     ode <- odec[seq(1, w - 1)];
     ode <- paste(gsub("%", "%%", gsub("\"", "\\\\\"", ode)), collapse="\\n")
@@ -175,7 +160,7 @@ ode.h <- function(){
 
     found <- FALSE
     hd <- sapply(strsplit(sprintf("#define __HD_ODE_1__ \"%s\"\n#define __HD_ODE_2__ \"%s\"\n#define __HD_ODE_3__ \"%s\"\n#define __HD_ODE_4__ \"%s\"\n#define __HD_SOLVE1__ \"%s\"\n#define __HD_SOLVE2__ \"%s\"",
-                                  ode1,ode2, ode3, ode4,
+                                  ode1, ode2, ode3, ode4,
                                   solve1, solve2), "\n")[[1]],
                  function(s){
         if (found){
@@ -194,15 +179,26 @@ ode.h <- function(){
 
     r.files <- list.files(devtools::package_file("R"), "[.]R$", full.names=TRUE);
     r.files <- r.files[regexpr("RxODE_md5.R", r.files, fixed=TRUE) == -1]
-    md5 <- digest::digest(c(sapply(list.files(devtools::package_file("src"), pattern="[.](c|cpp|h|hpp|f|R|in)$",full.names=TRUE),function(x){digest::digest(x,file=T)}),
-                            sapply(r.files,function(x){digest::digest(x,file=T)}),
-                            sapply(list.files(devtools::package_file("vignettes"), pattern="[.](Rmd)$",full.names=TRUE),function(x){digest::digest(x,file=T)}),
-                            sapply(list.files(devtools::package_file("demo"), pattern="(R|index)$",full.names=TRUE),function(x){digest::digest(x,file=T)}),
-                            sapply(list.files(devtools::package_file(), pattern="(cleanup.*|configure.*|DESCRIPTION|NAMESPACE)",full.names=TRUE),function(x){digest::digest(x,file=T)})))
+    md5 <- digest::digest(c(sapply(list.files(devtools::package_file("src"),
+                                              pattern="[.](c|cpp|h|hpp|f|R|in)$", full.names=TRUE),
+                                   function(x){digest::digest(x, file=TRUE)}),
+                            sapply(r.files, function(x){digest::digest(x, file=TRUE)}),
+                            sapply(list.files(devtools::package_file("vignettes"), pattern="[.](Rmd)$",
+                                              full.names=TRUE),
+                                   function(x){digest::digest(x, file=TRUE)}),
+                            sapply(list.files(devtools::package_file("demo"), pattern="(R|index)$",
+                                              full.names=TRUE),
+                                   function(x){digest::digest(x, file=TRUE)}),
+                            sapply(list.files(devtools::package_file(),
+                                              pattern="(cleanup.*|configure.*|DESCRIPTION|NAMESPACE)",
+                                              full.names=TRUE),
+                                   function(x){digest::digest(x, file=TRUE)})))
     hd <- c(hd,
-            sprintf("#define __VER_2__ \"    SET_STRING_ELT(version,2,mkChar(\\\"%s\\\"));\\n\"",md5),
-            sprintf("#define __VER_1__ \"    SET_STRING_ELT(version,1,mkChar(\\\"%s\\\"));\\n\"",as.vector(RxODE::rxVersion()["repo"])),
-            sprintf("#define __VER_0__ \"    SET_STRING_ELT(version,0,mkChar(\\\"%s\\\"));\\n\"", sessionInfo()$otherPkgs$RxODE$Version),
+            sprintf("#define __VER_2__ \"    SET_STRING_ELT(version,2,mkChar(\\\"%s\\\"));\\n\"", md5),
+            sprintf("#define __VER_1__ \"    SET_STRING_ELT(version,1,mkChar(\\\"%s\\\"));\\n\"",
+                    as.vector(RxODE::rxVersion()["repo"])),
+            sprintf("#define __VER_0__ \"    SET_STRING_ELT(version,0,mkChar(\\\"%s\\\"));\\n\"",
+                    sessionInfo()$otherPkgs$RxODE$Version),
             sprintf("#define __VER_md5__ \"%s\"", md5))
     writeLines(hd, devtools::package_file("src/ode.h"))
     writeLines(sprintf("RxODE.md5 <- \"%s\"", md5), devtools::package_file("R/RxODE_md5.R"));

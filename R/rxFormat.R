@@ -10,8 +10,8 @@ rxHtml <- function(x, ...){
 ##' @rdname rxHtml
 ##' @export
 rxHtml.rxSolve <- function(x, ...){
-    rxReq("knitr")
-    bound <- get.bound(x, parent.frame(2));
+    RxODE::rxReq("knitr")
+    bound <- .getBound(x, parent.frame(2));
     cat("<style>
          th,td{
              padding:2px 5px 2px 5px;

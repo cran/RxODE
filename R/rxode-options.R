@@ -1,16 +1,18 @@
-
-.onAttach <- function(libname, pkgname){ ## nocov start
+.onLoad <- function(libname, pkgname){ ## nocov start
     ## Setup RxODE.prefer.tbl
     rxPermissive(respect=TRUE); ## need to call respect on the first time
-    tmp <- try(rxWinRtoolsPath(), silent=TRUE);
-    if (!rxWinRtoolsPath()){
-        packageStartupMessage("Rtools is not set up correctly!\n\nYou need a working Rtools installation for RxODE to work.\nYou can set up Rtools using the command 'rxWinSetup()'.\nThis will also set up Python and SymPy to run a bit faster than rSymPy.\n");
-    }
+    suppressMessages(.rxWinRtoolsPath())
 } ## nocov end
 
-rxTempDir0 <- NULL;
-rxTempDir <- function(){
-    if (is.null(rxTempDir0)){
+.onAttach <- function(libname, pkgname){
+    if (!.rxWinRtoolsPath()){
+        packageStartupMessage("Rtools is not set up correctly!\n\nYou need a working Rtools installation for RxODE to work.\nYou can set up Rtools using the command 'rxWinSetup()'.\nThis will also set up Python and SymPy to run a bit faster than rSymPy.\n");
+    }
+}
+
+.rxTempDir0 <- NULL;
+.rxTempDir <- function(){
+    if (is.null(getFromNamespace(".rxTempDir0", "RxODE"))){
         tmp <- Sys.getenv("rxTempDir")
         if (tmp == ""){
             tmp <- tempdir()
@@ -18,10 +20,10 @@ rxTempDir <- function(){
         if (!file.exists(tmp))
             dir.create(tmp, recursive = TRUE);
         Sys.setenv(rxTempDir=tmp);
-        utils::assignInMyNamespace("rxTempDir0", tmp)
+        utils::assignInMyNamespace(".rxTempDir0", tmp)
         return(tmp)
     } else {
-        return(rxTempDir0);
+        return(getFromNamespace(".rxTempDir0", "RxODE"));
     }
 }
 
@@ -42,7 +44,6 @@ rxForget <- function(){
 ## strict/permissive
 rxOpt <- list(RxODE.prefer.tbl               =c(FALSE, FALSE),
               RxODE.display.tbl              =c(TRUE, TRUE),
-              RxODE.echo.compile             =c(FALSE, FALSE),
               RxODE.warn.on.assign           =c(TRUE, TRUE),
               RxODE.syntax.assign            =c(FALSE, TRUE),
               RxODE.syntax.star.pow          =c(FALSE, TRUE),
@@ -57,13 +58,12 @@ rxOpt <- list(RxODE.prefer.tbl               =c(FALSE, FALSE),
               RxODE.sympy.engine             =c("", ""),
               RxODE.cache.directory          =c(".", "."),
               RxODE.syntax.assign.state      =c(FALSE, FALSE),
-              RxODE.tempfiles                =c(TRUE, TRUE)
+              RxODE.tempfiles                =c(TRUE, TRUE),
+              RxODE.sympy.run.internal       =c(FALSE, FALSE)
               );
 
 RxODE.prefer.tbl <- NULL
-
 RxODE.display.tbl <- NULL
-RxODE.echo.compile <- NULL
 RxODE.warn.on.assign <- NULL
 RxODE.syntax.assign <- NULL
 RxODE.syntax.star.pow <- NULL
@@ -80,7 +80,11 @@ RxODE.cache.directory <- NULL
 RxODE.delete.unnamed <- NULL
 RxODE.syntax.assign.state <- NULL
 RxODE.tempfiles <- NULL;
+RxODE.sympy.run.internal <- NULL
 
+.isTestthat <- function(){
+    return(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != -1) # nolint
+}
 
 ##' Permissive or Strict RxODE sytax options
 ##'
@@ -100,9 +104,9 @@ RxODE.tempfiles <- NULL;
 ##'     is called.
 ##' @author Matthew L. Fidler
 ##' @export
-rxPermissive <- function(expr, silent=(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != -1),
+rxPermissive <- function(expr, silent=.isTestthat(),
                          respect=FALSE,
-                         rxclean=(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != -1),
+                         rxclean=.isTestthat(),
                          cran=FALSE, on.validate=FALSE){
     args  <- as.list(match.call())[-1];
     args$op.rx <- 2;
@@ -110,8 +114,8 @@ rxPermissive <- function(expr, silent=(regexpr("/tests/testthat/", getwd(), fixe
 }
 ##' @rdname rxPermissive
 ##' @export
-rxStrict <- function(expr, silent=(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != -1), respect=FALSE,
-                     rxclean=(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != -1),
+rxStrict <- function(expr, silent=.isTestthat(), respect=FALSE,
+                     rxclean=.isTestthat(),
                      cran=FALSE, on.validate=FALSE){
     args  <- as.list(match.call())[-1];
     args$op.rx <- 1;
@@ -130,8 +134,8 @@ rxStrict <- function(expr, silent=(regexpr("/tests/testthat/", getwd(), fixed=TR
 ##' @param op.rx A numeric for strict (1) or permissive (2) syntax.
 ##' @author Matthew L. Fidler
 ##' @export
-rxOptions <- function(expr, op.rx=NULL, silent=(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != 1), respect=FALSE,
-                      rxclean=(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != 1),
+rxOptions <- function(expr, op.rx=NULL, silent=.isTestthat(), respect=FALSE,
+                      rxclean=.isTestthat(),
                       cran=FALSE, on.validate=FALSE){
     do.it <- TRUE
     if (!identical(Sys.getenv("NOT_CRAN"), "true") && !cran){
