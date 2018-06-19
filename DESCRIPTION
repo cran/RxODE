@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 0.7.2-4
+Version: 0.7.2-5
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -55,7 +55,7 @@ URL: https://www.r-project.org,
 RoxygenNote: 6.0.1
 LinkingTo: dparser(>= 0.1.8), Rcpp (>= 0.12.3), RcppArmadillo(>=
         0.5.600.2.0), PreciseSums (>= 0.3)
-Packaged: 2018-06-16 17:01:38 UTC; WANGWEZ
+Packaged: 2018-06-19 04:56:47 UTC; FIDLEMA3
 Author: Matthew L. Fidler [aut],
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -76,4 +76,4 @@ Author: Matthew L. Fidler [aut],
   R core team [cph],
   odepack authors [cph]
 Repository: CRAN
-Date/Publication: 2018-06-16 19:32:24 UTC
+Date/Publication: 2018-06-19 09:47:54 UTC
