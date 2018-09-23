@@ -72,8 +72,11 @@ typedef struct {
   int idosen;
   int id;
   int sim;
+  int idx;
   double ylow;
   double yhigh;
+  double lambda;
+  double yj;
 } rx_solving_options_ind;
 
 typedef struct {
@@ -86,6 +89,7 @@ typedef struct {
   int nr;
   int add_cov;
   int matrix;
+  double stateTrim;
   int *stateIgnore;
 } rx_solve;
 
@@ -100,7 +104,7 @@ void par_solve(rx_solve *rx);
 
 rx_solving_options *getRxOp(rx_solve *rx);
 
-SEXP RxODE_df(int doDose);
+SEXP RxODE_df(int doDose, int doTBS);
 SEXP RxODE_par_df();
 
 rx_solving_options_ind *rxOptionsIniEnsure(int mx);

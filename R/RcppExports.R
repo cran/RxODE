@@ -9,6 +9,82 @@ add_sampling_ <- function(eventTable, time, time_units = NA_character_) {
     .Call(`_RxODE_add_sampling_`, eventTable, time, time_units)
 }
 
+foceiInnerLp <- function(eta, id = 1L) {
+    .Call(`_RxODE_foceiInnerLp`, eta, id)
+}
+
+likInner <- function(eta, id = 1L) {
+    .Call(`_RxODE_likInner`, eta, id)
+}
+
+cholSE0 <- function(Ao, E, A, tol) {
+    .Call(`_RxODE_cholSE0`, Ao, E, A, tol)
+}
+
+cholSE_ <- function(A, tol) {
+    .Call(`_RxODE_cholSE_`, A, tol)
+}
+
+foceiLik <- function(theta) {
+    .Call(`_RxODE_foceiLik`, theta)
+}
+
+foceiOfv <- function(theta) {
+    .Call(`_RxODE_foceiOfv`, theta)
+}
+
+foceiEtas <- function() {
+    .Call(`_RxODE_foceiEtas`)
+}
+
+foceiNumericGrad <- function(theta) {
+    .Call(`_RxODE_foceiNumericGrad`, theta)
+}
+
+foceiSetup_ <- function(obj, data, theta, thetaFixed = NULL, skipCov = NULL, rxInv = NULL, lower = NULL, upper = NULL, etaMat = NULL, control = NULL) {
+    .Call(`_RxODE_foceiSetup_`, obj, data, theta, thetaFixed, skipCov, rxInv, lower, upper, etaMat, control)
+}
+
+foceiOuterF <- function(theta) {
+    .Call(`_RxODE_foceiOuterF`, theta)
+}
+
+foceiOuterG <- function(theta) {
+    .Call(`_RxODE_foceiOuterG`, theta)
+}
+
+foceiOuter <- function(e) {
+    .Call(`_RxODE_foceiOuter`, e)
+}
+
+#' Return the square root of general square matrix A
+#'
+#' @param m Matrix to take the square root of.
+#' @export
+sqrtm <- function(m) {
+    .Call(`_RxODE_sqrtm`, m)
+}
+
+foceiCalcCov <- function(e) {
+    .Call(`_RxODE_foceiCalcCov`, e)
+}
+
+#' Fit/Evaulate FOCEi 
+#'
+#' This shouldn't be called directly.
+#'
+#' @param e Enviornment 
+#'
+#' @keywords internal
+#' @export
+foceiFitCpp_ <- function(e) {
+    .Call(`_RxODE_foceiFitCpp_`, e)
+}
+
+coxBox_ <- function(x = 1L, lambda = 1, yj = 0L) {
+    .Call(`_RxODE_coxBox_`, x, lambda, yj)
+}
+
 #' Check the type of an object using Rcpp
 #'
 #' @param obj Object to check
@@ -371,6 +447,10 @@ rxDelete <- function(obj) {
     .Call(`_RxODE_rxDelete`, obj)
 }
 
+setRstudio <- function(isRstudio = FALSE) {
+    .Call(`_RxODE_setRstudio`, isRstudio)
+}
+
 #' Invert matrix using Rcpp Armadilo.  
 #'
 #' @param matrix matrix to be inverted.
@@ -420,14 +500,6 @@ rxSymInvChol <- function(invObjOrMatrix, theta = NULL, type = "cholOmegaInv", th
 
 rxSymInvCholEnvCalculate <- function(obj, what, theta = NULL) {
     .Call(`_RxODE_rxSymInvCholEnvCalculate`, obj, what, theta)
-}
-
-RxODE_finalize_focei_omega <- function(rho) {
-    invisible(.Call(`_RxODE_RxODE_finalize_focei_omega`, rho))
-}
-
-RxODE_finalize_log_det_OMGAinv_5 <- function(rho) {
-    .Call(`_RxODE_RxODE_finalize_log_det_OMGAinv_5`, rho)
 }
 
 removableDrive <- function(driveRoot) {

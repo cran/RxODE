@@ -97,10 +97,13 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
     .keys <- try(utils::readRegistry(sprintf("SOFTWARE\\nlmixr%s", ifelse(.Platform$r_arch == "i386", "32", "")),
                                     hive = "HCU", maxdepth = 2), silent = TRUE);
     if (!inherits(.keys, "try-error")){
-        .normalizePath(commandArgs()[[1]])
-        if (regexpr(rex::rex(.normalizePath(.keys[[1]])),
-                    .normalizePath(commandArgs()[[1]])) == -1){
-            return(list())
+        .ca1 <- commandArgs()[[1]];
+        if (.ca1 != "RStudio"){
+            .ca1 <- .normalizePath(.ca1);
+            if (regexpr(rex::rex(substring(.normalizePath(.keys[[1]]), 2)), .ca1) == -1){
+
+                return(list())
+            }
         }
         .lst <- list(
             rtoolsBase = .normalizePath(file.path(.keys[[1]], "rtools"), winslash="/", mustWork=FALSE),
@@ -319,10 +322,6 @@ rxWinPythonSetup <- function(){
     message("Attempting to install SymPy. This may take a few seconds...")
     try(system("python -m pip install sympy"))
 
-    if (!requireNamespace("SnakeCharmR", quietly = TRUE)){
-        message("Attempting to install SnakeCharmR. This may take a few seconds...")
-        devtools::install_github("nlmixrdevelopment/SnakeCharmR");
-    }
     message("Please restart your R session before using RxODE.")
 }
 

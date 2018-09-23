@@ -167,6 +167,11 @@
 ##'     only includes estimates at the observations. (default
 ##'     \code{FALSE}).
 ##'
+##' @param stateTrim When amounts/concentrations in one of the states
+##'     are above this value, trim them to be this value. By default
+##'     Inf.  Also trims to -stateTrim for lage negative
+##'     amounts/concentrations
+##'
 ##' @param updateObject This is an internally used flag to update the
 ##'     RxODE solved object (when supplying an RxODE solved object) as
 ##'     well as returning a new object.  You probably should not
@@ -181,12 +186,15 @@
 ##' \item \code{"rxSolve"} (default) will return a reactive data frame
 ##'      that can change easily change different pieces of the solve and
 ##'      update the data frame.  This is the currently standard solving
-##'      method in RxODE,  is used for \code{rxSolve(object, ...)}, \code{solev(object,...)},
+##'      method in RxODE,  is used for \code{rxSolve(object, ...)}, \code{solve(object,...)},
 ##' \item \code{"data.frame"} -- returns a plain, non-reactive data
-##'      frame; Currently very slightly Faster than \code{returnType=\"matrix\"}
+##'      frame; Currently very slightly Faster than \code{returnType="matrix"}
 ##' \item \code{"matrix"} -- returns a plain matrix with column names attached
 ##'     to the solved object.  This is what is used \code{object$run} as well as \code{object$solve}
 ##' }
+##'
+##' @param seed an object specifying if and how the random number
+##'    generator should be initialized
 ##'
 ##' @inheritParams rxSimThetaOmega
 ##'
@@ -255,14 +263,15 @@ rxSolve.default <- function(object, params=NULL, events=NULL, inits = NULL, scal
                     transitAbs = NULL, atol = 1.0e-8, rtol = 1.0e-6,
                     maxsteps = 5000L, hmin = 0L, hmax = NULL, hini = 0, maxordn = 12L, maxords = 5L, ...,
                     cores,
-                    covsInterpolation = c("linear", "locf", "nocb", "midpoint"),
+                    covsInterpolation = c("locf", "linear", "nocb", "midpoint"),
                     addCov = FALSE, matrix = FALSE, sigma = NULL, sigmaDf = NULL,
                     nCoresRV = 1L, sigmaIsChol = FALSE, nDisplayProgress=10000L,
                     amountUnits = NA_character_, timeUnits = "hours", stiff,
-                    theta = NULL, eta = NULL, addDosing=FALSE, updateObject=FALSE, doSolve=TRUE,
+                    theta = NULL, eta = NULL, addDosing=FALSE,
+                    stateTrim=Inf, updateObject=FALSE, doSolve=TRUE,
                     omega = NULL, omegaDf = NULL, omegaIsChol = FALSE,
                     nSub = 1L, thetaMat = NULL, thetaDf = NULL, thetaIsChol = FALSE,
-                    nStud = 1L, dfSub=0.0, dfObs=0.0, returnType=c("rxSolve", "matrix", "data.frame"),
+                    nStud = 1L, dfSub=0.0, dfObs=0.0, returnType=c("rxSolve", "matrix", "data.frame", "data.frame.TBS"),
                     seed=NULL, nsim=NULL, setupOnly=FALSE){
     .xtra <- list(...);
     if (is.null(transitAbs) && !is.null(.xtra$transit_abs)){
@@ -520,19 +529,22 @@ rxSolve.default <- function(object, params=NULL, events=NULL, inits = NULL, scal
             }
         }
     } else {
-        method <- match.arg(method);
+        if (!rxIs(method, "integer")){
+            method <- match.arg(method);
+        }
     }
+    .matrixIdx <- c("rxSolve"=0, "matrix"=1, "data.frame"=2, "data.frame.TBS"=3);
     if (!missing(returnType)){
-        .matrixIdx <- c("rxSolve"=0, "matrix"=1, "data.frame"=2);
         matrix <- .matrixIdx[match.arg(returnType)];
     } else if (!is.null(.xtra$return.type)){
-        .matrixIdx <- c("rxSolve"=0, "matrix"=1, "data.frame"=2);
         matrix <- .matrixIdx[.xtra$return.type];
     } else {
         matrix <- as.integer(matrix);
     }
-    .methodIdx <- c("lsoda"=1, "dop853"=0, "liblsoda"=2);
-    method <- as.integer(.methodIdx[method]);
+    if (!rxIs(method, "integer")){
+        .methodIdx <- c("lsoda"=1, "dop853"=0, "liblsoda"=2);
+        method <- as.integer(.methodIdx[method]);
+    }
     if (Sys.info()[["sysname"]] == "SunOS" && method == 2){
         method <- 1;
     }
@@ -568,7 +580,7 @@ rxSolve.default <- function(object, params=NULL, events=NULL, inits = NULL, scal
                sigmaDf, #15
                nCoresRV, #16
                sigmaIsChol, nDisplayProgress, amountUnits,
-               timeUnits, addDosing, theta, eta, updateObject,
+               timeUnits, addDosing, stateTrim, theta, eta, updateObject,
                doSolve, omega, omegaDf, omegaIsChol, nSub, thetaMat,
                thetaDf, thetaIsChol, nStud, dfSub, dfObs,
                as.integer(setupOnly)));
@@ -656,6 +668,25 @@ solve.RxODE <- solve.rxSolve
     cat(cli::rule(left=paste0(crayon::bold("Initial Conditions"),
                               " (", crayon::yellow(bound), crayon::bold$blue("$inits"), "):")), "\n")
     print(x$inits);
+    if (any(names(x) == "sim.id")){
+        .uncert <- character(0)
+        if (!is.null(x$thetaMat)){
+            .uncert <- c(.uncert, paste0("parameters (", crayon::yellow(bound), crayon::bold$blue("$thetaMat"), " for changes)"))
+        }
+        if (!is.null(x$omegaList)){
+            .uncert <- c(.uncert, paste0("omega matrix (", crayon::yellow(bound), crayon::bold$blue("$omegaList"), ")"))
+        }
+        if (!is.null(x$omegaList)){
+            .uncert <- c(.uncert, paste0("sigma matrix (", crayon::yellow(bound), crayon::bold$blue("$sigmaList"), ")"))
+        }
+        if (length(.uncert) == 0L){
+            cat(paste0("\nSiulation ", crayon::bold("without uncertainty"), " in parameters, omega or sigma matricies\n\n"));
+        } else if (length(.uncert) == 1L){
+            cat(paste0("\nSimulation ", crayon::bold("with uncertainty"), " in ", paste(.uncert, collapse=", "), "\n\n"));
+        } else {
+            cat(paste0("\nSimulation ", crayon::bold("with uncertainty"), " in:\n  - ", paste(.uncert, collapse="\n  - "), "\n\n"));
+        }
+    }
     return(invisible(.isDplyr));
 }
 

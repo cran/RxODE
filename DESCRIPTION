@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 0.7.2-5
+Version: 0.8.0-7
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -18,6 +18,9 @@ Authors@R: c(
    person("Linda", "Petzold", role="ctb"),
    person("Ernst", "Hairer", role="ctb"),
    person("Gerhard", "Wanner", role="ctb"),
+   person("Johannes", "Pfeifer",role="ctb"),
+   person("Robert B.", "Schnabel",role="ctb"),
+   person("Elizabeth", "Eskow", role="ctb"),
    person("J", "Colinge", role="ctb"),
    person("Hadley", "Wickham", role="ctb"),
    person("G", "Grothendieck", role="ctb"),
@@ -30,10 +33,11 @@ Maintainer: Wenping Wang <wwang8198@gmail.com>
 Depends: R (>= 3.3.0)
 Suggests: knitr, nlme, shiny, tcltk, testthat, devtools, covr,
         rmarkdown, SnakeCharmR, rSymPy, dplyr, tidyr, tibble, curl,
-        ggplot2, gridExtra, microbenchmark, scales, stringi, htmltools
+        ggplot2, gridExtra, microbenchmark, scales, stringi, htmltools,
+        reticulate
 Imports: utils, methods, digest, rex, dparser (>= 0.1.8), brew,
         memoise, magrittr, Rcpp (>= 0.12.3), inline, Matrix, R.utils,
-        PreciseSums (>= 0.3), mvnfast, cli, crayon
+        PreciseSums (>= 0.3), n1qn1 (>= 6.0.1-2), mvnfast, cli, crayon
 Description: Facilities for running simulations from ordinary
     differential equation (ODE) models, such as pharmacometrics and other
     compartmental models.  A compilation manager translates the ODE model
@@ -52,10 +56,10 @@ VignetteBuilder: knitr
 License: GPL (>= 2)
 URL: https://www.r-project.org,
         https://github.com/nlmixrdevelopment/RxODE
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 LinkingTo: dparser(>= 0.1.8), Rcpp (>= 0.12.3), RcppArmadillo(>=
         0.5.600.2.0), PreciseSums (>= 0.3)
-Packaged: 2018-06-19 04:56:47 UTC; FIDLEMA3
+Packaged: 2018-09-21 21:00:00 UTC; annie
 Author: Matthew L. Fidler [aut],
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -68,6 +72,9 @@ Author: Matthew L. Fidler [aut],
   Linda Petzold [ctb],
   Ernst Hairer [ctb],
   Gerhard Wanner [ctb],
+  Johannes Pfeifer [ctb],
+  Robert B. Schnabel [ctb],
+  Elizabeth Eskow [ctb],
   J Colinge [ctb],
   Hadley Wickham [ctb],
   G Grothendieck [ctb],
@@ -76,4 +83,4 @@ Author: Matthew L. Fidler [aut],
   R core team [cph],
   odepack authors [cph]
 Repository: CRAN
-Date/Publication: 2018-06-19 09:47:54 UTC
+Date/Publication: 2018-09-23 17:00:03 UTC
