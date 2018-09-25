@@ -1,4 +1,4 @@
-569429c7bc066ae6cdad98bea41c1a7a *DESCRIPTION
+87401068160d19ca02a966452b3b6824 *DESCRIPTION
 4102af4571975338a4a1ea17cba1f12f *NAMESPACE
 c6b1fefecc93b8bd5eb61e7e7f66fadf *R/RcppExports.R
 7118dcafe8c5ab38ddd7789d50d25d9f *R/RxODE-win-setup.R
@@ -213,7 +213,7 @@ b3207298b70d82dfac19ed89b21d7345 *src/dop853.h
 8ff9ef9ab4fc77c47d3374fee616e941 *src/fnorm.c
 4f0de59d3b345d2a59533d94b7901e53 *src/idamax.c
 30ccf163d3c5a0be1e1e2202ec0d85de *src/init.c
-8f120b4dbb7999902311c21dd4be61cf *src/inner.cpp
+6b78d63d0c1d8af184022318493a18a5 *src/inner.cpp
 b19a84b6ec1785148a229e36e02bd62a *src/install.libs.R
 4c48e3f82541b559f34945252f33fbac *src/intdy.c
 92bb57a30766060b9682badfd0ea188b *src/lbfgsR.c
@@ -227,7 +227,7 @@ a15dfa05f6a3c9d22c04929bc2a1b75a *src/omegaChol.c
 ea0f6a70aa69f6503e64cd978304a2f8 *src/opkda1_abbr.f
 e6ed0d32690dc5859bec86c50b4866ec *src/opkda2.f
 f6d1f112deb7f07e5f0999d298e33111 *src/orderswitch.c
-73add4c85e6c4724390cb645735d5253 *src/par_solve.c
+278a4358d1051e0ab4c4c605e8f9bf53 *src/par_solve.c
 09ca2130711cfb0d06516f39ba3c0285 *src/printcf.c
 dae8174a27b49005fb93a41b7b6952e7 *src/prja.c
 2d87eea4e04f95c8e52bffe2fb88a830 *src/rprintf.c
