@@ -1,4 +1,4 @@
-87401068160d19ca02a966452b3b6824 *DESCRIPTION
+c204cb2b9fe9d1cb5389d49499322e16 *DESCRIPTION
 4102af4571975338a4a1ea17cba1f12f *NAMESPACE
 c6b1fefecc93b8bd5eb61e7e7f66fadf *R/RcppExports.R
 7118dcafe8c5ab38ddd7789d50d25d9f *R/RxODE-win-setup.R
@@ -185,7 +185,7 @@ c11f2c14fbc039f0c9e6dde701ef07fa *man/sqrtm.Rd
 027e9d0960eeebc74eb2cbf4435b50e2 *man/summary.RxODE.Rd
 38e77e9401e909a5750f08dd0eab2090 *man/summary.rxDll.Rd
 d794218d8a636bce14ff7997ae0baa5a *man/yeoJohnson.Rd
-df06dde2f1ea11e216f560d5ce446c4d *src/Makevars.in
+08ee3e78104fb41476b6f2d5d413d1b2 *src/Makevars.in
 ae85d3a2d1fffbf035b657e1723ed1e1 *src/RcppExports.cpp
 aedde7d1581c19a2047a7ddff87ace84 *src/RxODE.h
 f8af31df4c1f0fbb38244f3323822456 *src/RxODE_types.h
