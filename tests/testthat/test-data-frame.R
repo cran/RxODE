@@ -19,6 +19,7 @@ rxPermissive({
     test_that("RxODE instance 1 is created",{
         expect_equal(class(m1),"RxODE");
     });
+
     et1 <- eventTable(amount.units="ug", time.units = "hours")
     et1$add.dosing(dose=10000, nbr.doses=5, dosing.interval = 24)
     et1$add.sampling(0:24)
@@ -27,9 +28,9 @@ rxPermissive({
 
 
     test_that("RxODE event table 1 was created",{
-        expect_equal(class(et1), "EventTable")
+        expect_true(inherits(et1, "rxEt"))
         expect_equal(et1$get.nobs(),38);
-        expect_equal(length(et1$get.dosing()[,1]), 5);
+        expect_equal(length(et1$get.dosing()[,1]), 1);
     })
 
     o1.first <- NULL;
@@ -41,7 +42,7 @@ rxPermissive({
     })
 
     o1.df <- as.data.frame(o1.first);
-    o1.df2 <- as_data_frame(o1.first);
+    o1.df2 <- as_tibble(o1.first);
 
     test_that("Numeric Data frame lookup operators [] make sense",{
         expect_equal(o1.first[],o1.df[]);

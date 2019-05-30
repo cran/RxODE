@@ -1,37 +1,81 @@
+.unloadRx <- function(){
+    .dlls <- getLoadedDLLs()
+    .dllNames <- names(.dlls)
+    .rxDlls <- .dllNames[regexpr("^rx_", .dllNames) != -1]
+    .dlls <- .dlls[.rxDlls]
+    gc(verbose=FALSE)
+    for (.dll in .dlls) {
+        .name <- .dll[["name"]]
+        .path <- .dll[["path"]]
+        .libpath <- dirname(dirname(.path))
+        try({dyn.unload(.path)}, silent=TRUE)
+    }
+}
 .onLoad <- function(libname, pkgname){ ## nocov start
     ## Setup RxODE.prefer.tbl
     .Call(`_RxODE_setRstudio`, Sys.getenv("RSTUDIO")=="1")
     rxPermissive(respect=TRUE); ## need to call respect on the first time
-    suppressMessages(.rxWinRtoolsPath())
+    suppressMessages(.rxWinRtoolsPath(retry=NA))
+    rxTempDir();
+    if (!interactive()){
+        setProgSupported(0);
+    }
 } ## nocov end
 
 .onAttach <- function(libname, pkgname){
     .Call(`_RxODE_setRstudio`, Sys.getenv("RSTUDIO")=="1")
     rxPermissive(respect=TRUE); ## need to call respect on the first time
-    if (!.rxWinRtoolsPath()){
-        packageStartupMessage("Rtools is not set up correctly!\n\nYou need a working Rtools installation for RxODE to work.\nYou can set up Rtools using the command 'rxWinSetup()'.\nThis will also set up Python and SymPy to run a bit faster than rSymPy.\n");
+    if (!.rxWinRtoolsPath(retry=NA)){
+        ## nocov start
+        packageStartupMessage("Rtools is not set up correctly!\n\nYou need a working Rtools installation for RxODE to work.\nYou can set up Rtools using the command 'rxWinSetup()'.\n");
+        ## nocov end
     }
+    if (!interactive()){
+        setProgSupported(0);
+    }
+    rxTempDir();
 }
 
 .onUnload <- function (libpath) {
+    ## nocov start
+    .unloadRx()
     rxSolveFree();
     library.dynam.unload("RxODE", libpath)
+    ## nocov end
 }
 
 .rxTempDir0 <- NULL;
-.rxTempDir <- function(){
+.cacheDefault <- NULL;
+##' Get the RxODE temporary directory
+##'
+##' @return RxODE temporary directory.
+##' @export
+rxTempDir <- function(){
     if (is.null(getFromNamespace(".rxTempDir0", "RxODE"))){
-        tmp <- Sys.getenv("rxTempDir")
-        if (tmp == ""){
-            tmp <- tempdir()
+        .tmp <- Sys.getenv("rxTempDir")
+        if (.tmp == ""){
+            if (is.null(.cacheDefault)){
+                assignInMyNamespace(".cacheDefault", paste0(sub("Rtmp.*","",tempdir()),".rxCache"));
+            }
+            if (getOption("RxODE.cache.directory", .cacheDefault) != "."){
+                .tmp <- getOption("RxODE.cache.directory", .cacheDefault);
+            } else {
+                .tmp <- tempdir()
+            }
         }
-        if (!file.exists(tmp))
-            dir.create(tmp, recursive = TRUE);
-        Sys.setenv(rxTempDir=tmp);
-        utils::assignInMyNamespace(".rxTempDir0", tmp)
-        return(tmp)
+        if (!file.exists(.tmp))
+            dir.create(.tmp, recursive = TRUE);
+        .tmp <- .normalizePath(.tmp);
+        Sys.setenv(rxTempDir=.tmp);
+        utils::assignInMyNamespace(".rxTempDir0", .tmp)
+        utils::assignInMyNamespace("RxODE.cache.directory", .tmp)
+        return(.tmp)
     } else {
-        return(getFromNamespace(".rxTempDir0", "RxODE"));
+        .tmp <- getFromNamespace(".rxTempDir0", "RxODE");
+        if (!file.exists(.tmp))
+            dir.create(.tmp, recursive = TRUE);
+        utils::assignInMyNamespace("RxODE.cache.directory", .tmp)
+        return(.tmp);
     }
 }
 
@@ -64,10 +108,11 @@ rxOpt <- list(RxODE.prefer.tbl               =c(FALSE, FALSE),
               RxODE.verbose                  =c(TRUE, TRUE),
               RxODE.suppress.syntax.info     =c(FALSE, FALSE),
               RxODE.sympy.engine             =c("", ""),
-              RxODE.cache.directory          =c(".", "."),
+              RxODE.cache.directory          =c(.cacheDefault, .cacheDefault),
               RxODE.syntax.assign.state      =c(FALSE, FALSE),
               RxODE.tempfiles                =c(TRUE, TRUE),
-              RxODE.sympy.run.internal       =c(FALSE, FALSE)
+              RxODE.sympy.run.internal       =c(FALSE, FALSE),
+              RxODE.syntax.require.ode.first =c(TRUE, TRUE)
               );
 
 RxODE.prefer.tbl <- NULL
@@ -89,6 +134,7 @@ RxODE.delete.unnamed <- NULL
 RxODE.syntax.assign.state <- NULL
 RxODE.tempfiles <- NULL;
 RxODE.sympy.run.internal <- NULL
+RxODE.syntax.require.ode.first <- NULL
 
 .isTestthat <- function(){
     return(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != -1) # nolint
@@ -125,9 +171,11 @@ rxPermissive <- function(expr, silent=.isTestthat(),
 rxStrict <- function(expr, silent=.isTestthat(), respect=FALSE,
                      rxclean=.isTestthat(),
                      cran=FALSE, on.validate=FALSE){
+    ## nocov start
     args  <- as.list(match.call())[-1];
     args$op.rx <- 1;
     do.call(getFromNamespace("rxOptions", "RxODE"), args, envir=parent.frame(1));
+    ## nocov end
 }
 ##' Options for RxODE
 ##'
@@ -195,7 +243,14 @@ rxOptions <- function(expr, op.rx=NULL, silent=.isTestthat(), respect=FALSE,
                     rxClean();
                 }
                 opOld <- options();
-                on.exit({options(opOld); rxSyncOptions(); if (rxclean){rxClean();}});
+                .oldProg <- getProgSupported();
+                if (silent){
+                    setProgSupported(-1);
+                }
+                on.exit({options(opOld);
+                    setProgSupported(.oldProg);
+                    rxSyncOptions();
+                    if (rxclean){rxClean();}});
             }
             if (respect){
                 op <- options();

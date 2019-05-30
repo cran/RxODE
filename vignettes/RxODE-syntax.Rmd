@@ -1,6 +1,5 @@
 ---
 title: "RxODE ODE solving syntax"
-author: "Matthew L. Fidler, Melissa Hallow, and Wenping Wang"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -9,12 +8,16 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+
 ```{r, echo=FALSE}
 options(cli.unicode=FALSE, crayon.enabled=FALSE);
 options(knitr.table.format = "html")
+knitr::opts_chunk$set( comment = "#>")
 htmltools::img(src = knitr::image_uri("logo.png"), 
                alt = 'RxODE', 
                style = 'position:absolute; top:0; right:0; padding:10px; border: 0;')
+options(width=80)
+Sys.setenv(RSTUDIO_CONSOLE_WIDTH=80)
 ```
 
 ## Introduction
@@ -50,7 +53,7 @@ describes the communication of variables between `R` and the
 ## Syntax
 
 An `RxODE` model specification consists of one or more 
-statements terminated by semi-colons `;` and
+statements optionally terminated by semi-colons `;` and
 optional comments (comments are delimited by `#` and an 
 end-of-line). 
 
@@ -69,6 +72,18 @@ be:
 - special **initial-condition** assignments where the left hand
   specifies the compartment of the initial condition being specified,
   e.g. `depot(0) = 0`
+- special model event changes including **bioavailability**
+  (`f(depot)=1`), **lag time** (`lag(depot)=0`), **modeled rate**
+  (`rate(depot)=2`) and **modeled duration** (`dur(depot)=2`). An
+  example of these model features and the event specification for the
+  modeled infusions the RxODE data specification is found in [RxODE
+  events vignette](RxODE-events.html).
+- Compartment declaration statements, which can change the default
+  dosing compartment and the assumed compartment number(s) as well as
+  add extra compartment names at the end (useful for multiple-endpoint
+  nlmixr models); These are specified by `cmt(compartmentName)`
+- special change point syntax, or model times.  These model times are
+  specified by `mtime(var)=time`
 - special **Jacobian-derivative** assignments, where the left hand
   specifies the change in the compartment ode with respect to a
   variable.  For example, if `d/dt(y) = dy`, then a Jacobian for this
@@ -101,15 +116,24 @@ however, no character nor integer expressions are currently supported.
 
 Numeric expressions can include the following numeric operators `+, -,
 *, /, ^` and those mathematical functions defined in the C or the R
-math libraries (e.g., `fabs`, `exp`, `log`, `sin`, `abs`).  In addition, the
-factorial operator and function (either `!` or `factorial` as in R)
-can be used. Notice that the modulo operator `%` is currently
-unsupported.
+math libraries (e.g., `fabs`, `exp`, `log`, `sin`, `abs`).  Notice
+that the modulo operator `%` is currently unsupported.
 
-You may also access the R's functions in
-the
-[R math libraries](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Numerical-analysis-subroutines),
-like `lgammafn` for the log gamma function
+You may also access the R's functions in the [R math
+libraries](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Numerical-analysis-subroutines),
+like `lgammafn` for the log gamma function.
+
+There are certain variable names that are in the `RxODE` event tables.
+To avoid confusion, the following event table-related items cannot be
+used in a RxODE model specification:
+
+- `rate`
+- `amt`
+- `ss`
+- `addl`
+- `evid`
+- `ii`
+- `dvid`
 
 
 The `RxODE` syntax is case-sensitive, i.e., `ABC` is different 
@@ -122,6 +146,7 @@ underscore `_` or period `.` characters, but the first character
 cannot be a digit or underscore `_`.
 
 Identifiers in a model specification can refer to:
+
 * State variables in the dynamic system (e.g., compartments in a
   pharmacokinetics model).
 * Implied input variable, `t` (time), `tlast` (last time point), and 
@@ -133,14 +158,18 @@ Identifiers in a model specification can refer to:
 * Others, as created by assignments as part of the model specification;
   these are referred as *LHS* (left-hand side) variable.
 
-Currently, the `RxODE` modeling language only recognizes system state 
-variables and "parameters", thus, any values that need to be passed 
-from R to the ODE model (e.g., `age`) should be passed in the `params` 
-argument of the integrator function `solve()`.
+Currently, the `RxODE` modeling language only recognizes system state
+variables and "parameters", thus, any values that need to be passed
+from R to the ODE model (e.g., `age`) should be either passed in the
+`params` argument of the integrator function `solve()` or be in the
+supplied event data-set.
 
-Sometimes RxODE generates variables that are fed back to RxODE.  These
-variables start with the `rx` prefix.  To avoid any problems, it is
-suggested to not use these variables starting with the `rx` prefix.
+Sometimes RxODE generates variables that are fed back to RxODE.
+Similarly, nlmixr generates some variables that are used in nlmixr
+estimation and simulation.  These variables start with the either the
+`rx` or `nlmixr` prefixes.  To avoid any problems, it is suggested to
+not use these variables starting with either the `rx` or `nlmixr`
+prefixes.
 
 
 ## Interface and data handling between R and the generated C code
@@ -164,7 +193,7 @@ inits <- c(depot=0, centr=0, peri=0, eff=1)
 # qd1 is an eventTable specification with a set of dosing and sampling 
 # records (code not shown here)
 
-m1$solve(theta, event = qd1, inits = inits)
+solve(theta, event = qd1, inits = inits)
 ```
 The values of these variables at pre-specified time points are
 saved during model fitting/integration and returned as part of the 
@@ -178,4 +207,9 @@ open source tool *DParser*, Plevyak (2015).
 
 ## Bugs and/or deficiencies
 
-The modulo operator `%` is currently unsupported. 
+- The modulo operator `%` is currently unsupported. 
+- `else if`  is not currently supported 
+- Conditional statements inside a single statement like `ifelse` are
+  not currently supported.
+- Logical expressions within a statement are not supported, that is
+  `(cmt==2)*1+(cmt==3)*4` is not supported

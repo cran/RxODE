@@ -61,6 +61,8 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
 })
 .rxPythonBaseWin <- function(){
     if (.Platform$OS.type == "unix"){
+    } else if (file.exists(R.home("rxPython"))){
+        R.home("rxPython")
     } else {
         .keys <- .rxNlmixr();
         if (!is.null(.keys$pythonBase)){
@@ -116,88 +118,108 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
     return(list());
 })
 
-##' Return Rtools base
-##'
-##' @return Rtools base path, or "" on unix-style platforms.
-##' @author Matthew L. Fidler
-.rxRtoolsBaseWin <- memoise::memoise(function(){
+.rxRtoolsBaseWin <- memoise::memoise(function(retry=FALSE){
     if (.Platform$OS.type == "unix"){
         return("");
     } else {
-        ## Prefer nlmixr rtools over everything
-        .keys <- .rxNlmixr()
-        if (!is.null(.keys$rtoolsBase)){
-            .rtoolsBase <- .keys$rtoolsBase;
+        for (.i in rxPhysicalDrives()){
+            if (file.exists(paste0(.i, "Rtools"))){
+                return(paste0(.i, "Rtools"))
+            }
+        }
+        if (file.exists(R.home("rtools"))){
+            return(R.home("rtools"))
         } else {
-            ## The grep solution assumes that the path is setup correctly;
-            .gcc <- Sys.which("gcc.exe")
-            .rtools <- sub("[/\\](mingw).*", "", .gcc);
-            if (file.exists(file.path(.rtools, "Rtools.txt"))){
-                return(.rtools)
+            ## Prefer nlmixr rtools over everything
+            .keys <- .rxNlmixr()
+            if (!is.null(.keys$rtoolsBase)){
+                .rtoolsBase <- .keys$rtoolsBase;
             } else {
-                ## Rtools doesn't add itself to the path by default.  To
-                ## remove install headaches, fish for the path a bit.
+                ## The grep solution assumes that the path is setup correctly;
+                .gcc <- Sys.which("gcc.exe")
+                .rtools <- sub("[/\\](mingw).*", "", .gcc);
+                if (file.exists(file.path(.rtools, "Rtools.txt"))){
+                    return(.rtools)
+                } else {
+                    ## Rtools doesn't add itself to the path by default.  To
+                    ## remove install headaches, fish for the path a bit.
 
-                ## The general solution also corrects the problem of
-                ## having msys or cygwin compilers on top of the Rtools
-                ## compiler, and will adjust the path (just because which
-                ## shows a different path doesn't mean Rtools isn't
-                ## there.)
-                ## This is what Rtools installer is supposed to do.
-                ## There is some discussion on devtools if this really occurs...
-                .rtoolsBase <- "C:/Rtools";
-                if (!file.exists(.rtoolsBase)) {
-                    .keys <- try(utils::readRegistry("SOFTWARE\\R-core\\Rtools", hive = "HCU",
-                                                    view = "32-bit", maxdepth = 2), silent = TRUE)
-                    if (is.null(.keys) || length(.keys) == 0)
-                        .keys <- try(utils::readRegistry("SOFTWARE\\R-core\\Rtools", hive = "HLM",
-                                                        view = "32-bit", maxdepth = 2), silent = TRUE)
-                    if (!inherits(.keys, "try-error")){
-                        for (i in seq_along(.keys)) {
-                            .version <- names(.keys)[[i]]
-                            .key <- .keys[[.version]]
-                            if (!is.list(.key) || is.null(.key$InstallPath)) next;
-                            install_path <- .normalizePath(.key$InstallPath, mustWork = FALSE,
-                                                          winslash = "/");
-                            if (file.exists(install_path)){
-                                .rtoolsBase <- install_path;
+                    ## The general solution also corrects the problem of
+                    ## having msys or cygwin compilers on top of the Rtools
+                    ## compiler, and will adjust the path (just because which
+                    ## shows a different path doesn't mean Rtools isn't
+                    ## there.)
+                    ## This is what Rtools installer is supposed to do.
+                    ## There is some discussion on devtools if this really occurs...
+                    .rtoolsBase <- "C:/Rtools";
+                    .exists <- try(file.exists(.rtoolsBase), silent=TRUE);
+                    if (inherits(.exists, "try-error")) .exists <- FALSE
+                    if (!.exists) {
+                        .keys <- try(utils::readRegistry("SOFTWARE\\R-core\\Rtools", hive = "HCU",
+                                                         view = "32-bit", maxdepth = 2), silent = TRUE)
+                        if (is.null(.keys) || length(.keys) == 0)
+                            .keys <- try(utils::readRegistry("SOFTWARE\\R-core\\Rtools", hive = "HLM",
+                                                             view = "32-bit", maxdepth = 2), silent = TRUE)
+                        if (!inherits(.keys, "try-error")){
+                            for (i in seq_along(.keys)) {
+                                .version <- names(.keys)[[i]]
+                                .key <- .keys[[.version]]
+                                if (!is.list(.key) || is.null(.key$InstallPath)) next;
+                                install_path <- .normalizePath(.key$InstallPath, mustWork = FALSE,
+                                                               winslash = "/");
+                                if (file.exists(install_path)){
+                                    .rtoolsBase <- install_path;
+                                }
                             }
                         }
                     }
-                }
-                .ver <- R.Version();
-                .ver <- paste0(.ver$major, ".", gsub(rex::rex(start, capture(except_any_of(".")), ".",
-                                                            anything, end), "\\1", .ver$minor))
-                if (!file.exists(.rtoolsBase)){## Based on Issue #2, Rtools may also be installed to RBuildTools;  This is also reflected on the R-stan website.
-                    .rtoolslist <- apply(expand.grid(c("Rtools", paste0("Rtools/", .ver),
-                                                      "RBuildTools", paste0("RBuildTools/", .ver)), rxPhysicalDrives()), 1,
-                                        function(x){ paste0(x[2], x[1])});
-                    for (.path in .rtoolslist){
-                        if (file.exists(.path)){
-                            return(.path)
+                    .ver <- R.Version();
+                    .ver <- paste0(.ver$major, ".", gsub(rex::rex(start, capture(except_any_of(".")), ".",
+                                                                  anything, end), "\\1", .ver$minor))
+                    .exists <- try(file.exists(.rtoolsBase), silent=TRUE);
+                    if (inherits(.exists, "try-error")) .exists <- FALSE
+                    if (!.exists){## Based on Issue #2, Rtools may also be installed to RBuildTools;  This is also reflected on the R-stan website.
+                        .rtoolslist <- apply(expand.grid(c("Rtools", paste0("Rtools/", .ver),
+                                                           "RBuildTools", paste0("RBuildTools/", .ver)), rxPhysicalDrives()), 1,
+                                             function(x){ paste0(x[2], x[1])});
+                        for (.path in .rtoolslist){
+                            if (file.exists(.path)){
+                                return(.path)
+                            }
                         }
                     }
-                }
-                if (file.exists(.rtoolsBase)){
-                    return(.rtoolsBase)
-                } else if (file.exists(.rtools)) {
-                    message("gcc available, assuming it comes from rtools...\nRxODE may not work with other compilers.\n")
-                    return(.rtools)
-                } else {
-                    message("This package requires Rtools!\nPlease download from http://cran.r-project.org/bin/windows/Rtools/,\ninstall and restart your R session before proceeding.")
-                    return("c:/Rtools")
+                    .exists <- try(file.exists(.rtoolsBase), silent=TRUE);
+                    if (inherits(.exists, "try-error")) .exists <- FALSE
+                    if (.exists){
+                        return(.rtoolsBase)
+                    } else if (file.exists(.rtools)) {
+                        message("gcc available, assuming it comes from rtools...\nRxODE may not work with other compilers.\n")
+                        return(.rtools)
+                    } else {
+                        if (is.na(retry)) return(FALSE)
+                        if (retry){
+                            stop("This package requires Rtools!\nPlease download from http://cran.r-project.org/bin/windows/Rtools/,\ninstall and restart your R session before proceeding.")
+                        }
+                        try({installr::install.Rtools()});
+                        return(.rxRtoolsBaseWin(retry=TRUE))
+                    }
                 }
             }
         }
     }
+
 })
 ##' Setup Rtools path
 ##'
 ##' @param rm.rtools Remove the Rtools from the current path specs.
+##'
 ##' @param rm.python Remove Python from the current path specs.
 ##'
+##' @param retry Should you retry to find Rtools?  If NA, don't throw
+##'     an error if it isn't found.
+##'
 ##' @author Matthew L. Fidler
-.rxWinRtoolsPath <- function(rm.rtools=TRUE, rm.python=TRUE){
+.rxWinRtoolsPath <- function(rm.rtools=TRUE, rm.python=TRUE, retry=FALSE){
     ## Note that devtools seems to assume that rtools/bin is setup
     ## appropriately, and figures out the c compiler from there.
     if (.Platform$OS.type == "unix"){
@@ -213,6 +235,8 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
             }
         }))
         .path <- .path[.path != ""];
+        if (!inherits(rm.rtools, "logical")) rm.rtools <- FALSE
+        if (!inherits(rm.python, "logical")) rm.python <- FALSE
         if (rm.rtools){
             .path <- .path[regexpr(rex::rex(or("Rtools", "RTOOLS", "rtools")), .path) == -1]
         }
@@ -224,12 +248,14 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
 
         ## Look in the registry...
         ## This is taken from devtools and adapted.
-        .rtoolsBase <- .rxRtoolsBaseWin();
+        .rtoolsBase <- .rxRtoolsBaseWin(retry=retry);
         .x <- file.path(.rtoolsBase, ifelse(.Platform$r_arch == "i386","mingw_32/bin", "mingw_64/bin"));
         if (file.exists(.x)){
             Sys.setenv(BINPREF=gsub("([^/])$", "\\1/", gsub("\\\\", "/", .normalizePath(.x))));
         }
-        if (file.exists(.rtoolsBase)){
+        .exists <- try(file.exists(.rtoolsBase), silent=TRUE);
+        if (inherits(.exists, "try-error")) .exists <- FALSE
+        if (.exists){
             .gcc <- list.files(.rtoolsBase, "gcc",full.names=TRUE)[1]
             if (is.na(.gcc)){
                 .gcc <- "";
@@ -307,6 +333,21 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
         }
     }
 }
+.installRxPython <- function(dir=R.home("rxPython"),
+                             opt="InstallAllUsers=0 AssociateFiles=0 Shortcuts=0"){
+    dir <- .normalizePath(dir);
+    opt <- sprintf("%s DefaultJustForMeTargetDir=%s", opt, dir, dir)
+    .x64 <- (regexpr("x64", Sys.info()["release"]) != -1)
+    ## if (x64) opt <- sprintf("/passive %s", opt)
+    .tmp <- try({installr::install.python(installer_option=opt, x64=.x64)}, silent=TRUE)
+    if (inherits(.tmp, "try-error")){
+        ## Installr is a bit old in MRAN support that possibility
+        installr::install.python(installer_option=opt)
+    }
+    system(sprintf("%s/python -m pip install --upgrade pip", R.home("rxPython")))
+    system(sprintf("%s/python -m pip install --upgrade sympy", R.home("rxPython")))
+    system(sprintf("%s/python -m pip install --upgrade numpy", R.home("rxPython")))
+}
 ##' Setup Python and SymPy for windows
 ##'
 ##' @author Matthew L. Fidler
@@ -314,15 +355,30 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
 rxWinPythonSetup <- function(){
     .base <- .rxPythonBaseWin()
     if (is.null(.base)){
-        stop("RxODE requires Python. Please install an appropriate version and add it to the system path.")
+        .installRxPython()
+        .base <- .rxPythonBaseWin()
+        if (is.null(.base)){
+            stop("RxODE requires Python. Please install an appropriate version and add it to the system path.")
+        }
     }
     if (file.access(paste(.base, "/Lib/site-packages", sep=""),2)==-1){
       stop("The Python library path does not appear to be writeable. Please rectify this situation, restart R, and try again.")
     }
-    message("Attempting to install SymPy. This may take a few seconds...")
-    try(system("python -m pip install sympy"))
-
-    message("Please restart your R session before using RxODE.")
+    .tmp <- try({rxSymPyVersion()})
+    if (inherits(.tmp, "try-error")){
+        system(sprintf("%s/python -m pip install --upgrade pip", .rxPythonBaseWin()))
+        system(sprintf("%s/python -m pip install --upgrade sympy", .rxPythonBaseWin()))
+        system(sprintf("%s/python -m pip install --upgrade numpy", .rxPythonBaseWin()))
+    }
+    utils::install.packages("reticulate");
+    .tmp <- try({rxSymPyVersion()});
+    if (inherits(.tmp, "try-error")){
+        remotes::install_github("nlmixrdevelopment/SnakeCharmR")
+        .tmp <- try({rxSymPyVersion()});
+        if (inherits(.tmp, "try-errror")){
+            stop("Cannot setup RxODE<->sympy link");
+        }
+    }
 }
 
 ##' Setup Windows components for RxODE

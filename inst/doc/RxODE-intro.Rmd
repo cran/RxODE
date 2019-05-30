@@ -1,6 +1,5 @@
 ---
 title: "Introduction to RxODE"
-author: "Matthew L. Fidler, Melissa Hallow, and Wenping Wang"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -19,6 +18,7 @@ htmltools::img(src = knitr::image_uri("logo.png"),
 ```
 
 # Introduction
+
 `RxODE` is an R package that facilitates simulation with ODE models in
 R. It is designed with pharmacometrics models in mind, but can be
 applied more generally to any ODE model.
@@ -34,6 +34,8 @@ To load `RxODE` package and compile the model:
 
 ```{r}
 library(RxODE)
+library(units)
+
 mod1 <-RxODE({
     C2 = centr/V2;
     C3 = peri/V3;
@@ -49,6 +51,7 @@ mod1 <-RxODE({
 Model parameters can be defined as named vectors. Names of parameters in
 the vector must be a superset of parameters in the ODE model, and the
 order of parameters within the vector is not important. 
+
 ```{r}
 theta <- 
    c(KA=2.94E-01, CL=1.86E+01, V2=4.02E+01, # central 
@@ -102,12 +105,33 @@ The functions `get.dosing()` and `get.sampling()` can be used to
 retrieve information from the event table.
 
 ```{r}
-knitr::kable(head(ev$get.dosing()))
+head(ev$get.dosing())
 ```
 
 ```{r}
-knitr::kable(head(ev$get.sampling()))
+head(ev$get.sampling())
 ```
+
+You may notice that these are similar to NONMEM event tables; If you
+are more familiar with NONMEM data and events you could use them
+directly with the event table function `et`
+
+```{r}
+ev  <- et(amountUnits="mg", timeUnits="hours") %>%
+    et(amt=10000, addl=9,ii=12,cmt="depot") %>%
+    et(time=120, amt=2000, addl=4, ii=14, cmt="depot") %>%
+    et(0:240) # Assumes sampling when there is no dosing information
+```
+
+You can see from the above code, you can dose to the compartment named
+in the RxODE model.  This slight deviation from NONMEM can reduce the
+need for compartment renumbering.
+
+These events can also be combined and expanded (to multi-subject
+events and complex regimens) with `rbind`, `c`, `seq`, and `rep`. For
+more information about creating complex dosing regimens using RxODE
+see the [RxODE events vignette](RxODE-events.html).
+
 
 # Solving ODEs
 
@@ -115,28 +139,33 @@ The ODE can now be solved by calling the model object's `run` or `solve`
 function. Simulation results for all variables in the model are stored
 in the output matrix x. 
 
-You can also solve this and create a RxODE data frame:
-
 ```{r, results="asis"}
-x <- solve(mod1,theta, ev, inits);
-rxHtml(x)
-```
-
-```{r}
-x <- mod1$solve(theta, ev, inits)
+x <- mod1$solve(theta, ev, inits);
 knitr::kable(head(x))
 ```
 
-This returns a matrix.  You can see the compartment values in the plot
-below:
+You can also solve this and create a RxODE data frame:
+
+
+```{r}
+x <- mod1 %>% solve(theta, ev, inits);
+x
+```
+
+This returns a modified data frame.  You can see the compartment
+values in the plot below:
 
 ```{r}
 library(ggplot2)
-x <- as.data.frame(x)
-ggplot(x,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+plot(x,C2) + ylab("Central Concentration") + xlab("Time");
 ```
+
+Or, 
 
 ```{r}
-ggplot(x,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
+plot(x,eff)  + ylab("Effect") + xlab("Time");
 ```
 
+Note that the labels are automatically labeled with the units from the
+initial event table. This is because RxODE uses the `units` package to
+handle units and `ggforce` to handle the plotting.

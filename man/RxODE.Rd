@@ -4,19 +4,23 @@
 \alias{RxODE}
 \title{Create an ODE-based model specification}
 \usage{
-RxODE(model, modName = basename(wd), wd = ifelse(RxODE.cache.directory
-  == ".", getwd(), RxODE.cache.directory), filename = NULL,
+RxODE(model, modName = basename(wd), wd = getwd(), filename = NULL,
   extraC = NULL, debug = FALSE, calcJac = NULL, calcSens = NULL,
-  collapseModel = FALSE, ...)
+  collapseModel = FALSE, package = NULL, ...)
 }
 \arguments{
 \item{model}{This is the ODE model specification.  It can be:
+
 \itemize{
+
  \item a string containing the set of ordinary differential
     equations (ODE) and other expressions defining the changes in
     the dynamic system.
+
  \item a file name where the ODE system equation is contained
+
  \item An ODE expression enclosed in \code{\{\}}
+
   }
 
 (see also the \code{filename} argument). For
@@ -60,8 +64,9 @@ sennsitivities according to the specified ODEs.}
 \item{collapseModel}{boolean indicating if RxODE will remove all
 LHS variables when calculating sensitivities.}
 
-\item{...}{any other arguments are passed to the function
-    \code{\link{readLines}}, (e.g., encoding).
+\item{package}{Package name for pre-compiled binaries.}
+
+\item{...}{ignored arguments.
 
 The \dQuote{Rx} in the name \code{RxODE} is meant to suggest the
 abbreviation \emph{Rx} for a medical prescription, and thus to
@@ -233,7 +238,7 @@ ode <- "
    d/dt(eff)  = Kin - Kout*(1-C2/(EC50+C2))*eff;
 "
 
-m1 <- RxODE(model = ode, modName = "m1")
+m1 <- RxODE(model = ode)
 print(m1)
 
 # Step 2 - Create the model input as an EventTable,
@@ -274,6 +279,10 @@ inits <- c(eff = 1);
 
 qd.cp <- solve(m1, theta, events = qd, inits);
 
+print(qd.cp)
+
+plot(qd.cp)
+
 }
 \references{
 Chamber, J. M. and Temple Lang, D. (2001)
@@ -300,7 +309,7 @@ Plevyek, J.
 \emph{Dparser}, \url{http://dparser.sourceforge.net}. Web. 12 Oct. 2015.
 }
 \seealso{
-\code{\link{eventTable}}
+\code{\link{eventTable}}, \code{\link{et}}, \code{\link{add.sampling}}, \code{\link{add.dosing}}
 }
 \author{
 Melissa Hallow, Wenping Wang and Matthew Fidler

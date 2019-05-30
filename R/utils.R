@@ -1,7 +1,9 @@
-.normalizePath <- function(...){
+.normalizePath <- function(path, ...){
     ifelse(.Platform$OS.type=="windows",
-           suppressWarnings(utils::shortPathName(normalizePath(...))),
-           suppressWarnings(normalizePath(...)))
+           suppressWarnings(utils::shortPathName(normalizePath(path, ...))),
+    ifelse(regexpr("^[/~]", path) != -1,
+           suppressWarnings(normalizePath(path, ...)),
+           suppressWarnings(normalizePath(file.path(getwd(), path), ...))))
 }
 
 ##' Require namespace, otherwise throw error.
@@ -36,25 +38,7 @@ rxCat <- function(a, ...){
     ## nocov end
 }
 
-##' Print x using the message facility
-##'
-##' This allows the suppressMessages to work on print functions.  This
-##' captures the output via R.Util's captureOutput function and then
-##' sends it through the message routine.
-##'
-##' catpureOutput was used since it is much faster than the internal
-##' capture.output see https://www.r-bloggers.com/performance-captureoutput-is-much-faster-than-capture-output/
-##' @param x object to print
-##' @param ... Other things output
-##' @author Matthew L. Fidler
-##' @export
-##' @keywords internal
-rxPrint <- function(x, ...){
-    this.env <- environment();
-    message(invisible(paste(R.utils::captureOutput(assign("x", print(x, ...), this.env)),
-                            collapse="\n")), appendLF=TRUE);
-    invisible(x)
-}
+
 
 ##' Cleanup anonymous DLLs
 ##'
@@ -70,18 +54,19 @@ rxPrint <- function(x, ...){
 ##' @author Matthew L. Fidler
 ##' @export
 rxClean <- function(wd){
+    rxTempDir()
     if (missing(wd)){
-        ret <- rxClean(getwd()) && rxClean(.rxTempDir());
+        ret <- rxClean(getwd()) && rxClean(rxTempDir());
         if (getFromNamespace("RxODE.cache.directory", "RxODE") != "."){
             ret <- ret && rxClean(getFromNamespace("RxODE.cache.directory", "RxODE"))
         }
         return(ret);
-    } else {
+    } else if (dir.exists(wd)){
         owd <- getwd();
         setwd(wd);
         on.exit(setwd(owd));
-        pat <- "^(Makevars|(rx.*)[.](o|dll|s[ol]|c|rx|prd|inv))$"
-        files <- list.files(pattern = pat);
+        pat <- "^(Makevars|.*[.]lock|(rx|ui|saem)(.*)[.](o|dll|s[ol]|c|rx|prd|inv|dvdx|rxd|saemd|uid|bad))$"
+        files <- list.files(pattern = pat, full.names=TRUE);
         for (f in files){
             if (f == "Makevars"){
                 l1 <- readLines("Makevars", n=1L);
@@ -90,14 +75,17 @@ rxClean <- function(wd){
                 }
             } else {
                 try(dyn.unload(f), silent = TRUE);
-                unlink(f);
+                unlink(f, recursive = TRUE, force=TRUE);
             }
         }
         if (.normalizePath(wd) != .normalizePath(getFromNamespace("RxODE.cache.directory", "RxODE"))){
             ## rxCat("Cleaning cache directory as well.\n");
             rxClean(getFromNamespace("RxODE.cache.directory", "RxODE"));
         }
+        .unloadRx()
         return(length(list.files(pattern = pat)) == 0);
+    } else {
+        return(TRUE)
     }
 }
 
@@ -115,69 +103,8 @@ refresh <- function(derivs=FALSE){
 }
 
 ode.h <- function(){
+    ## nocov start
     cat("Generate header string.\n");
-    unlink(devtools::package_file("src/tran.o"))
-    unlink(devtools::package_file("src/rxData.o"))
-    odec <- readLines(devtools::package_file("inst/ode.c"));
-    solvec <- readLines(devtools::package_file("src/RxODE.h"));
-    writeLines(solvec, devtools::package_file("inst/include/RxODE.h"))
-    w <- which(regexpr("#define Rx_pow_di", odec, fixed=TRUE) != -1)[1];
-    odec <- c(odec[1:w], solvec, odec[-c(1:w)])
-    w <- which(regexpr("// CODE HERE", odec) != -1)[1];
-    ode <- odec[seq(1, w - 1)];
-    ode <- paste(gsub("%", "%%", gsub("\"", "\\\\\"", ode)), collapse="\\n")
-    if (nchar(ode) > 4095){
-        ode1 <- substr(ode, 1, 4094);
-        ode2 <- substr(ode, 4095, nchar(ode))
-        if (nchar(ode2) > 4095){
-            ode3 <- substr(ode2, 4095, nchar(ode2));
-            ode2 <- substr(ode2, 1, 4094);
-            if (nchar(ode3) > 4095){
-                ode4 <- substr(ode3, 4095, nchar(ode3));
-                ode3 <- substr(ode3, 1, 4094);
-            } else {
-                ode4 <- ""
-            }
-        } else {
-            ode3 <- ""
-            ode4 <- ""
-        }
-
-    } else {
-        ode1 <- ode;
-        ode2 <- ""
-        ode3 <- "";
-        ode4 <- "";
-    }
-    solve <- odec[seq(w + 1, length(odec))];
-    solve <- paste(gsub("%", "%%", gsub("\"", "\\\\\"", solve)), collapse="\\n")
-    if (nchar(solve) > 4095){
-        solve1 <- substr(solve, 1, 4094);
-        solve2 <- substr(solve, 4095, nchar(solve))
-    } else {
-        solve1 <- solve;
-        solve2 <- "";
-    }
-
-    found <- FALSE
-    hd <- sapply(strsplit(sprintf("#define __HD_ODE_1__ \"%s\"\n#define __HD_ODE_2__ \"%s\"\n#define __HD_ODE_3__ \"%s\"\n#define __HD_ODE_4__ \"%s\"\n#define __HD_SOLVE1__ \"%s\"\n#define __HD_SOLVE2__ \"%s\"",
-                                  ode1, ode2, ode3, ode4,
-                                  solve1, solve2), "\n")[[1]],
-                 function(s){
-        if (found){
-            s <- gsub("#define __HD_SOLVE2__ \"n", "#define __HD_SOLVE2__ \"\\n", s, fixed=TRUE)
-            found <<- FALSE
-        }
-        r1 <- substr(s, 0, nchar(s) - 2)
-        r2 <- substr(s, nchar(s) - 1, nchar(s));
-        if (r2 == "\\\""){
-            found <<- TRUE
-            return(paste0(r1, "\""))
-        } else {
-            return(paste0(r1, r2))
-        }
-    });
-
     r.files <- list.files(devtools::package_file("R"), "[.]R$", full.names=TRUE);
     r.files <- r.files[regexpr("RxODE_md5.R", r.files, fixed=TRUE) == -1]
     md5 <- digest::digest(c(sapply(list.files(devtools::package_file("src"),
@@ -194,15 +121,18 @@ ode.h <- function(){
                                               pattern="(cleanup.*|configure.*|DESCRIPTION|NAMESPACE)",
                                               full.names=TRUE),
                                    function(x){digest::digest(x, file=TRUE)})))
-    hd <- c(hd,
-            sprintf("#define __VER_2__ \"    SET_STRING_ELT(version,2,mkChar(\\\"%s\\\"));\\n\"", md5),
+    hd <- c(sprintf("#define __VER_2__ \"    SET_STRING_ELT(version,2,mkChar(\\\"%s\\\"));\\n\"", md5),
             sprintf("#define __VER_1__ \"    SET_STRING_ELT(version,1,mkChar(\\\"%s\\\"));\\n\"",
                     as.vector(RxODE::rxVersion()["repo"])),
             sprintf("#define __VER_0__ \"    SET_STRING_ELT(version,0,mkChar(\\\"%s\\\"));\\n\"",
                     sessionInfo()$otherPkgs$RxODE$Version),
-            sprintf("#define __VER_md5__ \"%s\"", md5))
+            sprintf("#define __VER_md5__ \"%s\"", md5),
+            sprintf("#define __VER_repo__ \"%s\"", as.vector(RxODE::rxVersion()["repo"])),
+            sprintf("#define __VER_ver__ \"%s\"", sessionInfo()$otherPkgs$RxODE$Version))
     writeLines(hd, devtools::package_file("src/ode.h"))
-    writeLines(sprintf("RxODE.md5 <- \"%s\"", md5), devtools::package_file("R/RxODE_md5.R"));
+    writeLines(sprintf("RxODE.md5 <- \"%s\"", md5),
+               devtools::package_file("R/RxODE_md5.R"));
+    ## nocov end
 }
 
 
@@ -248,37 +178,43 @@ rxSetSum <- function(type=c("pairwise", "fsum", "kahan", "neumaier", "c")){
 rxSetProd <- function(type=c("long double", "double", "logify")){
     PreciseSums::psSetProd(type);
 }
-##' Generalized Cholesky Matrix Decomposition
+
+##' Setup C++14 support in windows (required for nlmixr)
 ##'
-##'  Performs a (modified) Cholesky factorization of the form
-##'
-##'   t(P) \%*\% A \%*\% P  + E = t(R) \%*\% R
-##'
-##'  As detailed in Schnabel/Eskow (1990)
-##'
-##' @param matrix Matrix to be Factorized.
-##' @param tol Tolerance; Algorithm suggests (.Machine$double.eps) ^ (1 / 3), default
-##' @return Generalized Cholesky decomposed matrix.
-##' @author Matthew L. Fidler (translation), Johannes Pfeifer, Robert
-##'     B. Schnabel and Elizabeth Eskow
-##'
-##' @references
-##'
-##' matlab source: http://www.dynare.org/dynare-matlab-m2html/matlab/chol_SE.html; Slightly different return values
-##'
-##' Robert B. Schnabel and Elizabeth
-##' Eskow. 1990. "A New Modified Cholesky Factorization," SIAM Journal
-##' of Scientific Statistical Computing, 11, 6: 1136-58.
-##'
-##' Elizabeth Eskow and Robert B. Schnabel
-##' 1991. "Algorithm 695 - Software for a New Modified Cholesky Factorization,"
-##' ACM Transactions on Mathematical Software, Vol 17, No 3: 306-312
-##'
-##' @note
-##'
-##' This version does not pivot or return the E matrix
+##' @return nothing
 ##'
 ##' @export
-cholSE <- function(matrix, tol=(.Machine$double.eps) ^ (1 / 3)){
-    .Call(`_RxODE_cholSE_`, matrix, tol);
+rxC14 <- function(){
+    ## nocov start
+    .dotR <- file.path(Sys.getenv("HOME"), ".R")
+    if (!file.exists(.dotR)) dir.create(.dotR)
+    .M <- file.path(.dotR, ifelse(.Platform$OS.type!="windows", "Makevars.win", "Makevars"))
+    if (!file.exists(.M)) file.create(.M)
+    .lines <-suppressWarnings(readLines(.M));
+    .write <- FALSE
+    .w <- which(regexpr(rex::rex(any_spaces, "CXX14", any_spaces, "="), .lines) != -1)
+    if (length(.w)==0L){
+        .write <- TRUE
+        .lines[length(.lines)+1] <- ifelse(.Platform$OS.type!="windows","CXX14=$(BINPREF)g++ $(M_ARCH)", "CXX14=g++")
+    }
+    if (.Platform$OS.type!="windows"){
+        .w <- which(regexpr(rex::rex(any_spaces, "CXX14STD", any_spaces, "="), .lines) != -1)
+        if (length(.w)==0L){
+            .write <- TRUE
+            .lines[length(.lines)+1] <- "CXX14STD=-std=c++1y"
+        }
+    }
+    .w <- which(regexpr(rex::rex(any_spaces, "CXX14FLAGS", any_spaces, "="), .lines) != -1)
+    if (length(.w)==0L){
+        .write <- TRUE
+        .lines[length(.lines)+1] <- "CXX14FLAGS=-O2 -Wall"
+    }
+    if (.write) {
+        writeLines(.lines, .M);
+        message("C++14 setup")
+    } else {
+        message("C++14 was already setup")
+    }
+    return(invisible(""));
+    ## nocov end
 }

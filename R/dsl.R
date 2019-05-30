@@ -20,7 +20,10 @@ regDfDyTh <- rex::rex(start, "rx__df_", capture(anything), "_dy_", regThEt, "__"
 regEta <- rex::rex(start, "ETA[", capture("1":"9", any_of("0":"9")), "]")
 regTheta <- rex::rex(start, "THETA[", capture("1":"9", any_of("0":"9")), "]")
 regJac <- rex::rex( "df(", capture(.regIdentifier), ")/dy(",  capture(or(.regIdentifier, group(or("THETA[", "ETA["), "1":"9", any_of("0":"9"), "]"))), ")");
-## regRate <- rex::rex(start, "rx__rate_", capture(anything), "__");
+.regRate <- rex::rex(start, "rx_rate_",capture(anything),"_");
+.regDur <- rex::rex(start, "rx_dur_",capture(anything),"_");
+.regLag <- rex::rex(start, "rx_lag_",capture(anything),"_");
+.regF <- rex::rex(start, "rx_f_",capture(anything),"_");
 known.print <- c('printf', 'Rprintf', 'print',
                  'jac_printf', 'jac_Rprintf', 'jac_print',
                  'ode_printf', 'ode_Rprintf', 'ode_print',
@@ -265,6 +268,42 @@ rxSymPyFEnv$df <- function(e1){
 rxSymPyFEnv$dy <- function(e1){
     paste0("_dy_", e1, "__")
 }
+
+rxSymPyFEnv$rate <- function(e1){
+    paste0("rx_rate_",e1,"_");
+}
+rxSymPyFEnv$r <- rxSymPyFEnv$rate
+
+rxSymPyFEnv$dur <- function(e1){
+    paste0("rx_dur_",e1,"_");
+}
+rxSymPyFEnv$d <- rxSymPyFEnv$dur
+
+rxSymPyFEnv$f <- function(e1){
+    paste0("rx_f_",e1,"_");
+}
+rxSymPyFEnv$F <- rxSymPyFEnv$f
+
+rxSymPyFEnv$lag <- function(e1){
+    paste0("rx_lag_",e1,"_");
+}
+
+rxSymPyFEnv$alag <- rxSymPyFEnv$lag
+
+rxSymPyFEnv$cmt  <- function(e1){
+    return("");
+}
+
+rxSymPyFEnv$dvid  <- function(...){
+    return("");
+}
+
+.rxMtimes <- c();
+
+## rxSymPyFEnv$mtime <- function(e2){
+##     assignInMyNamespace(".rxMtimes", unique(c(paste0(e2), .rxMtimes)));
+##     return(e2);
+## }
 
 ## rx -> sympy
 rxSymPyFEnv$bessel_i <- besselOp("i");
@@ -982,11 +1021,15 @@ rxEnv <- function(expr){
     names <- allNames(expr)
     ## Replace time with t.
     n1 <- names;
-    n2 <- gsub(regIni0, "\\1(0)",
+    n2 <- gsub(.regRate, "rate(\\1)",
+               gsub(.regDur,"dur(\\1)",
+               gsub(.regLag,"alag(\\1)",
+               gsub(.regF, "f(\\1)",
+               gsub(regIni0, "\\1(0)",
                gsub(regDfDy, "df(\\1)/dy(\\2)",
-                    gsub(regDfDyTh, "df(\\1)/dy(\\2[\\3])",
-                         gsub(regDDt, "d/dt(\\1)",
-                              gsub(rex::rex(start, regThEt, end), "\\1[\\2]", names)))));
+               gsub(regDfDyTh, "df(\\1)/dy(\\2[\\3])",
+               gsub(regDDt, "d/dt(\\1)",
+               gsub(rex::rex(start, regThEt, end), "\\1[\\2]", names)))))))));
     ## n2 <- gsub(regRate, "rate(\\1)", n2);
     n2 <- gsub(rex::rex("rx_SymPy_Res_"), "", n2)
     n2[n2 == "E"] <- "M_E";
@@ -1023,9 +1066,11 @@ rxEnv <- function(expr){
 ##' @export
 rxToSymPy <- function(x, envir=parent.frame(1)) {
     if (is(substitute(x),"character")){
+        force(x);
         if (length(x) == 1){
             names(x) <- NULL;
-            txt <- strsplit(gsub(";", "\n", x), "\n+")[[1]];
+            txt  <- gsub(rex::rex(boundary,or("cmt","dvid"),"(",except_any_of(")"),")"), "", x,perl=TRUE)
+            txt <- strsplit(gsub(";", "\n", txt), "\n+")[[1]];
             txt <- strsplit(txt, rex::rex(or("=", "~", "<-")));
             tmp <- unlist(lapply(txt, function(x){length(x)}));
             if (length(tmp) > 1){
@@ -1084,17 +1129,20 @@ rxToSymPy <- function(x, envir=parent.frame(1)) {
             }
             return(txt);
         } else {
+            force(x);
             txt <- paste0(eval(parse(text=sprintf("RxODE::rxToSymPy(%s)", paste(deparse(paste(as.vector(x), collapse="\n")))))), collapse="")
             return(txt);
         }
     } else if (is(substitute(x),"name")){
         cls <- tryCatch({class(x)}, error=function(e){return("error")});
         if (any(cls == c("list", "rxDll", "RxCompilationManager", "RxODE", "solveRxDll", "rxModelVars"))){
+            force(x);
             ret <- strsplit(rxNorm(x),"\n")[[1]];
             ret <- .rxRmIni(ret);
             txt <- paste0(eval(parse(text=sprintf("RxODE::rxToSymPy(%s)", paste(deparse(paste0(as.vector(ret), collapse="\n")), collapse=""))), envir=envir));
             return(txt);
         } else if (cls == "character" && length(cls) == 1){
+            force(x)
             txt <- paste0(eval(parse(text=sprintf("RxODE::rxToSymPy(%s)", paste(deparse(as.vector(x)), collapse="")))));
             return(txt);
         } else {
@@ -1115,6 +1163,7 @@ rxToSymPy <- function(x, envir=parent.frame(1)) {
 ##' @export
 rxFromSymPy <- function(x, envir=parent.frame(1)) {
     if (is(substitute(x),"character")){
+        force(x);
         if (length(x) == 1){
             names(x) <- NULL;
             txt <- strsplit(x, "\n+")[[1]];
@@ -1171,6 +1220,7 @@ rxFromSymPy <- function(x, envir=parent.frame(1)) {
     } else if (is(substitute(x),"name")){
         cls <- tryCatch({class(x)}, error=function(e){return("error")});
         if (cls == "character" && length(cls) == 1){
+            force(x);
             names(x) <- NULL
             txt <- paste0(eval(parse(text=sprintf("RxODE::rxFromSymPy(%s)", deparse(x)))));
             return(txt);
@@ -1308,8 +1358,8 @@ rxErrEnvF$tbsYj <- function(lambda){
         assignInMyNamespace("rxErrEnv.yj", "1");
     } else {
         tmp <- rxErrEnv.diag.est;
-        tmp[sprintf("THETA[%s]", rxErrEnv.theta + 1)] <- estN;
-        assignInMyNamespace("rxErrEnv.lambda", sprintf("THETA[%s]", rxErrEnv.theta + 1));
+        tmp[sprintf("THETA[%s]", rxErrEnv.theta)] <- estN;
+        assignInMyNamespace("rxErrEnv.lambda", sprintf("THETA[%s]", rxErrEnv.theta));
         assignInMyNamespace("rxErrEnv.diag.est", tmp);
         assignInMyNamespace("rxErrEnv.theta", rxErrEnv.theta + 1);
         assignInMyNamespace("rxErrEnv.yj", "1");
@@ -1381,6 +1431,13 @@ rxErrEnvF$`return` <- function(est){
 ##     print(sprintf("c(%s)",paste(paste0("rxParseErr(",c(...),")"),collapse=",")))
 ##     eval(parse(text=sprintf("c(%s)",paste(paste0("rxParseErr(",c(...),")"),collapse=","))))
 ## }
+
+rxErrEnvF$`|`  <- binaryOp(" | ")
+rxErrEnvF$`||`  <- binaryOp(" || ")
+rxErrEnvF$`&&`  <- binaryOp(" && ")
+rxErrEnvF$`<=`  <- binaryOp(" <= ")
+rxErrEnvF$`>=`  <- binaryOp(" >= ")
+rxErrEnvF$`==`  <- binaryOp(" == ")
 
 rxErrEnvF$prop <- function(est){
     if (rxErrEnv.ret != "rx_r_"){

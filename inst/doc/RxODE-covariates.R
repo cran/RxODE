@@ -1,12 +1,20 @@
 ## ---- echo=FALSE---------------------------------------------------------
-options(cli.unicode=FALSE, crayon.enabled=FALSE);
-options(knitr.table.format = "html")
+## options(knitr.table.format = "html")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  out.width = "100%"
+)
 htmltools::img(src = knitr::image_uri("logo.png"), 
                alt = 'RxODE', 
                style = 'position:absolute; top:0; right:0; padding:10px; border: 0;')
 
 ## ------------------------------------------------------------------------
 library(RxODE)
+library(units)
+
 mod3 <- RxODE({
     KA=2.94E-01;
     CL=1.86E+01; 
@@ -32,35 +40,38 @@ ev <- eventTable(amount.units="mg", time.units="hours") %>%
     add.sampling(seq(0,48,length.out=100));
 
 
- ## Create data frame of  8 am dosing for the first dose
-cov.df  <- data.frame(ctime =(seq(0,48,length.out=100)+8) %% 24);
+## Create data frame of  8 am dosing for the first dose
+ev$ctime <- (ev$time+set_units(8,hr)) %% 24
 
 
-## ----results="asis"------------------------------------------------------
-
-r1 <- solve(mod3, ev, covs=cov.df,covs_interpolation="linear")
-rxHtml(r1)
+## ------------------------------------------------------------------------
+r1 <- solve(mod3, ev, covs_interpolation="linear")
+print(r1)
 
 ## ------------------------------------------------------------------------
 library(ggplot2)
-ggplot(r1,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+plot(r1,C2) +ylab("Central Concentration") + xlab("Time");
 
 ## ------------------------------------------------------------------------
-ggplot(r1,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
+plot(r1,eff) + ylab("Effect") + xlab("Time");
 
 ## ------------------------------------------------------------------------
-ggplot(r1,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+r1 <- solve(mod3, ev,covs_interpolation="constant")
+print(r1)
 
 ## ------------------------------------------------------------------------
-ggplot(r1,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
-
-## ----results="asis"------------------------------------------------------
-r2 <- solve(mod3, ev, covs=cov.df,covs_interpolation="nocb")
-rxHtml(r2)
+plot(r1,C2) + ylab("Central Concentration") + xlab("Time");
 
 ## ------------------------------------------------------------------------
-ggplot(r1,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+plot(r1,eff) + ylab("Effect") + xlab("Time");
 
 ## ------------------------------------------------------------------------
-ggplot(r1,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
+r1 <- solve(mod3, ev,covs_interpolation="nocb")
+print(r1)
+
+## ------------------------------------------------------------------------
+plot(r1,C2) + ylab("Central Concentration") + xlab("Time");
+
+## ------------------------------------------------------------------------
+plot(r1,eff) + ylab("Effect") + xlab("Time");
 

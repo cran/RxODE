@@ -8,12 +8,11 @@
 \title{Compile a model if needed}
 \usage{
 rxCompile(model, dir, prefix, extraC = NULL, force = FALSE,
-  modName = NULL, calcJac = NULL, calcSens = NULL,
-  collapseModel = FALSE, ...)
+  modName = NULL, package = NULL, ...)
 
 \method{rxCompile}{character}(model, dir = NULL, prefix = NULL,
-  extraC = NULL, force = FALSE, modName = NULL, calcJac = NULL,
-  calcSens = NULL, collapseModel = FALSE, ...)
+  extraC = NULL, force = FALSE, modName = NULL, package = NULL,
+  ...)
 
 \method{rxCompile}{rxDll}(model, ...)
 
@@ -21,12 +20,17 @@ rxCompile(model, dir, prefix, extraC = NULL, force = FALSE,
 }
 \arguments{
 \item{model}{This is the ODE model specification.  It can be:
+
 \itemize{
+
  \item a string containing the set of ordinary differential
     equations (ODE) and other expressions defining the changes in
     the dynamic system.
+
  \item a file name where the ODE system equation is contained
+
  \item An ODE expression enclosed in \code{\{\}}
+
   }
 
 (see also the \code{filename} argument). For
@@ -64,14 +68,7 @@ including generating C symbol names, dynamic libraries,
 etc. Therefore, it is necessary that \code{modName} consists of
 simple ASCII alphanumeric characters starting with a letter.}
 
-\item{calcJac}{boolean indicating if RxODE will calculate the
-Jacobain according to the specified ODEs.}
-
-\item{calcSens}{boolean indicating if RxODE will calculate the
-sennsitivities according to the specified ODEs.}
-
-\item{collapseModel}{boolean indicating if RxODE will remove all
-LHS variables when calculating sensitivities.}
+\item{package}{Package name for pre-compiled binaries.}
 
 \item{...}{Other arguments sent to the \code{\link{rxTrans}}
 function.}

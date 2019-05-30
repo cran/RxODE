@@ -7,6 +7,8 @@ htmltools::img(src = knitr::image_uri("logo.png"),
 
 ## ------------------------------------------------------------------------
 library(RxODE)
+library(units)
+
 mod1 <-RxODE({
     C2 = centr/V2;
     C3 = peri/V3;
@@ -40,24 +42,29 @@ ev <- eventTable(amount.units="mg", time.units="hours") %>%
     add.sampling(0:240);
 
 ## ------------------------------------------------------------------------
-knitr::kable(head(ev$get.dosing()))
+head(ev$get.dosing())
 
 ## ------------------------------------------------------------------------
-knitr::kable(head(ev$get.sampling()))
+head(ev$get.sampling())
+
+## ------------------------------------------------------------------------
+ev  <- et(amountUnits="mg", timeUnits="hours") %>%
+    et(amt=10000, addl=9,ii=12,cmt="depot") %>%
+    et(time=120, amt=2000, addl=4, ii=14, cmt="depot") %>%
+    et(0:240) # Assumes sampling when there is no dosing information
 
 ## ---- results="asis"-----------------------------------------------------
-x <- solve(mod1,theta, ev, inits);
-rxHtml(x)
-
-## ------------------------------------------------------------------------
-x <- mod1$solve(theta, ev, inits)
+x <- mod1$solve(theta, ev, inits);
 knitr::kable(head(x))
 
 ## ------------------------------------------------------------------------
-library(ggplot2)
-x <- as.data.frame(x)
-ggplot(x,aes(time,C2)) + geom_line() + ylab("Central Concentration") + xlab("Time");
+x <- mod1 %>% solve(theta, ev, inits);
+x
 
 ## ------------------------------------------------------------------------
-ggplot(x,aes(time,eff)) + geom_line() + ylab("Effect") + xlab("Time");
+library(ggplot2)
+plot(x,C2) + ylab("Central Concentration") + xlab("Time");
+
+## ------------------------------------------------------------------------
+plot(x,eff)  + ylab("Effect") + xlab("Time");
 

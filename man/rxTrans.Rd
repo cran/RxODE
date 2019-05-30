@@ -6,36 +6,33 @@
 \alias{rxTrans.character}
 \title{Translate the model to C code if needed}
 \usage{
-rxTrans(model, cFile = sprintf("\%s.c", gsub("[.][^.]*$", "", model)),
-  extraC = NULL, modelPrefix = "", md5 = "", modName = NULL,
-  modVars = FALSE, calcSens = NULL, calcJac = NULL,
-  collapseModel = FALSE, ...)
+rxTrans(model, extraC = NULL, modelPrefix = "", md5 = "",
+  modName = NULL, modVars = FALSE, ...)
 
-\method{rxTrans}{default}(model, cFile = sprintf("\%s.c",
-  gsub("[.][^.]*$", "", model)), extraC = NULL, modelPrefix = "",
-  md5 = "", modName = NULL, modVars = FALSE, calcSens = NULL,
-  calcJac = NULL, collapseModel = FALSE, ...)
+\method{rxTrans}{default}(model, extraC = NULL, modelPrefix = "",
+  md5 = "", modName = NULL, modVars = FALSE, ...)
 
-\method{rxTrans}{character}(model, cFile = sprintf("\%s.c",
-  gsub("[.][^.]*$", "", model)), extraC = NULL, modelPrefix = "",
-  md5 = "", modName = NULL, modVars = FALSE, calcSens = NULL,
-  calcJac = NULL, collapseModel = FALSE, ...)
+\method{rxTrans}{character}(model, extraC = NULL, modelPrefix = "",
+  md5 = "", modName = NULL, modVars = FALSE, ...)
 }
 \arguments{
 \item{model}{This is the ODE model specification.  It can be:
+
 \itemize{
+
  \item a string containing the set of ordinary differential
     equations (ODE) and other expressions defining the changes in
     the dynamic system.
+
  \item a file name where the ODE system equation is contained
+
  \item An ODE expression enclosed in \code{\{\}}
+
   }
 
 (see also the \code{filename} argument). For
     details, see the sections \dQuote{Details} and
     \dQuote{\code{RxODE Syntax}} below.}
-
-\item{cFile}{The C file where the code should be output}
 
 \item{extraC}{Extra c code to include in the model.  This can be
 useful to specify functions in the model.  These C functions
@@ -58,15 +55,6 @@ simple ASCII alphanumeric characters starting with a letter.}
 
 \item{modVars}{returns the model variables instead of the named
 vector of translated properties.}
-
-\item{calcSens}{boolean indicating if RxODE will calculate the
-sennsitivities according to the specified ODEs.}
-
-\item{calcJac}{boolean indicating if RxODE will calculate the
-Jacobain according to the specified ODEs.}
-
-\item{collapseModel}{boolean indicating if RxODE will remove all
-LHS variables when calculating sensitivities.}
 
 \item{...}{Ignored parameters.}
 }

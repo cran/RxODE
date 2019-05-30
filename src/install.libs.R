@@ -1,4 +1,4 @@
-## Simialr to default behavior according to R extension manual
+## Similar to default behavior according to R extension manual
 files <- Sys.glob(paste0("*", SHLIB_EXT))
 dest <- file.path(R_PACKAGE_DIR, paste0('libs', R_ARCH))
 dir.create(dest, recursive = TRUE, showWarnings = FALSE)
@@ -10,7 +10,7 @@ if(file.exists("symbols.rds"))
 
 ## Add headers
 incl <- file.path(R_PACKAGE_DIR, "include");
-headers <- Sys.glob("*.h");
+headers <- c(Sys.glob("*.h"), Sys.glob("*.h.gch"));
 if (any(file.exists(headers))){
     dir.create(incl,recursive=TRUE,showWarnings = FALSE);
     file.copy(headers,incl,overwrite=TRUE);

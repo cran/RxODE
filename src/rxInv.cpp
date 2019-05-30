@@ -1,3 +1,4 @@
+// [[Rcpp::interfaces(r, cpp)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <stdarg.h>
 #include <RcppArmadillo.h>
@@ -28,17 +29,29 @@ NumericVector rxInv(SEXP matrix){
 }
 
 arma::mat rxToCholOmega(arma::mat cholMat){
-  // Only the cholesky is needed for the liklihood caclation
-  return inv(trimatu(cholMat));
+  // Only the cholesky is needed for the liklihood calculation
+  // trimatu is faster, but it seems to have problems sometimes with certain BLAS combinations:
+  // See https://github.com/nlmixrdevelopment/RxODE/issues/84
+    // Only the cholesky is needed for the liklihood calculation
+  // trimatu is faster, but it seems to have problems sometimes with certain BLAS combinations:
+  // See https://github.com/nlmixrdevelopment/RxODE/issues/84
+  arma::mat cholO;
+  bool success;
+  try {
+    success = inv(cholO, trimatu(cholMat));
+    if (success) return cholO;
+    success = inv(cholO, cholMat);
+    if (success) return cholO;
+    stop("Cannot invert in `rxToCholOmega`");
+  } catch (...) {
+    success = inv(cholO, cholMat);
+    if (success) return cholO;
+    stop("Cannot invert in `rxToCholOmega`");
+  }
+  // should not get here.
+  return cholO;
 }
 
-// [[Rcpp::export]]
-arma::mat rxToOmega(arma::mat cholMat){
-  // The Omega is need.
-  // U^-1*trans(U^1) = Omega
-  arma::mat U1 = inv(trimatu(cholMat));
-  return U1*trans(U1);
-}
 //' Get Omega^-1 and derivatives
 //'
 //' @param invObjOrMatrix Object for inverse-type calculations.  If this is a matrix,
@@ -85,7 +98,9 @@ RObject rxSymInvChol(RObject invObjOrMatrix, Nullable<NumericVector> theta = R_N
     } else {
       NumericVector par(theta);
       int tn = thetaNumber;
-      if (type == "cholOmegaInv"){
+      if (type == "xType"){
+	tn = NA_INTEGER;
+      } else if (type == "cholOmegaInv"){
         tn = 0;
       } else if (type == "omegaInv"){
         tn = -1;
@@ -101,12 +116,12 @@ RObject rxSymInvChol(RObject invObjOrMatrix, Nullable<NumericVector> theta = R_N
       } else if (type == "ntheta"){
         tn = -2;
       }
-      try {
+      // try {
         Function fn = as<Function>(invObj["fn"]);
         return fn(par, tn);
-      } catch (...) {
-        stop("Unspported invobj type.");
-      }
+      // } catch (...) {
+      //   stop("Unspported invobj type.");
+      // }
     }
   } else  {
     Environment rxode("package:RxODE");
@@ -131,6 +146,9 @@ RObject rxSymInvCholEnvCalculate(List obj, std::string what, Nullable<NumericVec
       } else {
         stop("Error in rxSymInvCholEnvCalculate environment.");
       }
+      if (what == "xType"){
+	e["xType"] = rxSymInvChol(invObj,NumericVector::create(1),"xType",0);
+      }
       if (what == "ntheta"){
         e["ntheta"] = rxSymInvChol(invObj,NumericVector::create(1),"ntheta",0);
         return(e["ntheta"]);
@@ -142,7 +160,10 @@ RObject rxSymInvCholEnvCalculate(List obj, std::string what, Nullable<NumericVec
         stop("theta for omega calculations not setup yet.");
       }
       int ntheta = theta.size(), i=0;
-      if (what == "chol.omegaInv"){
+      if (what == "theta.diag"){
+	Function fn = as<Function>(invObj["fn"]);
+	e["theta.diag"] = fn(R_NilValue, R_NilValue);
+      } else if (what == "chol.omegaInv"){
         e["chol.omegaInv"]=as<NumericMatrix>(rxSymInvChol(invObj, theta, "cholOmegaInv"));
       } else if (what == "omegaInv"){
         e["omegaInv"]= as<NumericMatrix>(rxSymInvChol(invObj, theta, "omegaInv",-1));

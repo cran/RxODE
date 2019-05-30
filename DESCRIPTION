@@ -1,16 +1,17 @@
 Package: RxODE
-Version: 0.8.0-9
+Version: 0.9.0-6
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
-      role = "aut", email = "matthew.fidler@gmail.com"),
+      role = "aut", email = "matthew.fidler@gmail.com",
+      comment=c(ORCID="0000-0001-8538-6691")),
    person("Melissa", "Hallow",
       role = "aut", email = "hallowkm@uga.edu"),
    person("Wenping", "Wang", 
       role = c("aut", "cre"), email = "wwang8198@gmail.com"),
    person("Zufar", "Mulyukov", role="ctb", email="zufar.mulyukov@novartis.com"),
    person("Justin", "Wilkins", 
-      role = "ctb", email = "justin.wilkins@occams.com"),
+      role = "ctb", email = "justin.wilkins@occams.com", comment=c(ORCID="0000-0002-7099-9396")),
    person("Simon", "Frost", role="ctb"),
    person("Heng", "Li", role="ctb"),
    person("Yu", "Feng", role="ctb"),	
@@ -18,9 +19,6 @@ Authors@R: c(
    person("Linda", "Petzold", role="ctb"),
    person("Ernst", "Hairer", role="ctb"),
    person("Gerhard", "Wanner", role="ctb"),
-   person("Johannes", "Pfeifer",role="ctb"),
-   person("Robert B.", "Schnabel",role="ctb"),
-   person("Elizabeth", "Eskow", role="ctb"),
    person("J", "Colinge", role="ctb"),
    person("Hadley", "Wickham", role="ctb"),
    person("G", "Grothendieck", role="ctb"),
@@ -30,14 +28,16 @@ Authors@R: c(
    person("odepack authors", role="cph")
    )
 Maintainer: Wenping Wang <wwang8198@gmail.com>
-Depends: R (>= 3.3.0)
-Suggests: knitr, nlme, shiny, tcltk, testthat, devtools, covr,
-        rmarkdown, SnakeCharmR, rSymPy, dplyr, tidyr, tibble, curl,
-        ggplot2, gridExtra, microbenchmark, scales, stringi, htmltools,
-        reticulate
-Imports: utils, methods, digest, rex, dparser (>= 0.1.8), brew,
-        memoise, magrittr, Rcpp (>= 0.12.3), inline, Matrix, R.utils,
-        PreciseSums (>= 0.3), n1qn1 (>= 6.0.1-2), mvnfast, cli, crayon
+Depends: R (>= 3.4.0)
+Suggests: knitr, DT, nlme, shiny, tcltk, testthat, usethis, devtools,
+        covr, rmarkdown, SnakeCharmR, dplyr (>= 0.8.0), tidyr, tibble,
+        curl, gridExtra, microbenchmark, scales, stringi, htmltools,
+        reticulate, rlang, installr
+Imports: Matrix, PreciseSums (>= 0.3), R.utils, Rcpp (>= 0.12.3), brew,
+        cli, crayon, digest, dparser (>= 0.1.8), ggforce, ggplot2,
+        inline, magrittr, memoise, methods, mvnfast, n1qn1 (>=
+        6.0.1-2), pillar, rex, sys, units(>= 0.6-0), utils, assertthat,
+        lotri, remotes
 Description: Facilities for running simulations from ordinary
     differential equation (ODE) models, such as pharmacometrics and other
     compartmental models.  A compilation manager translates the ODE model
@@ -54,17 +54,19 @@ BugReports: https://github.com/nlmixrdevelopment/RxODE/issues
 NeedsCompilation: yes
 VignetteBuilder: knitr
 License: GPL (>= 2)
-URL: https://www.r-project.org,
-        https://github.com/nlmixrdevelopment/RxODE
-RoxygenNote: 6.1.0
+URL: https://nlmixrdevelopment.github.io/RxODE/
+RoxygenNote: 6.1.1
+Biarch: true
 LinkingTo: dparser(>= 0.1.8), Rcpp (>= 0.12.3), RcppArmadillo(>=
-        0.5.600.2.0), PreciseSums (>= 0.3)
-Packaged: 2018-12-05 18:38:21 UTC; wangwez
-Author: Matthew L. Fidler [aut],
+        0.9.300.2.0), PreciseSums (>= 0.3)
+Encoding: UTF-8
+LazyData: true
+Packaged: 2019-05-30 13:39:25 UTC; wangwez
+Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
   Zufar Mulyukov [ctb],
-  Justin Wilkins [ctb],
+  Justin Wilkins [ctb] (<https://orcid.org/0000-0002-7099-9396>),
   Simon Frost [ctb],
   Heng Li [ctb],
   Yu Feng [ctb],
@@ -72,9 +74,6 @@ Author: Matthew L. Fidler [aut],
   Linda Petzold [ctb],
   Ernst Hairer [ctb],
   Gerhard Wanner [ctb],
-  Johannes Pfeifer [ctb],
-  Robert B. Schnabel [ctb],
-  Elizabeth Eskow [ctb],
   J Colinge [ctb],
   Hadley Wickham [ctb],
   G Grothendieck [ctb],
@@ -83,4 +82,4 @@ Author: Matthew L. Fidler [aut],
   R core team [cph],
   odepack authors [cph]
 Repository: CRAN
-Date/Publication: 2018-12-10 10:00:07 UTC
+Date/Publication: 2019-05-30 22:00:03 UTC

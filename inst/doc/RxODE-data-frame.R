@@ -4,9 +4,19 @@ options(knitr.table.format = "html")
 htmltools::img(src = knitr::image_uri("logo.png"), 
                alt = 'RxODE', 
                style = 'position:absolute; top:0; right:0; padding:10px; border: 0;')
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE,
+  out.width = "100%"
+)
 
-## ----results="asis"------------------------------------------------------
+## ------------------------------------------------------------------------
+
 library(RxODE)
+library(units)
+
 ## Setup example model
 mod1 <-RxODE({
     C2 = centr/V2;
@@ -35,39 +45,46 @@ ev <- eventTable(amount.units="mg", time.units="hours") %>%
 
 ## Now solve
 x <- predict(mod1,theta, ev, inits)
-rxHtml(x)
+print(x)
 
-## ----results="asis"------------------------------------------------------
+## ------------------------------------------------------------------------
 x <- solve(mod1,theta, ev, inits)
-rxHtml(x)
+print(x)
 
-## ----results="asis"------------------------------------------------------
+## ------------------------------------------------------------------------
 x <- mod1 %>% solve(theta, ev, inits)
-rxHtml(x)
+print(x)
 
 ## ------------------------------------------------------------------------
 library(dplyr)
-x <- mod1 %>% solve(theta,ev,inits) %>%  filter(time <=3)
+## You can  drop units for comparisons and filtering
+x <- mod1 %>% solve(theta,ev,inits) %>% drop_units %>% filter(time <= 3) %>% as.tbl
+## or keep them and compare with the proper units.
+x <- mod1 %>% solve(theta,ev,inits) %>% filter(time <= set_units(3, hr)) %>% as.tbl
 x
 
 ## ------------------------------------------------------------------------
 x <- mod1 %>% solve(theta,ev,inits);
+print(x)
 
 ## ------------------------------------------------------------------------
 x$eff0
 
-## ---- results="asis"-----------------------------------------------------
+## ------------------------------------------------------------------------
 x$eff0 <- 2
-rxHtml(x)
+print(x)
+plot(x)
 
-## ----results="asis"------------------------------------------------------
+## ------------------------------------------------------------------------
 x$t <- seq(0,5,length.out=20)
-rxHtml(x)
+print(x)
+plot(x)
 
 ## ------------------------------------------------------------------------
 x$KA
 
-## ----results="asis"------------------------------------------------------
+## ------------------------------------------------------------------------
 x$KA <- 1;
-rxHtml(x)
+print(x)
+plot(x)
 
