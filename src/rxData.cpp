@@ -1870,9 +1870,42 @@ extern "C" void setInits(SEXP init){
   _rxModels[".init"] = init;
 }
 
-extern "C" SEXP getInits(){
+extern "C" int getInits(char *s_aux_info, int *o){
   getRxModels();
-  return as<SEXP>(_rxModels[".init"]);
+  if (_rxModels.exists(".init")){
+    if (rxIs(_rxModels[".init"], "numeric") || rxIs(_rxModels[".init"], "integer")){
+      NumericVector ret = as<NumericVector>(_rxModels[".init"]);
+      StringVector retN = ret.attr("names");
+      int retS = ret.size();
+      for (int i = 0; i < retS; i++){
+	std::string cur = as<std::string>(retN[i]);
+	sprintf( s_aux_info + *o,"    SET_STRING_ELT(inin,%d,mkChar(\"%s\"));\n",i, cur.c_str());
+	*o = (int)strlen(s_aux_info);
+	if (NumericVector::is_na(ret[i])){
+	  sprintf(s_aux_info+*o,"    REAL(ini)[%d] = NA_REAL;\n",i);
+	} else{
+	  double curD = ret[i];
+	  if (std::isinf(curD)){
+	    if (ret[i] > 0){
+	      sprintf(s_aux_info+*o,"    REAL(ini)[%d] = R_PosInf;\n",i);
+	    } else {
+	      sprintf(s_aux_info+*o,"    REAL(ini)[%d] = R_NegInf;\n",i);
+	    }
+	  } else if (std::isnan(curD)){
+	    sprintf(s_aux_info+*o,"    REAL(ini)[%d] = R_NaN;\n",i);
+	  } else {
+	    sprintf(s_aux_info+*o,"    REAL(ini)[%d] = %.16f;\n",i, curD);
+	  }
+	}
+	*o = (int)strlen(s_aux_info);
+      }
+      return retS;
+    } else {
+      return 0;
+    }
+  } else {
+    return 0;
+  }
 }
   
 SEXP rxGetFromChar(char *ptr, std::string var){

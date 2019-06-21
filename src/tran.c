@@ -74,7 +74,7 @@
 #endif
 
 void setInits(SEXP init);
-SEXP getInits();
+int getInits(char *s_aux_info, int *o);
 
 // from mkdparse_tree.h
 typedef void (print_node_fn_t)(int depth, char *token_name, char *token_value, void *client_data);
@@ -162,7 +162,7 @@ int rx_syntax_assign = 0, rx_syntax_star_pow = 0,
   rx_syntax_allow_ini0 = 1, rx_syntax_allow_ini = 1, rx_syntax_allow_assign_state = 0,
   maxSumProdN = 0, SumProdLD = 0, good_jac=1, extraCmt=0;
 
-char s_aux_info[64*MXSYM];
+char s_aux_info[64*MXSYM*4];
 
 
 typedef struct symtab {
@@ -710,6 +710,8 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
   char *value = (char*)rc_dup_str(pn->start_loc.s, pn->end);
   char buf[1024];
   char buf2[1024];
+  buf[0]='\0';
+  buf2[0]='\0';
   double d;
   if ((nodeHas(identifier) || nodeHas(identifier_r) ||
        nodeHas(identifier_r_no_output)  ||
@@ -845,8 +847,10 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
 	    tb.dvid[i+1]=atoi(v+1);
 	    if (tb.dvid[i+1] == 0) error("dvid() cannot have zeros in it");
 	    sAppend(&sbt, ",%d", tb.dvid[i+1]);
+	    Free(v);
 	  }
 	  sAppend(&sbNrm, "%s);\n", sbt.s);
+	  Free(v);
 	  continue;
 	} else {
 	  error("RxODE only supports one dvid() statement per model");
@@ -1400,6 +1404,7 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
 	sAppend(&sb,  "%s",v);
 	sAppend(&sbDt,"%s",v);
 	sAppend(&sbt, "%s(0)",v);
+	Free(v);
       }
 
       if ((i==0 && (nodeHas(assignment) || nodeHas(ini) || nodeHas(ini0))) ||
@@ -1610,6 +1615,9 @@ void err_msg(int chk, const char *msg, int code)
 void prnt_vars(int scenario, int lhs, const char *pre_str, const char *post_str, int show_ode) {
   int i, j, k;
   char buf[64], buf1[64],buf2[64];
+  buf[0]='\0';
+  buf1[0]='\0';
+  buf2[0]='\0';
   sAppend(&sbOut, "%s", pre_str);
   if (scenario == 0 || scenario == 2){
     // show_ode = 1 dydt
@@ -1719,6 +1727,7 @@ void print_aux_info(char *model, const char *prefix, const char *libname, const 
   int i, j, islhs,pi = 0,li = 0, o=0, statei = 0, sensi=0, normi=0,fdi=0,
     in_str=0;
   char buf[512], buf2[512];
+  buf[0]='\0';buf2[0]='\0';
   for (i=0; i<tb.nv; i++) {
     islhs = tb.lh[i];
     if (islhs>1 && islhs != 19) continue;      /* is a state var */
@@ -1874,16 +1883,15 @@ void print_aux_info(char *model, const char *prefix, const char *libname, const 
   
   s_aux_info[0] = '\0';
   o    = 0;
-  SEXP ini = PROTECT(getInits());
-  SEXP inin = PROTECT(getAttrib(ini,   R_NamesSymbol));
+  tb.ini_i = getInits(s_aux_info, &o); 
 
-  tb.ini_i = length(ini);
-  for (i = 0; i < tb.ini_i; i++){
-    sprintf(s_aux_info+o,"    SET_STRING_ELT(inin,%d,mkChar(\"%s\"));\n",i, CHAR(STRING_ELT(inin, i)));
-    o = (int)strlen(s_aux_info);
-    sprintf(s_aux_info+o,"    REAL(ini)[%d] = %.16f;\n",i, REAL(ini)[i]);
-    o = (int)strlen(s_aux_info);
-  }
+  /* tb.ini_i = length(ini); */
+  /* for (i = 0; i < tb.ini_i; i++){ */
+  /*   sprintf(s_aux_info+o,"    SET_STRING_ELT(inin,%d,mkChar(\"%s\"));\n",i, CHAR(STRING_ELT(inin, i))); */
+  /*   o = (int)strlen(s_aux_info); */
+  /*   sprintf(s_aux_info+o,"    REAL(ini)[%d] = %.16f;\n",i, REAL(ini)[i]); */
+  /*   o = (int)strlen(s_aux_info); */
+  /* } */
   
   sAppend(&sbOut, "    SEXP ini    = PROTECT(allocVector(REALSXP,%d));pro++;\n",tb.ini_i);
   sAppend(&sbOut, "    SEXP inin   = PROTECT(allocVector(STRSXP, %d));pro++;\n",tb.ini_i);
@@ -2077,7 +2085,6 @@ sAppend(&sbOut, "  R_RegisterCCallable(\"%s\",\"%smtime\", (DL_FUNC) %smtime);\n
   sAppend(&sbOut, "\nvoid R_unload_%s (DllInfo *info){\n  // Free resources required for single subject solve.\n  SEXP _mv = PROTECT(_rxGetModelLib(\"%smodel_vars\"));\n",
 	  libname2, prefix);
   sAppend(&sbOut, "  if (!isNull(_mv)){\n    _rxRmModelLib(\"%smodel_vars\");\n  }\n  UNPROTECT(1);\n}\n", prefix);
-  UNPROTECT(2);
 }
 
 
@@ -2087,6 +2094,7 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
   } else {
     int i, j, k;
     char buf[64];
+    buf[0]='\0';
     if (show_ode == 1){
       sAppendN(&sbOut,"#include <RxODE_model_shared.h>\n",32);
       int mx = maxSumProdN;
@@ -2420,6 +2428,7 @@ void reset (){
   tb.fdn        = 0;
   tb.linCmt     = 0;
   tb.isPi       = 0;
+  tb.ini_i      = 0;
   tb.hasDepot   = 0;
   tb.hasCentral = 0;
   tb.hasKa      = 0;
@@ -2557,6 +2566,11 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
   char *in;
   char buf[1024], buf2[512], df[128], dy[128];
   int i, j, islhs, pi=0, li=0, ini_i = 0,k=0, l=0, m=0, p=0;
+  // Make sure buffers are initialized.
+  buf2[0]='\0';
+  buf[0]='\0';
+  df[0]='\0';
+  dy[0]='\0';
 
   isEsc=INTEGER(isEscIn)[0];
 
@@ -2695,7 +2709,6 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
   
   SEXP params = PROTECT(allocVector(STRSXP, tb.pi));pro++;
   SEXP lhs    = PROTECT(allocVector(STRSXP, tb.li));pro++;
-
 
   SEXP inin  = PROTECT(allocVector(STRSXP, tb.isPi + tb.ini_i));pro++;
   SEXP ini   = PROTECT(allocVector(REALSXP, tb.isPi + tb.ini_i));pro++;

@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2019-05-30" />
+<meta name="date" content="2019-06-20" />
 
 <title>Changing RxODE compartment numbers</title>
 
@@ -301,7 +301,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">Changing RxODE compartment numbers</h1>
-<h4 class="date">2019-05-30</h4>
+<h4 class="date">2019-06-20</h4>
 
 
 
@@ -398,8 +398,8 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb3-81" data-line-number="81">})</a></code></pre></div>
 <p>If you look at the summary, you can see where RxODE assigned the compartment number(s)</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">summary</span>(pbpk)</a></code></pre></div>
-<pre><code>#&gt; RxODE 0.9.0-6 model named rx_ccf949ad85c730744978c0f9b17c255a model (ready). 
-#&gt; DLL: /tmp/.rxCache/rx_ccf949ad85c730744978c0f9b17c255a__.rxd/rx_ccf949ad85c730744978c0f9b17c255a_.so
+<pre><code>#&gt; RxODE 0.9.0-8 model named rx_ec38d1872a79d4d4a0e8db5b97723749 model (ready). 
+#&gt; DLL: /tmp/RtmplJACOJ/.rxCache/rx_ec38d1872a79d4d4a0e8db5b97723749__.rxd/rx_ec38d1872a79d4d4a0e8db5b97723749_.so
 #&gt; -- User supplied parameters: --------------------------------------------------- 
 #&gt;      lKbBR      lKbMU      lKbAD     lCLint eta.LClint      lKbBO      lKbRB 
 #&gt;         NA         NA         NA         NA         NA         NA         NA 
@@ -599,7 +599,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb6-83" data-line-number="83">})</a></code></pre></div>
 <p>You can see this change in the simple printout</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">pbpk2</a></code></pre></div>
-<pre><code>#&gt; RxODE 0.9.0-6 model named rx_17f7062cdfc343b04f2c4e341e370419 model (ready). 
+<pre><code>#&gt; RxODE 0.9.0-8 model named rx_7b151d5e2f73db1d8f1afb6d8c2e4c5f model (ready). 
 #&gt; x$state: Venous_Blood, Skin, Lungs, Heart, Brain, Muscles, Adipose, Spleen, Pancreas, Liver, Stomach, Gut, Bones, Kidneys, Arterial_Blood, Rest_of_Body
 #&gt; x$params: lKbBR, lKbMU, lKbAD, lCLint, eta.LClint, lKbBO, lKbRB, WT, BP, fup
 #&gt; x$lhs: KbBR, KbMU, KbAD, CLint, KbBO, KbRB, CO, QHT, QBR, QMU, QAD, QSK, QSP, QPA, QLI, QST, QGU, QHA, QBO, QKI, QRB, QLU, VLU, VHT, VBR, VMU, VAD, VSK, VSP, VPA, VLI, VST, VGU, VBO, VKI, VAB, VVB, VRB, fub, KbLU, KbHT, KbSK, KbSP, KbPA, KbLI, KbST, KbGU, KbKI, S15, C15</code></pre>
@@ -616,7 +616,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb9-5" data-line-number="5">    <span class="kw">cmt</span>(eff);</a>
 <a class="sourceLine" id="cb9-6" data-line-number="6">})</a>
 <a class="sourceLine" id="cb9-7" data-line-number="7"><span class="kw">print</span>(ode<span class="fl">.1</span>c.ka)</a></code></pre></div>
-<pre><code>#&gt; RxODE 0.9.0-6 model named rx_65728e32b0448d8b43d3d851a84526fd model (ready). 
+<pre><code>#&gt; RxODE 0.9.0-8 model named rx_3a6382c2b07fb28b8e092020a8c2f5e8 model (ready). 
 #&gt; $state: depot, center
 #&gt; $stateExtra: eff
 #&gt; $params: V, KA, CL
