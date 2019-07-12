@@ -182,7 +182,7 @@ double *getAol(int n, double atol);
 double *getRol(int n, double rtol);
 t_set_solve set_solve = NULL;
 
-rx_solving_options_ind *rxOptionsIniEnsure(int mx){
+void rxOptionsIniEnsure(int mx){
   if (mx >= max_inds_global){
     Free(inds_global);
     inds_global =Calloc(mx+1024, rx_solving_options_ind);
@@ -196,11 +196,6 @@ rx_solving_options_ind *rxOptionsIniEnsure(int mx){
     op->atol2 = getAol(op->neq, op->ATOL);
   }
   set_solve(&rx_global);
-  return inds_global;
-}
-
-void rxOptionsIniEnsure0(int mx){
-  rxOptionsIniEnsure(mx);
 }
 
 t_dydt dydt = NULL;
@@ -307,15 +302,6 @@ void F77_NAME(dlsoda)(
 extern rx_solve *getRxSolve_(){
   set_solve(&rx_global);
   return &rx_global;
-}
-
-rx_solving_options *getRxOp(rx_solve *rx){
-  /* if(!R_ExternalPtrAddr(rx->op)){ */
-  /*   error("Cannot get global ode solver options."); */
-  /* } */
-  /* return (rx_solving_options*)(R_ExternalPtrAddr(rx->op)); */
-  /* return &op_global; */
-  return rx->op;
 }
 
 rx_solving_options_ind *getRxId(rx_solve *rx, unsigned int id){
