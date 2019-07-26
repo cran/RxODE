@@ -7,11 +7,12 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2019-07-11" />
+<meta name="date" content="2019-07-24" />
 
 <title>RxODE Jacobian specification and Stiff Systems</title>
 
@@ -95,7 +96,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -301,7 +302,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">RxODE Jacobian specification and Stiff Systems</h1>
-<h4 class="date">2019-07-11</h4>
+<h4 class="date">2019-07-24</h4>
 
 
 
@@ -332,14 +333,15 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb1-20" data-line-number="20"></a>
 <a class="sourceLine" id="cb1-21" data-line-number="21">s1 &lt;-<span class="st"> </span>Vtpol2 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(et, <span class="dt">method=</span><span class="st">&quot;lsoda&quot;</span>)</a>
 <a class="sourceLine" id="cb1-22" data-line-number="22"><span class="kw">print</span>(s1)</a></code></pre></div>
-<pre><code>## ______________________________ Solved RxODE object _____________________________ 
-## -- Parameters ($params): ------------------------------------------------------- 
+<pre><code>## ______________________________ Solved RxODE object _____________________________
+## -- Parameters ($params): -------------------------------------------------------
+##  
 ## mu 
 ##  1 
-## -- Initial Conditions ($inits): ------------------------------------------------ 
+## -- Initial Conditions ($inits): ------------------------------------------------
 ##  y dy 
 ##  2  0 
-## -- First part of data (object): ------------------------------------------------ 
+## -- First part of data (object): ------------------------------------------------
 ## # A tibble: 200 x 3
 ##     time     y      dy
 ##    &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;
@@ -349,19 +351,20 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 4 0.151   22.0 -0.0456
 ## 5 0.201   22.0 -0.0456
 ## 6 0.251   22.0 -0.0456
-## # ... with 194 more rows</code></pre>
-<pre><code>## ________________________________________________________________________________</code></pre>
+## # ... with 194 more rows
+## ________________________________________________________________________________</code></pre>
 <p>While this is not stiff at mu=1, mu=1000 is a stiff system</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">s2 &lt;-<span class="st"> </span>Vtpol2 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(<span class="kw">c</span>(<span class="dt">mu=</span><span class="dv">1000</span>), et)</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="kw">print</span>(s2)</a></code></pre></div>
-<pre><code>## ______________________________ Solved RxODE object _____________________________ 
-## -- Parameters ($params): ------------------------------------------------------- 
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">s2 &lt;-<span class="st"> </span>Vtpol2 <span class="op">%&gt;%</span><span class="st">  </span><span class="kw">solve</span>(<span class="kw">c</span>(<span class="dt">mu=</span><span class="dv">1000</span>), et)</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="kw">print</span>(s2)</a></code></pre></div>
+<pre><code>## ______________________________ Solved RxODE object _____________________________
+## -- Parameters ($params): -------------------------------------------------------
+##  
 ##   mu 
 ## 1000 
-## -- Initial Conditions ($inits): ------------------------------------------------ 
+## -- Initial Conditions ($inits): ------------------------------------------------
 ##  y dy 
 ##  2  0 
-## -- First part of data (object): ------------------------------------------------ 
+## -- First part of data (object): ------------------------------------------------
 ## # A tibble: 200 x 3
 ##     time     y         dy
 ##    &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt;
@@ -371,8 +374,8 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## 4 0.151   22.0 -0.0000455
 ## 5 0.201   22.0 -0.0000455
 ## 6 0.251   22.0 -0.0000455
-## # ... with 194 more rows</code></pre>
-<pre><code>## ________________________________________________________________________________</code></pre>
+## # ... with 194 more rows
+## ________________________________________________________________________________</code></pre>
 <p>While this is easy enough to do, it is a bit tedious. If you have RxODE setup appropriately, that is you have:</p>
 <ul>
 <li><strong>Python</strong> installed in your system</li>
@@ -405,6 +408,9 @@ df(dy)/dy(dy)=mu*(-Rx_pow_di(y,2)+1);
 </code></pre>
 </div>
 
+
+
+<!-- code folding -->
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

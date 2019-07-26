@@ -739,7 +739,7 @@ void solveSS_1(int *neq,
 		  0,              /* for stabilized step size control */
 		  0,              /* maximal step size */
 		  0,            /* initial step size */
-		  0,            /* maximal number of allowed steps */
+		  op->mxstep,            /* maximal number of allowed steps */
 		  1,            /* switch for the choice of the coefficients */
 		  -1,                     /* test for stiffness */
 		  0,                      /* number of components for which dense outpout is required */
@@ -1479,7 +1479,7 @@ extern void ind_dop0(rx_solve *rx, rx_solving_options *op, int solveid, int *neq
                       0,              /* for stabilized step size control */
                       0,              /* maximal step size */
                       0,            /* initial step size */
-                      0,            /* maximal number of allowed steps */
+                      op->mxstep, /* maximal number of allowed steps */
                       1,            /* switch for the choice of the coefficients */
                       -1,                     /* test for stiffness */
                       0,                      /* number of components for which dense outpout is required */
@@ -1687,6 +1687,10 @@ extern SEXP RxODE_df(int doDose0, int doTBS){
   int nobs = rx->nobs;
   int nsim = rx->nsim;
   int nall = rx->nall;
+  int errNcol = rxGetErrsNcol();
+  if (op->nsvar != errNcol){
+    error("The simulated residual errors do not match the model specification (%d=%d)",op->nsvar, errNcol);
+  }
   int doDose;
   int evid0 = 0;
   int nmevid=0;
@@ -1728,7 +1732,7 @@ extern SEXP RxODE_df(int doDose0, int doTBS){
   int nPrnState =0;
   int i, j;
   int neq[2];
-  double *scale;  
+  double *scale;
   rx_solving_options_ind *ind;  
   if (subsetEvid == 1){
     rx->nr=0;
@@ -1796,9 +1800,8 @@ extern SEXP RxODE_df(int doDose0, int doTBS){
   i = nidCols;
   double *par_ptr;
   double *errs = rxGetErrs();
-  
   int updateErr = 0;
-  int errNcol = rxGetErrsNcol();
+  
   if (errNcol > 0){
     updateErr = 1;
   }

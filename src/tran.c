@@ -18,6 +18,7 @@
 #define MXBUF 48000
 #define SBPTR sb.s+sb.o
 #define SBTPTR sbt.s+sbt.o
+#define NV tb.ss.n
 
 #define STRINGIFY(...) STRINGIFY_AUX(__VA_ARGS__)
 #define STRINGIFY_AUX(...) #__VA_ARGS__
@@ -164,30 +165,37 @@ int rx_syntax_assign = 0, rx_syntax_star_pow = 0,
 
 char s_aux_info[64*MXSYM*4];
 
+typedef struct vLines {
+  char *s;
+  int sN;
+  int o;
+  int n;
+  int nL;
+  char **line;
+  int *lProp;
+  int *lType;
+} vLines;
+
 
 typedef struct symtab {
-  char ss[64*MXSYM];                     /* symbol string: all vars*/
-  char de[64*MXSYM];             /* symbol string: all Des*/
-  char ddt[MXSYM];
-  int deo[MXSYM];        /* offest of des */
-  int vo[MXSYM];        /* offset of symbols */
-  int lh[MXSYM];        /* lhs symbols? =9 if a state var*/
-  int ini[MXSYM];        /* initial variable assignment =2 if there are two assignments */
-  int mtime[MXSYM];
-  double iniv[MXSYM];        /* Initial values */
-  int ini0[MXSYM];        /* state initial variable assignment =2 if there are two assignments */
-  int di[MXDER];        /* ith of state vars */
-  int idi[MXDER];       /* should ith state variable be ignored 0/1 */
-  int idu[MXDER];       /* Has the ith state been used in a derivative expression? */
-  int fdi[MXDER];        /* Functional initialization of state variable */
-  int dvid[MXDER];
+  vLines ss;
+  /* char ss[64*MXSYM]; */                     /* symbol string: all vars*/
+  vLines de;             /* symbol string: all Des*/
+  int *lh;        /* lhs symbols? =9 if a state var*/
+  int *ini;        /* initial variable assignment =2 if there are two assignments */
+  int *mtime;
+  double *iniv;        /* Initial values */
+  int *ini0;        /* state initial variable assignment =2 if there are two assignments */
+  int *di;        /* ith of state vars */
+  int *idi;       /* should ith state variable be ignored 0/1 */
+  int *idu;       /* Has the ith state been used in a derivative expression? */
+  int *fdi;        /* Functional initialization of state variable */
+  int *dvid;
   int dvidn;
   int nv;                       /* nbr of symbols */
   int ix;                       /* ith of curr symbol */
   int id;                       /* ith of curr symbol */
   int fn;                       /* curr symbol a fn?*/
-  int nd;                       /* nbr of dydt */
-  int pos;
   int pos_de;
   int ini_i; // #ini
   int statei; // # states
@@ -199,9 +207,9 @@ typedef struct symtab {
   int isPi; // # pi?
   int linCmt; // Unparsed linear compartment
   // Save Jacobian information
-  int df[MXSYM];
-  int dy[MXSYM];
-  int sdfdy[MXSYM];
+  int *df;
+  int *dy;
+  int *sdfdy;
   int cdf;
   int ndfdy;
   int maxtheta;
@@ -211,6 +219,8 @@ typedef struct symtab {
   int hasDepotCmt;
   int hasCentralCmt;
   int hasKa;
+  int allocS;
+  int allocD;
 } symtab;
 symtab tb;
 
@@ -319,17 +329,6 @@ void sAppend(sbuf *sbb, const char *format, ...){
   sbb->o +=n;
 }
 
-typedef struct vLines {
-  char *s;
-  int sN;
-  int o;
-  int n;
-  int nL;
-  char **line;
-  int *lProp;
-  int *lType;
-} vLines;
-
 void lineIni(vLines *sbb){
   if (sbb->sN <= 0){
     sbb->s = Calloc(MXBUF, char);
@@ -435,7 +434,7 @@ void updateSyntaxCol();
 
 /* new symbol? if no, find it's ith */
 int new_or_ith(const char *s) {
-  int i, len, len_s=(int)strlen(s);
+  int i;
 
   if (tb.fn) return 0;
   if (!strcmp("t", s)) return 0;
@@ -517,12 +516,22 @@ int new_or_ith(const char *s) {
   // Ignore THETA[] and ETA
   if (strstr("[", s) != NULL) return 0;
 
-  for (i=0; i<tb.nv; i++) {
-    len = tb.vo[i+1] - tb.vo[i] - 1;  /* -1 for added ',' */
-    if (!strncmp(tb.ss+tb.vo[i], s, max(len, len_s))) { /* note we need take the max in order not to match a sub-string */
+  for (i=0; i<NV; i++) {
+    if (!strcmp(tb.ss.line[i], s)) {
       tb.ix = i;
       return 0;
     }
+  }
+  if (NV+1 > tb.allocS){
+    tb.allocS += MXSYM;
+    tb.lh = Realloc(tb.lh, tb.allocS, int);
+    tb.ini= Realloc(tb.ini, tb.allocS, int);
+    tb.mtime=Realloc(tb.mtime, tb.allocS, int);
+    tb.iniv=Realloc(tb.iniv, tb.allocS, double);
+    tb.ini0=Realloc(tb.ini0, tb.allocS, int);
+    tb.df=Realloc(tb.df, tb.allocS, int);
+    tb.dy=Realloc(tb.dy, tb.allocS, int);
+    tb.sdfdy=Realloc(tb.sdfdy, tb.allocS, int);
   }
   return 1;
 }
@@ -630,13 +639,20 @@ void niReset(nodeInfo *ni){
 
 
 int new_de(const char *s){
-  int i, len, len_s=(int)strlen(s);
-  for (i=0; i<tb.nd; i++) {
-    len = tb.deo[i+1] - tb.deo[i] - 1;
-    if (!strncmp(tb.de+tb.deo[i], s, max(len, len_s))) { /* note we need take the max in order not to match a sub-string */
+  int i;
+  for (i=0; i<tb.de.n; i++) {
+    if (!strcmp(tb.de.line[i], s)) { 
       tb.id = i;
       return 0;
     }
+  }
+  if (tb.de.n + 1 > tb.allocD){
+    tb.allocD+=MXDER;
+    tb.di=Realloc(tb.di, tb.allocD, int);
+    tb.idi=Realloc(tb.idi, tb.allocD, int);
+    tb.idu=Realloc(tb.idu, tb.allocD, int);
+    tb.fdi=Realloc(tb.fdi, tb.allocD, int);
+    tb.dvid=Realloc(tb.dvid, tb.allocD, int);
   }
   return 1;
 }
@@ -718,14 +734,12 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
        nodeHas(theta0_noout) || 
        nodeHas(theta0)) &&
       new_or_ith(value)) {
-    /* printf("[%d]->%s\n",tb.nv,value); */
-    sprintf(tb.ss+tb.pos, "%s,", value);
-    tb.pos += (int)strlen(value)+1;
+    /* printf("[%d]->%s\n",NV,value); */
+    addLine(&(tb.ss),"%s",value);
     // Ignored variables
     if (!strcmp("rx_lambda_", value) || !strcmp("rx_yj_", value)){
-      tb.lh[tb.nv] = 11; // Suppress param printout.
+      tb.lh[NV-1] = 11; // Suppress param printout.
     }
-    tb.vo[++tb.nv] = tb.pos;
   }
   if (!strcmp("(", name) ||
       !strcmp(")", name) ||
@@ -895,9 +909,7 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
 	  tb.maxtheta =ii;
 	}
 	if (new_or_ith(buf)){
-          sprintf(tb.ss+tb.pos, "%s,", buf);
-          tb.pos += (int)strlen(buf)+1;
-          tb.vo[++tb.nv] = tb.pos;
+	  addLine(&(tb.ss),"%s",buf);
         }
         sAppend(&sb,"_THETA_%s_",v);
 	sAppend(&sbDt,"_THETA_%s_",v);
@@ -914,9 +926,7 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
         }
         sprintf(buf,"_ETA_%s_",v);
         if (new_or_ith(buf)){
-	  sprintf(tb.ss+tb.pos, "%s,", buf);
-          tb.pos += (int)strlen(buf)+1;
-          tb.vo[++tb.nv] = tb.pos;
+	  addLine(&(tb.ss),"%s",buf);
         }
         sAppend(&sb, "_ETA_%s_",v);
 	sAppend(&sbDt, "_ETA_%s_",v);
@@ -1138,8 +1148,6 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
       if ((nodeHas(fbio) || nodeHas(alag) || 
 	   nodeHas(dur) || nodeHas(rate) ||
 	   nodeHas(cmt_statement)) && i==2) {
-        /* sprintf(sb.s, "__DDtStateVar__[%d] = InfusionRate(%d) +", tb.nd, tb.nd); */
-        /* sb.o = strlen(sb.s); */
         char *v = (char*)rc_dup_str(xpn->start_loc.s, xpn->end);
 	int hasLhs=0;
 	if (nodeHas(cmt_statement)){
@@ -1154,7 +1162,6 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
 	    tb.hasCentralCmt = 1;
 	  }
 	}
-        sprintf(tb.ddt, "%s",v);
         if (new_de(v)){
 	  if (rx_syntax_require_ode_first){
 	    if (nodeHas(cmt_statement)){
@@ -1171,32 +1178,32 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
 	  tb.statei++;
 	  if (nodeHas(fbio)){
 	    sb.o=0;sbDt.o=0; sbt.o=0;
-	    sAppend(&sb, "_f[%d] = ", tb.nd);
-	    sAppend(&sbDt, "_f[%d] = ", tb.nd);
+	    sAppend(&sb, "_f[%d] = ", tb.de.n);
+	    sAppend(&sbDt, "_f[%d] = ", tb.de.n);
 	    sAppend(&sbt, "f(%s)=", v);
 	    if (foundF == 0) needSort+=1;// & 1 when F
 	    foundF=1;
 	    aType(FBIO);
 	  } else if (nodeHas(alag)){
 	    sb.o=0; sbDt.o=0; sbt.o=0;
-	    sAppend(&sb, "_alag[%d] = ", tb.nd);
-	    sAppend(&sbDt, "_alag[%d] = ", tb.nd);
+	    sAppend(&sb, "_alag[%d] = ", tb.de.n);
+	    sAppend(&sbDt, "_alag[%d] = ", tb.de.n);
 	    sAppend(&sbt, "alag(%s)=", v);
 	    if (foundLag == 0) needSort+=2; // & 2 when alag
 	    foundLag=1;
 	    aType(ALAG); 
 	  } else if (nodeHas(dur)){
 	    sb.o=0;sbDt.o=0; sbt.o=0;
-	    sAppend(&sb, "_dur[%d] = ", tb.nd);
-	    sAppend(&sbDt, "_dur[%d] = ", tb.nd);
+	    sAppend(&sb, "_dur[%d] = ", tb.de.n);
+	    sAppend(&sbDt, "_dur[%d] = ", tb.de.n);
 	    sAppend(&sbt, "dur(%s)=", v);
 	    if (foundDur == 0) needSort+=4;// & 4 when dur
 	    foundDur=1;
 	    aType(DUR);
           } else if (nodeHas(rate)){
 	    sb.o=0;sbDt.o=0; sbt.o=0;
-	    sAppend(&sb, "_rate[%d] = ", tb.nd);
-	    sAppend(&sbDt, "_rate[%d] = ", tb.nd);
+	    sAppend(&sb, "_rate[%d] = ", tb.de.n);
+	    sAppend(&sbDt, "_rate[%d] = ", tb.de.n);
 	    sAppend(&sbt, "rate(%s)=", v);
 	    if (foundRate == 0) needSort+=8;// & 8 when rate
 	    foundRate=1;
@@ -1207,16 +1214,14 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
 	    sAppend(&sbNrm, "%s;\n", sbt.s);
 	  }
           new_or_ith(v);
-	  aProp(tb.nd);
+	  aProp(tb.de.n);
           /* Rprintf("%s; tb.ini = %d; tb.ini0 = %d; tb.lh = %d\n",v,tb.ini[tb.ix],tb.ini0[tb.ix],tb.lh[tb.ix]); */
           tb.lh[tb.ix] = 9;
 	  if (hasLhs){
 	    tb.lh[tb.ix] = 19;
 	  }	  
-          tb.di[tb.nd] = tb.ix;
-          sprintf(tb.de+tb.pos_de, "%s,", v);
-          tb.pos_de += strlen(v)+1;
-          tb.deo[++tb.nd] = tb.pos_de;
+          tb.di[tb.de.n] = tb.ix;
+	  addLine(&(tb.de),"%s",v);
         } else {
           new_or_ith(v);
 	  aProp(tb.ix);
@@ -1272,7 +1277,6 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
       }
       if (nodeHas(derivative) && i==2) {
         char *v = (char*)rc_dup_str(xpn->start_loc.s, xpn->end);
-        sprintf(tb.ddt, "%s",v);
         if (new_de(v)){
 	  tb.statei++;
 	  if (strncmp(v, "rx__sens_", 3) == 0){
@@ -1284,9 +1288,9 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
 	  }
 	  sb.o =0; sbDt.o =0;
 	  aType(TDDT);
-	  aProp(tb.nd);
-          sAppend(&sb, "__DDtStateVar__[%d] = ((double)(_ON[%d]))*(_IR[%d] ", tb.nd, tb.nd, tb.nd);
-	  sAppend(&sbDt, "__DDtStateVar_%d__ = ((double)(_ON[%d]))*(_IR[%d] ", tb.nd, tb.nd, tb.nd);
+	  aProp(tb.de.n);
+          sAppend(&sb, "__DDtStateVar__[%d] = ((double)(_ON[%d]))*(_IR[%d] ", tb.de.n, tb.de.n, tb.de.n);
+	  sAppend(&sbDt, "__DDtStateVar_%d__ = ((double)(_ON[%d]))*(_IR[%d] ", tb.de.n, tb.de.n, tb.de.n);
 	  sbt.o=0;
           sAppend(&sbt, "d/dt(%s)", v);
 	  new_or_ith(v);
@@ -1299,21 +1303,19 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
             trans_syntax_error_report_fn0(buf);
           }
 	  tb.lh[tb.ix] = 9;
-          tb.di[tb.nd] = tb.ix;
-          sprintf(tb.de+tb.pos_de, "%s,", v);
-          tb.pos_de += (int)strlen(v)+1;
+          tb.di[tb.de.n] = tb.ix;
+	  addLine(&(tb.de),"%s",v);
 	  Free(v);
 	  xpn = d_get_child(pn,4);
           v = (char*)rc_dup_str(xpn->start_loc.s, xpn->end);
-	  tb.idu[tb.nd] = 1;
+	  tb.idu[tb.de.n-1] = 1;
           if (!strcmp("~",v)){
-            tb.idi[tb.nd] = 1;
+            tb.idi[tb.de.n-1] = 1;
 	    sAppendN(&sbt, "~", 1);
           } else {
-	    tb.idi[tb.nd] = 0;
+	    tb.idi[tb.de.n-1] = 0;
 	    sAppendN(&sbt, "=", 1);
 	  }
-          tb.deo[++tb.nd] = tb.pos_de;
         } else {
 	  new_or_ith(v);
 	  /* printf("de[%d]->%s[%d]\n",tb.id,v,tb.ix); */
@@ -1410,7 +1412,6 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
       if ((i==0 && (nodeHas(assignment) || nodeHas(ini) || nodeHas(ini0))) ||
 	  (i == 2 && nodeHas(mtime))){
         char *v = (char*)rc_dup_str(xpn->start_loc.s, xpn->end);
-	tb.ddt[0]='\0';
         if ((rx_syntax_allow_ini && nodeHas(ini)) || nodeHas(ini0)){
 	  sb.o =0; sbDt.o =0;
           /* aAppendN("(__0__)", 7); */
@@ -1588,13 +1589,10 @@ void wprint_parsetree(D_ParserTables pt, D_ParseNode *pn, int depth, print_node_
   }
 }
 
-void retieve_var(int i, char *buf) {
-  int len;
-
-  len = tb.vo[i+1] - tb.vo[i] - 1;
-  strncpy(buf, tb.ss+tb.vo[i], len);
-  buf[len] = 0;
-}
+/* void retieve_var(int i, char *buf) { */
+/*   // No need to copy, just retreive. */
+/*   buf = tb.ss.line[i]; */
+/* } */
 
 void err_msgP(int chk, const char *msg, int code, D_Parser *p)
 {
@@ -1614,10 +1612,7 @@ void err_msg(int chk, const char *msg, int code)
 /* when prnt_vars() is called, user defines the behavior in "case" */
 void prnt_vars(int scenario, int lhs, const char *pre_str, const char *post_str, int show_ode) {
   int i, j, k;
-  char buf[64], buf1[64],buf2[64];
-  buf[0]='\0';
-  buf1[0]='\0';
-  buf2[0]='\0';
+  char *buf, *buf1, *buf2;
   sAppend(&sbOut, "%s", pre_str);
   if (scenario == 0 || scenario == 2){
     // show_ode = 1 dydt
@@ -1631,7 +1626,7 @@ void prnt_vars(int scenario, int lhs, const char *pre_str, const char *post_str,
     // show_ode == 9 functional mtimes
     if (show_ode == 2 || show_ode == 0){
       //__DDtStateVar_#__
-      for (i = 0; i < tb.nd; i++){
+      for (i = 0; i < tb.de.n; i++){
 	if (scenario == 0){
 	  sAppend(&sbOut,"  __DDtStateVar_%d__,\n",i);
 	} else {
@@ -1642,8 +1637,8 @@ void prnt_vars(int scenario, int lhs, const char *pre_str, const char *post_str,
     // Now get Jacobain information  __PDStateVar_df_dy__ if needed
     if (show_ode != 3){
       for (i = 0; i < tb.ndfdy; i++){
-        retieve_var(tb.df[i], buf1);
-        retieve_var(tb.dy[i], buf2);
+	buf1 = tb.ss.line[tb.df[i]];
+	buf2 = tb.ss.line[tb.dy[i]];
         // This is for dydt/ LHS/ or jacobian for df(state)/dy(parameter)
         if (show_ode == 1 || show_ode == 0 || tb.sdfdy[i] == 1){
 	  if (scenario == 0){
@@ -1655,9 +1650,10 @@ void prnt_vars(int scenario, int lhs, const char *pre_str, const char *post_str,
       }
     }
   }
-  for (i=0, j=0; i<tb.nv; i++) {
+  for (i=0, j=0; i<NV; i++) {
     if (lhs && tb.lh[i]>0) continue;
-    retieve_var(i, buf);
+    /* retieve_var(i, buf); */
+    buf = tb.ss.line[i];
     switch(scenario) {
     case 0:   // Case 0 is for declaring the variables
       sAppendN(&sbOut,"  ", 2);
@@ -1675,7 +1671,7 @@ void prnt_vars(int scenario, int lhs, const char *pre_str, const char *post_str,
       if (!strcmp("rx_lambda_", buf) || !strcmp("rx_yj_", buf)){
 	sAppendN(&sbOut, "__", 2);
       }
-      if (i <tb.nv-1)
+      if (i <NV-1)
         sAppendN(&sbOut, ",\n", 2);
       else
         sAppendN(&sbOut, ";\n", 2);
@@ -1726,34 +1722,44 @@ void print_aux_info(char *model, const char *prefix, const char *libname, const 
 		    const char *libname2){
   int i, j, islhs,pi = 0,li = 0, o=0, statei = 0, sensi=0, normi=0,fdi=0,
     in_str=0;
-  char buf[512], buf2[512];
-  buf[0]='\0';buf2[0]='\0';
-  for (i=0; i<tb.nv; i++) {
+  char *buf;
+  char bufw[1024];
+  for (i=0; i<NV; i++) {
     islhs = tb.lh[i];
     if (islhs>1 && islhs != 19) continue;      /* is a state var */
-    retieve_var(i, buf);
+    buf = tb.ss.line[i];
     if (islhs == 1 || islhs == 19){
       sprintf(s_aux_info+o, "  SET_STRING_ELT(lhs,%d,mkChar(\"%s\"));\n", li++, buf);
     } else {
+      int foundIt=0;
       for (j = 1; j <= tb.maxtheta;j++){
-        sprintf(buf2,"_THETA_%d_",j);
-        if (!strcmp(buf,buf2)){
-          sprintf(buf,"THETA[%d]",j);
+        sprintf(bufw,"_THETA_%d_",j);
+        if (!strcmp(buf,bufw)){
+          sprintf(bufw,"THETA[%d]",j);
+	  foundIt=1;
+	  break;
         }
       }
-      for (j = 1; j <= tb.maxeta;j++){
-        sprintf(buf2,"_ETA_%d_",j);
-        if (!strcmp(buf,buf2)){
-          sprintf(buf,"ETA[%d]",j);
-        }
+      if (!foundIt){
+	for (j = 1; j <= tb.maxeta;j++){
+	  sprintf(bufw,"_ETA_%d_",j);
+	  if (!strcmp(buf,bufw)){
+	    sprintf(bufw,"ETA[%d]",j);
+	    foundIt=1;
+	    break;
+	  }
+	}
       }
-      sprintf(s_aux_info+o, "    SET_STRING_ELT(params,%d,mkChar(\"%s\"));\n", pi++, buf);
+      if (!foundIt){
+	sprintf(bufw, "%s", buf);
+      }
+      sprintf(s_aux_info+o, "    SET_STRING_ELT(params,%d,mkChar(\"%s\"));\n", pi++, bufw);
     }
     o = (int)strlen(s_aux_info);
   }
   int nExtra=0;
-  for (i=0; i<tb.nd; i++) {                     /* name state vars */
-    retieve_var(tb.di[i], buf);
+  for (i=0; i<tb.de.n; i++) {                     /* name state vars */
+    buf = tb.ss.line[tb.di[i]];
     if (tb.idu[i] == 1){
       if (strncmp(buf, "rx__sens_", 9) == 0){
 	sprintf(s_aux_info+o, "    SET_STRING_ELT(sens,%d,mkChar(\"%s\"));\n", sensi++, buf);
@@ -1780,23 +1786,34 @@ void print_aux_info(char *model, const char *prefix, const char *libname, const 
     
   }
   for (i=0; i<tb.ndfdy; i++) {                     /* name state vars */
-    retieve_var(tb.df[i], buf);
+    buf=tb.ss.line[tb.df[i]];
     sprintf(s_aux_info+o, "    SET_STRING_ELT(dfdy,%d,mkChar(\"df(%s)/dy(", i, buf);
     o = (int)strlen(s_aux_info);
-    retieve_var(tb.dy[i], buf);
+    buf = tb.ss.line[tb.dy[i]];
+    int foundIt=0;
     for (j = 1; j <= tb.maxtheta;j++){
-      sprintf(buf2,"_THETA_%d_",j);
-      if (!strcmp(buf,buf2)){
-        sprintf(buf,"THETA[%d]",j);
+      sprintf(bufw,"_THETA_%d_",j);
+      if (!strcmp(buf,bufw)){
+        sprintf(bufw,"THETA[%d]",j);
+	foundIt=1;
+	break;
       }
     }
-    for (j = 1; j <= tb.maxeta;j++){
-      sprintf(buf2,"_ETA_%d_",j);
-      if (!strcmp(buf,buf2)){
-        sprintf(buf,"ETA[%d]",j);
+    if (!foundIt){
+      for (j = 1; j <= tb.maxeta;j++){
+	sprintf(bufw,"_ETA_%d_",j);
+	if (!strcmp(buf,bufw)){
+	  sprintf(bufw,"ETA[%d]",j);
+	  foundIt=1;
+	  break;
+	}
       }
     }
-    sprintf(s_aux_info+o, "%s)\"));\n",buf);
+    if (!foundIt){
+      sprintf(bufw,"%s",buf);
+    }
+    
+    sprintf(s_aux_info+o, "%s)\"));\n",bufw);
     o = (int)strlen(s_aux_info);
   }
   sAppend(&sbOut, "extern SEXP %smodel_vars(){\n  int pro=0;\n", prefix);
@@ -2093,8 +2110,7 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
     print_aux_info(model, prefix, libname, pMd5, timeId, libname2);
   } else {
     int i, j, k;
-    char buf[64];
-    buf[0]='\0';
+    char *buf;
     if (show_ode == 1){
       sAppendN(&sbOut,"#include <RxODE_model_shared.h>\n",32);
       int mx = maxSumProdN;
@@ -2128,7 +2144,7 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
     } else if (show_ode == 5){
       if (foundF){
 	sAppend(&sbOut,  "// Functional based bioavailability (returns amount)\ndouble %sF(int _cSub,  int _cmt, double _amt, double t){\n  double _f[%d]={1};\n  (void)_f;\n",
-		prefix, tb.nd);
+		prefix, tb.de.n);
       } else {
 	sAppend(&sbOut,  "// Functional based bioavailability\ndouble %sF(int _cSub,  int _cmt, double _amt, double t){\n return _amt;\n",
 		prefix);
@@ -2136,7 +2152,7 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
     } else if (show_ode == 6){
       if (foundLag){
 	sAppend(&sbOut,  "// Functional based absorption lag\ndouble %sLag(int _cSub,  int _cmt, double t){\n  double _alag[%d]={0};\n  (void)_alag;\n",
-		prefix, tb.nd);
+		prefix, tb.de.n);
       } else {
 	sAppend(&sbOut,  "// Functional based absorption lag\ndouble %sLag(int _cSub,  int _cmt, double t){\n return t;\n",
 		prefix);
@@ -2144,7 +2160,7 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
     } else if (show_ode == 7){
       if (foundRate){
 	sAppend(&sbOut,  "// Modeled zero-order rate\ndouble %sRate(int _cSub,  int _cmt, double _amt, double t){\n  double _rate[%d]={0};\n  (void)_rate;\n",
-		prefix, tb.nd);
+		prefix, tb.de.n);
       } else {
 	sAppend(&sbOut,  "// Modeled zero-order rate\ndouble %sRate(int _cSub,  int _cmt, double _amt, double t){\n return 0.0;\n",
 		prefix);
@@ -2152,7 +2168,7 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
     } else if (show_ode == 8){
       if (foundDur){
 	sAppend(&sbOut,  "// Modeled zero-order duration\ndouble %sDur(int _cSub,  int _cmt, double _amt, double t){\n  double _dur[%d]={0};\n  (void)_dur;\n",
-		prefix, tb.nd);
+		prefix, tb.de.n);
       } else {
 	sAppend(&sbOut,  "// Modeled zero-order duration\ndouble %sDur(int _cSub,  int _cmt, double _amt, double t){\n return 0.0;\n",
 		prefix);
@@ -2203,8 +2219,8 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
       prnt_vars(1, 1, "", "\n",show_ode);                   /* pass system pars */
       if (show_ode != 7 && show_ode != 5 &&
 	  show_ode != 6 && show_ode != 8 && show_ode != 9){
-	for (i=0; i<tb.nd; i++) {                   /* name state vars */
-	  retieve_var(tb.di[i], buf);
+	for (i=0; i<tb.de.n; i++) {                   /* name state vars */
+	  buf = tb.ss.line[tb.di[i]];
 	  sAppendN(&sbOut, "  ", 2);
 	  for (k = 0; k < (int)strlen(buf); k++){
 	    if (buf[k] == '.'){
@@ -2314,8 +2330,8 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
       sAppendN(&sbOut,  "}\n", 2);
     } else if (show_ode == 3){
       if (foundF0){
-	for (i = 0; i < tb.nd; i++){
-	  retieve_var(tb.di[i], buf);
+	for (i = 0; i < tb.de.n; i++){
+	  buf=tb.ss.line[tb.di[i]];
 	  sAppend(&sbOut, "  __zzStateVar__[%d]=((double)(_ON[%d]))*(",i,i);
 	  for (k = 0; k < (int)strlen(buf); k++){
 	    if (buf[k] == '.'){
@@ -2336,9 +2352,9 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
       sAppendN(&sbOut,  "}\n", 2);
     } else if (show_ode == 0 && tb.li){
       sAppendN(&sbOut,  "\n", 1);
-      for (i=0, j=0; i<tb.nv; i++) {
+      for (i=0, j=0; i<NV; i++) {
 	if (tb.lh[i] != 1 && tb.lh[i] != 19) continue;
-	retieve_var(i, buf);
+	buf = tb.ss.line[i];
 	sAppend(&sbOut,  "  _lhs[%d]=", j);
 	for (k = 0; k < (int)strlen(buf); k++){
 	  if (buf[k] == '.'){
@@ -2357,9 +2373,9 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
       sAppendN(&sbOut,  "}\n", 2);
     } else if (show_ode == 9 && nmtime){
       sAppendN(&sbOut,  "\n", 1);
-      for (i=0, j=0; i<tb.nv; i++) {
+      for (i=0, j=0; i<NV; i++) {
 	if (tb.mtime[i] != 1) continue;
-	retieve_var(i, buf);
+	buf = tb.ss.line[i];
 	sAppend(&sbOut,  "  _mtime[%d]=", j);
 	for (k = 0; k < (int)strlen(buf); k++){
 	  if (buf[k] == '.'){
@@ -2381,9 +2397,34 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
     }
   }
 }
-  
+
+void parseFree(){
+  sFree(&sb);
+  sFree(&sbDt);
+  sFree(&sbt);
+  sFree(&sbNrm);
+  lineFree(&sbPm);
+  lineFree(&sbPmDt);
+  lineFree(&(tb.ss));
+  lineFree(&(tb.de));
+
+  Free(tb.lh);
+  Free(tb.ini);
+  Free(tb.mtime);
+  Free(tb.iniv);
+  Free(tb.ini0);
+  Free(tb.di);
+  Free(tb.idi);
+  Free(tb.idu);
+  Free(tb.fdi);
+  Free(tb.dvid);
+  Free(tb.df);
+  Free(tb.dy);
+  Free(tb.sdfdy);
+}
 void reset (){
   // Reset sb/sbt string buffers
+  parseFree();
   sIni(&sb);
   sIni(&sbDt);
   sIni(&sbt);
@@ -2391,29 +2432,34 @@ void reset (){
   lineIni(&sbPm);
   lineIni(&sbPmDt);
 
+  lineIni(&(tb.ss));
+  lineIni(&(tb.de));
+  
+  tb.lh=Calloc(MXSYM, int);
+  tb.ini=Calloc(MXSYM, int);
+  tb.mtime=Calloc(MXSYM, int);
+  tb.iniv=Calloc(MXSYM, double);
+  tb.ini0=Calloc(MXSYM, int);
+  
+  tb.di=Calloc(MXDER, int);
+  tb.idi=Calloc(MXDER, int);
+  tb.idu=Calloc(MXDER, int);
+  tb.fdi=Calloc(MXDER, int);
+  tb.dvid=Calloc(MXDER, int);
+  tb.df=Calloc(MXSYM, int);
+  tb.dy=Calloc(MXSYM, int);
+  tb.sdfdy=Calloc(MXSYM, int);
+
+  tb.allocS=MXSYM;
+  tb.allocD=MXDER;
+    
   // Reset Arrays
-  memset(tb.ss,		0, 64*MXSYM*sizeof(char));
-  memset(tb.de,		0, 64*MXSYM*sizeof(char));
-  memset(tb.deo,	0, MXSYM*sizeof(int));
-  memset(tb.vo,		0, MXSYM*sizeof(int));
-  memset(tb.lh,		0, MXSYM*sizeof(int));
-  memset(tb.ini,	0, MXSYM*sizeof(int));
-  memset(tb.mtime,	0, MXSYM*sizeof(int));
-  memset(tb.di,		0, MXDER*sizeof(int));
-  memset(tb.fdi,        0, MXDER*sizeof(int));
-  memset(tb.dy,		0, MXSYM*sizeof(int));
-  memset(tb.sdfdy,	0, MXSYM*sizeof(int));
-  memset(tb.idu,        0, MXDER*sizeof(int));
-  memset(tb.idi,        0, MXDER*sizeof(int));
-  memset(tb.dvid,       0, MXDER*sizeof(int));
   // Reset integers
   tb.dvidn      = 0;
-  tb.nv		= 0;
+  NV		= 0;
   tb.ix		= 0;
   tb.id		= 0;
   tb.fn		= 0;
-  tb.nd		= 0;
-  tb.pos	= 0;
   tb.pos_de	= 0;
   tb.ini_i	= 0;
   tb.nExtra     = 0;
@@ -2487,7 +2533,7 @@ void writeSb(sbuf *sbb, FILE *fp){
 static void rxSyntaxError(struct D_Parser *ap);
 
 void trans_internal(char* parse_file, int isStr){
-  char buf1[512], buf2[512], bufe[2048];
+  char *buf1, *buf2, bufe[2048];
   int i,j,found,islhs;
   D_ParseNode *pn;
   /* any number greater than sizeof(D_ParseNode_User) will do;
@@ -2510,36 +2556,36 @@ void trans_internal(char* parse_file, int isStr){
     wprint_parsetree(parser_tables_RxODE, pn, 0, wprint_node, NULL);
     // Determine Jacobian vs df/dvar
     for (i=0; i<tb.ndfdy; i++) {                     /* name state vars */
-      retieve_var(tb.df[i], buf1);
+      buf1=tb.ss.line[tb.df[i]];
       found=0;
-      for (j=0; j<tb.nd; j++) {                     /* name state vars */
-        retieve_var(tb.di[j], buf2);
+      for (j=0; j<tb.de.n; j++) {                     /* name state vars */
+        buf2=tb.ss.line[tb.di[j]];
 	if (!strcmp(buf1, buf2)){
 	  found=1;
           break;
 	}
       }
       if (!found){
-	retieve_var(tb.dy[i], buf2);
+	buf2=tb.ss.line[tb.dy[i]];
 	sprintf(bufe,NOSTATE,buf1,buf2,buf1);
 	trans_syntax_error_report_fn0(bufe);
       }
       // Now the dy()
-      retieve_var(tb.dy[i], buf1);
+      buf1=tb.ss.line[tb.dy[i]];
       found=0;
-      for (j=0; j<tb.nd; j++) {                     /* name state vars */
-        retieve_var(tb.di[j], buf2);
+      for (j=0; j<tb.de.n; j++) {                     /* name state vars */
+        buf2=tb.ss.line[tb.di[j]];
         if (!strcmp(buf1, buf2)){
           found=1;
           break;
         }
       }
       if (!found){
-	for (j=0; j<tb.nv; j++) {
+	for (j=0; j<NV; j++) {
           islhs = tb.lh[j];
-	  retieve_var(j, buf2);
+	  buf2=tb.ss.line[j];
           if (islhs>1 && tb.lh[i] != 19) continue; /* is a state var */
-          retieve_var(j, buf2);
+          buf2=tb.ss.line[j];
           if ((islhs != 1 || tb.ini[j] == 1) &&!strcmp(buf1, buf2)){
 	    found=1;
 	    // This is a df(State)/dy(Parameter)
@@ -2549,8 +2595,8 @@ void trans_internal(char* parse_file, int isStr){
         }
       }
       if (!found){
-        retieve_var(tb.df[i], buf1);
-      	retieve_var(tb.dy[i], buf2);
+        buf2=tb.ss.line[tb.df[i]];
+      	buf2=tb.ss.line[tb.dy[i]];
       	sprintf(bufe,NOSTATEVAR,buf1,buf2,buf2);
         trans_syntax_error_report_fn0(bufe);
       }
@@ -2564,14 +2610,10 @@ void trans_internal(char* parse_file, int isStr){
 SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SEXP parseStr,
 		  SEXP isEscIn){
   char *in;
-  char buf[1024], buf2[512], df[128], dy[128];
+  char *buf, *df, *dy;
+  char bufw[1024], bufw2[2100];
   int i, j, islhs, pi=0, li=0, ini_i = 0,k=0, l=0, m=0, p=0;
   // Make sure buffers are initialized.
-  buf2[0]='\0';
-  buf[0]='\0';
-  df[0]='\0';
-  dy[0]='\0';
-
   isEsc=INTEGER(isEscIn)[0];
 
   int isStr =INTEGER(parseStr)[0];
@@ -2639,14 +2681,14 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
     }
   } else {
     if (tb.hasDepot && rx_syntax_require_ode_first){
-      sprintf(buf,ODEFIRST,"depot");
-      trans_syntax_error_report_fn0(buf);
+      sprintf(bufw2,ODEFIRST,"depot");
+      trans_syntax_error_report_fn0(bufw2);
     } else if (tb.hasCentral && rx_syntax_require_ode_first){
-      sprintf(buf,ODEFIRST,"central");
-      trans_syntax_error_report_fn0(buf);
+      sprintf(bufw2,ODEFIRST,"central");
+      trans_syntax_error_report_fn0(bufw2);
     }
   }
-  for (i=0; i<tb.nv; i++) {
+  for (i=0; i<NV; i++) {
     islhs = tb.lh[i];
     if (islhs>1 && islhs != 19) continue;      /* is a state var */
     if (islhs == 1 || islhs == 19){
@@ -2678,7 +2720,7 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
     if (offCmt == 0 && tb.idu[i] == 0){
       offCmt = 1;
       nExtra++;
-      retieve_var(tb.di[i], buf);
+      buf=tb.ss.line[tb.di[i]];
     } else if (offCmt == 1 && tb.idu[i] == 1){
       // There is an compartment that doesn't have a derivative
       if (tb.linCmt == 0){
@@ -2727,34 +2769,70 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
 
   ini_i=0;
   int redo = 0;
-  for (i = 0; i < tb.nv; i++){
-    retieve_var(i, buf);
+  int o=0;
+  for (i = 0; i < NV; i++){
+    buf=tb.ss.line[i];
     if (tb.ini[i] == 1 && tb.lh[i] != 1){
       if (tb.isPi && !strcmp("pi", buf)) {
 	redo=1;
 	tb.isPi=0;
 	break;
       }
+      sprintf(s_aux_info+o,"    SET_STRING_ELT(inin,%d,mkChar(\"%s\"));\n",ini_i,
+	      buf);
+      o = (int)strlen(s_aux_info);
       SET_STRING_ELT(inin,ini_i,mkChar(buf));
+      if (ISNA(tb.iniv[i])){
+	sprintf(s_aux_info+o,"    REAL(ini)[%d] = NA_REAL;\n",ini_i);
+      } else if (ISNAN(tb.iniv[i])){
+	sprintf(s_aux_info+o,"    REAL(ini)[%d] = R_NaN;\n",ini_i);
+      } else if (R_FINITE(tb.iniv[i])){
+	sprintf(s_aux_info+o,"    REAL(ini)[%d] = %.16f;\n",ini_i, tb.iniv[i]);
+      } else if (tb.iniv[i] > 0){
+	sprintf(s_aux_info+o,"    REAL(ini)[%d] = R_PosInf;\n",ini_i);
+      } else {
+	sprintf(s_aux_info+o,"    REAL(ini)[%d] = R_NegInf;\n",ini_i);
+      }
+      o = (int)strlen(s_aux_info);
       REAL(ini)[ini_i++] = tb.iniv[i];
     }
   }
   if (tb.isPi){
+    sprintf(s_aux_info+o,"    SET_STRING_ELT(inin,%d,mkChar(\"pi\"));\n",ini_i);
+    o = (int)strlen(s_aux_info);
+    sprintf(s_aux_info+o,"    REAL(ini)[%d] = M_PI;\n",ini_i);
+    o = (int)strlen(s_aux_info);
     SET_STRING_ELT(inin,ini_i,mkChar("pi"));
     REAL(ini)[ini_i++] = M_PI;
   } else if (redo){
     inin  = PROTECT(allocVector(STRSXP, tb.ini_i));pro++;
     ini   = PROTECT(allocVector(REALSXP, tb.ini_i));pro++;
     ini_i=0;
-    for (i = 0; i < tb.nv; i++){
-      retieve_var(i, buf);
+    o = 0;
+    for (i = 0; i < NV; i++){
+      buf=tb.ss.line[i];
       if (tb.ini[i] == 1 && tb.lh[i] != 1){
 	if (tb.isPi && !strcmp("pi", buf)) {
 	  redo=1;
 	  tb.isPi=0;
 	  break;
 	}
+	sprintf(s_aux_info+o,"    SET_STRING_ELT(inin,%d,mkChar(\"%s\"));\n",ini_i,
+		buf);
+	o = (int)strlen(s_aux_info);
 	SET_STRING_ELT(inin,ini_i,mkChar(buf));
+	if (ISNA(tb.iniv[i])){
+	  sprintf(s_aux_info+o,"    REAL(ini)[%d] = NA_REAL;\n",ini_i);
+	} else if (ISNAN(tb.iniv[i])){
+	  sprintf(s_aux_info+o,"    REAL(ini)[%d] = R_NaN;\n",ini_i);
+	} else if (R_FINITE(tb.iniv[i])){
+	  sprintf(s_aux_info+o,"    REAL(ini)[%d] = %.16f;\n",ini_i, tb.iniv[i]);
+	} else if (tb.iniv[i] > 0){
+	  sprintf(s_aux_info+o,"    REAL(ini)[%d] = R_PosInf;\n",ini_i);
+	} else {
+	  sprintf(s_aux_info+o,"    REAL(ini)[%d] = R_NegInf;\n",ini_i);
+	}
+	o = (int)strlen(s_aux_info);
 	REAL(ini)[ini_i++] = tb.iniv[i];
       }
     }
@@ -2766,8 +2844,8 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
   SEXP model  = PROTECT(allocVector(STRSXP,1));pro++;
   SEXP modeln = PROTECT(allocVector(STRSXP,1));pro++;
   k=0;j=0;l=0;m=0,p=0;
-  for (i=0; i<tb.nd; i++) {                     /* name state vars */
-    retieve_var(tb.di[i], buf);
+  for (i=0; i<tb.de.n; i++) {                     /* name state vars */
+    buf=tb.ss.line[tb.di[i]];
     if (tb.idu[i] == 1){
       if (strncmp(buf,"rx__sens_", 9) == 0){
 	SET_STRING_ELT(sens,j++,mkChar(buf));
@@ -2790,47 +2868,73 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
     }
   }
   for (i=0; i<tb.ndfdy; i++) {                     /* name state vars */
-    retieve_var(tb.df[i], df);
-    retieve_var(tb.dy[i], dy);
+    df=tb.ss.line[tb.df[i]];
+    dy=tb.ss.line[tb.dy[i]];
+    int foundIt=0;
     for (j = 1; j <= tb.maxtheta;j++){
-      sprintf(buf,"_THETA_%d_",j);
-      if (!strcmp(dy,buf2)){
-        sprintf(dy,"THETA[%d]",j);
+      sprintf(bufw,"_THETA_%d_",j);
+      if (!strcmp(dy,bufw)){
+        sprintf(bufw,"THETA[%d]",j);
+	foundIt=1;
+	break;
       }
     }
-    for (j = 1; j <= tb.maxeta;j++){
-      sprintf(buf,"_ETA_%d_",j);
-      if (!strcmp(dy,buf)){
-        sprintf(dy,"ETA[%d]",j);
+    if (!foundIt){
+      for (j = 1; j <= tb.maxeta;j++){
+	sprintf(bufw,"_ETA_%d_",j);
+	if (!strcmp(dy,bufw)){
+	  sprintf(bufw,"ETA[%d]",j);
+	}
       }
     }
-    sprintf(buf,"df(%s)/dy(%s)",df,dy);
-    SET_STRING_ELT(dfdy,i,mkChar(buf));
+    if (!foundIt){
+      sprintf(bufw,"%s",dy);
+    }
+    sprintf(bufw2,"df(%s)/dy(%s)",df,bufw);
+    SET_STRING_ELT(dfdy,i,mkChar(bufw2));
   }
   li=0, pi=0;
-  for (i=0; i<tb.nv; i++) {
+  for (i=0; i<NV; i++) {
     islhs = tb.lh[i];
     if (islhs>1 && islhs != 19) continue;      /* is a state var */
-    retieve_var(i, buf);
+    buf=tb.ss.line[i];
     if (islhs == 1 || islhs == 19){
       SET_STRING_ELT(lhs,li++,mkChar(buf));
     } else {
+      int foundIt=0;
       for (j = 1; j <= tb.maxtheta;j++){
-	sprintf(buf2,"_THETA_%d_",j);
-	if (!strcmp(buf, buf2)){
-	  sprintf(buf,"THETA[%d]",j);
+	sprintf(bufw,"_THETA_%d_",j);
+	if (!strcmp(buf, bufw)){
+	  sprintf(bufw,"THETA[%d]",j);
+	  foundIt=1;
+	  break;
 	}
       }
-      for (j = 1; j <= tb.maxeta;j++){
-        sprintf(buf2,"_ETA_%d_",j);
-        if (!strcmp(buf, buf2)){
-          sprintf(buf,"ETA[%d]",j);
-        }
+      if (!foundIt){
+	for (j = 1; j <= tb.maxeta;j++){
+	  sprintf(bufw,"_ETA_%d_",j);
+	  if (!strcmp(buf, bufw)){
+	    sprintf(bufw,"ETA[%d]",j);
+	    foundIt=1;
+	    break;
+	  }
+	}
       }
-      SET_STRING_ELT(params,pi++,mkChar(buf));
+      if (!foundIt){
+	sprintf(bufw, "%s", buf);
+      }
+      SET_STRING_ELT(params,pi++,mkChar(bufw));
     }
   }
-  setInits(ini);
+  SEXP ini2s = PROTECT(allocVector(STRSXP,1));pro++;
+  SEXP ini2   = PROTECT(allocVector(VECSXP, 2));pro++;
+  SEXP ini2i = PROTECT(allocVector(INTSXP,1));pro++;
+  tb.ini_i = length(ini);
+  INTEGER(ini2i)[0] = tb.ini_i;
+  SET_VECTOR_ELT(ini2, 0, ini2i);
+  SET_STRING_ELT(ini2s,0,mkChar(s_aux_info));
+  SET_VECTOR_ELT(ini2, 1, ini2s);
+  setInits(ini2);
 
   SET_STRING_ELT(names,0,mkChar("params"));
   SET_VECTOR_ELT(lst,  0,params);
@@ -2890,9 +2994,9 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
   for (i = 0; i < tb.dvidn; i++) INTEGER(sDvid)[i]=tb.dvid[i];
   SET_VECTOR_ELT(lst,  17, sDvid);
 
-  sprintf(buf,"%.*s", (int)strlen(model_prefix)-1, model_prefix);
+  sprintf(bufw,"%.*s", (int)strlen(model_prefix)-1, model_prefix);
   SET_STRING_ELT(trann,0,mkChar("lib.name"));
-  SET_STRING_ELT(tran,0,mkChar(buf));
+  SET_STRING_ELT(tran,0,mkChar(bufw));
   
   SET_STRING_ELT(trann,1,mkChar("jac"));
   if (found_jac == 1 && good_jac == 1){
@@ -2902,75 +3006,75 @@ SEXP _RxODE_trans(SEXP parse_file, SEXP extra_c, SEXP prefix, SEXP model_md5, SE
   }
   
   SET_STRING_ELT(trann,2,mkChar("prefix"));
-  SET_STRING_ELT(tran,2,mkChar(buf));
+  SET_STRING_ELT(tran,2,mkChar(bufw));
 
-  sprintf(buf,"%sdydt",model_prefix);
+  sprintf(bufw,"%sdydt",model_prefix);
   SET_STRING_ELT(trann,3,mkChar("dydt"));
-  SET_STRING_ELT(tran,3,mkChar(buf)) ;
+  SET_STRING_ELT(tran,3,mkChar(bufw)) ;
 
-  sprintf(buf,"%scalc_jac",model_prefix);
+  sprintf(bufw,"%scalc_jac",model_prefix);
   SET_STRING_ELT(trann,4,mkChar("calc_jac"));
-  SET_STRING_ELT(tran, 4,mkChar(buf));
+  SET_STRING_ELT(tran, 4,mkChar(bufw));
 
-  sprintf(buf,"%scalc_lhs",model_prefix);
+  sprintf(bufw,"%scalc_lhs",model_prefix);
   SET_STRING_ELT(trann,5,mkChar("calc_lhs"));
-  SET_STRING_ELT(tran, 5,mkChar(buf));
+  SET_STRING_ELT(tran, 5,mkChar(bufw));
 
-  sprintf(buf,"%smodel_vars",model_prefix);
+  sprintf(bufw,"%smodel_vars",model_prefix);
   SET_STRING_ELT(trann,6,mkChar("model_vars"));
-  SET_STRING_ELT(tran, 6,mkChar(buf));
+  SET_STRING_ELT(tran, 6,mkChar(bufw));
 
-  sprintf(buf,"%stheta",model_prefix);
+  sprintf(bufw,"%stheta",model_prefix);
   SET_STRING_ELT(trann,7,mkChar("theta"));
-  SET_STRING_ELT(tran, 7,mkChar(buf));
+  SET_STRING_ELT(tran, 7,mkChar(bufw));
 
-  sprintf(buf,"%sinis",model_prefix);
+  sprintf(bufw,"%sinis",model_prefix);
   SET_STRING_ELT(trann,8,mkChar("inis"));
-  SET_STRING_ELT(tran, 8,mkChar(buf));
+  SET_STRING_ELT(tran, 8,mkChar(bufw));
 
-  sprintf(buf,"%sdydt_lsoda",model_prefix);
+  sprintf(bufw,"%sdydt_lsoda",model_prefix);
   SET_STRING_ELT(trann,9,mkChar("dydt_lsoda"));
-  SET_STRING_ELT(tran, 9,mkChar(buf));
+  SET_STRING_ELT(tran, 9,mkChar(bufw));
 
-  sprintf(buf,"%scalc_jac_lsoda",model_prefix);
+  sprintf(bufw,"%scalc_jac_lsoda",model_prefix);
   SET_STRING_ELT(trann,10,mkChar("calc_jac_lsoda"));
-  SET_STRING_ELT(tran, 10,mkChar(buf));
+  SET_STRING_ELT(tran, 10,mkChar(bufw));
 
-  sprintf(buf,"%sode_solver_solvedata",model_prefix);
+  sprintf(bufw,"%sode_solver_solvedata",model_prefix);
   SET_STRING_ELT(trann,11,mkChar("ode_solver_solvedata"));
-  SET_STRING_ELT(tran, 11,mkChar(buf));
+  SET_STRING_ELT(tran, 11,mkChar(bufw));
   
-  sprintf(buf,"%sode_solver_get_solvedata",model_prefix);
+  sprintf(bufw,"%sode_solver_get_solvedata",model_prefix);
   SET_STRING_ELT(trann,12,mkChar("ode_solver_get_solvedata"));
-  SET_STRING_ELT(tran, 12,mkChar(buf));
+  SET_STRING_ELT(tran, 12,mkChar(bufw));
 
-  sprintf(buf,"%sdydt_liblsoda",model_prefix);
+  sprintf(bufw,"%sdydt_liblsoda",model_prefix);
   SET_STRING_ELT(trann,13,mkChar("dydt_liblsoda"));
-  SET_STRING_ELT(tran, 13,mkChar(buf));
+  SET_STRING_ELT(tran, 13,mkChar(bufw));
 
-  sprintf(buf,"%sF",model_prefix);
+  sprintf(bufw,"%sF",model_prefix);
   SET_STRING_ELT(trann,14,mkChar("F"));
-  SET_STRING_ELT(tran, 14,mkChar(buf));
+  SET_STRING_ELT(tran, 14,mkChar(bufw));
 
-  sprintf(buf,"%sLag",model_prefix);
+  sprintf(bufw,"%sLag",model_prefix);
   SET_STRING_ELT(trann,15,mkChar("Lag"));
-  SET_STRING_ELT(tran, 15,mkChar(buf));
+  SET_STRING_ELT(tran, 15,mkChar(bufw));
 
-  sprintf(buf,"%sRate",model_prefix);
+  sprintf(bufw,"%sRate",model_prefix);
   SET_STRING_ELT(trann,16,mkChar("Rate"));
-  SET_STRING_ELT(tran, 16,mkChar(buf));
+  SET_STRING_ELT(tran, 16,mkChar(bufw));
 
-  sprintf(buf,"%sDur",model_prefix);
+  sprintf(bufw,"%sDur",model_prefix);
   SET_STRING_ELT(trann,17,mkChar("Dur"));
-  SET_STRING_ELT(tran, 17,mkChar(buf));
+  SET_STRING_ELT(tran, 17,mkChar(bufw));
 
-  sprintf(buf,"%smtime",model_prefix);
+  sprintf(bufw,"%smtime",model_prefix);
   SET_STRING_ELT(trann,18,mkChar("mtime"));
-  SET_STRING_ELT(tran, 18,mkChar(buf));
+  SET_STRING_ELT(tran, 18,mkChar(bufw));
 
-  sprintf(buf,"%sassignFuns",model_prefix);
+  sprintf(bufw,"%sassignFuns",model_prefix);
   SET_STRING_ELT(trann,19,mkChar("assignFuns"));
-  SET_STRING_ELT(tran, 19,mkChar(buf));
+  SET_STRING_ELT(tran, 19,mkChar(bufw));
 
   SET_STRING_ELT(modeln,0,mkChar("normModel"));
   SET_STRING_ELT(model,0,mkChar(sbNrm.s));

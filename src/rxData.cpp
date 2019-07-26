@@ -1226,6 +1226,7 @@ typedef struct {
   
   int *gsvar;
   int gsvarn;
+  int nsvar;
   int *gsiV;
   int gsiVn;
   //
@@ -1305,8 +1306,8 @@ void gOnSetup(int n){
   }
   if (_globals.gonn < n){
     int cur = n;
-    if (_globals.gon != NULL) Free( _globals.gon);
-    _globals.gon = Calloc(cur, int);
+    if (_globals.gon == NULL) _globals.gon = Calloc(cur, int);
+    else _globals.gon = Realloc(_globals.gon, cur, int);
     // Everything is on by default
     std::fill_n(&_globals.gon[0], cur, 1);
     _globals.gonn=cur;
@@ -1320,7 +1321,8 @@ void gsolveSetup(int n){
   }
   if (_globals.gsolven < n){
     int cur = n;
-    if (_globals.gsolve != NULL) Free( _globals.gsolve);
+    if (_globals.gsolve == NULL) _globals.gsolve = Calloc(cur, double);
+    else _globals.gsolve = Realloc(_globals.gsolve, cur, double);
     _globals.gsolve = Calloc(cur, double);
     _globals.gsolven=cur;
   }
@@ -1333,8 +1335,8 @@ void gmtimeSetup(int n){
   }
   if (_globals.gmtimen < n){
     int cur = n;
-    Free( _globals.gmtime);
-    _globals.gmtime = Calloc(cur, double);
+    if (_globals.gmtime == NULL) _globals.gmtime = Calloc(cur, double);
+    else _globals.gmtime = Realloc(_globals.gmtime, cur, double);
     _globals.gmtimen=cur;
   }
 }
@@ -1342,8 +1344,8 @@ void gmtimeSetup(int n){
 void gInfusionRateSetup(int n){
   if (_globals.gInfusionRaten < n){
     int cur = n;
-    Free(_globals.gInfusionRate);
-    _globals.gInfusionRate = Calloc(cur, double);
+    if (_globals.gInfusionRate == NULL) _globals.gInfusionRate = Calloc(cur, double);
+    else _globals.gInfusionRate = Realloc(_globals.gInfusionRate, cur, double);
     _globals.gInfusionRaten=cur;
   }
 }
@@ -1355,8 +1357,8 @@ void gix_Setup(int n){
   }
   if (_globals.gixn < n){
     int cur = n;
-    Free(_globals.gix);
-    _globals.gix = Calloc(cur, int);
+    if (_globals.gix == NULL) _globals.gix = Calloc(cur, int);
+    else _globals.gix = Realloc(_globals.gix, cur, int);
     _globals.gixn=cur;
   }
 }
@@ -1368,8 +1370,8 @@ void gall_timesSetup(int n){
   }
   if (_globals.gall_timesn < n){
     int cur = n;
-    Free(_globals.gall_times);
-    _globals.gall_times = Calloc(cur, double);
+    if (_globals.gall_times == NULL) _globals.gall_times = Calloc(cur, double);
+    else _globals.gall_times = Realloc(_globals.gall_times, cur, double);
     _globals.gall_timesn=cur;
   }
 }
@@ -1377,8 +1379,8 @@ void gall_timesSetup(int n){
 void gdvSetup(int n){
   if (_globals.gdvn < n){
     int cur = n;
-    Free(_globals.gdv);
-    _globals.gdv = Calloc(cur, double);
+    if (_globals.gdv == NULL) _globals.gdv = Calloc(cur, double);
+    else _globals.gdv = Realloc(_globals.gdv, cur, double);
     _globals.gdvn=cur;
   }
 }
@@ -1391,9 +1393,10 @@ void gamtSetup(int n){
   }
   if (_globals.gamtn < n){
     int cur = n;
-    Free(_globals.gamt);
-    _globals.gamt  = Calloc(cur, double);
-    _globals.gii   = Calloc(cur, double);
+    if (_globals.gamt == NULL) _globals.gamt = Calloc(cur, double);
+    else _globals.gamt = Realloc(_globals.gamt, cur, double);
+    if (_globals.gii == NULL) _globals.gii = Calloc(cur, double);
+    else _globals.gii = Realloc(_globals.gii, cur, double);
     _globals.gamtn = cur;
   }
 }
@@ -1405,8 +1408,8 @@ void glhsSetup(int n){
   }
   if (_globals.glhsn < n){
     int cur = n;
-    Free(_globals.glhs);
-    _globals.glhs = Calloc(cur, double);
+    if (_globals.glhs == NULL) _globals.glhs = Calloc(cur, double);
+    else _globals.glhs = Realloc(_globals.glhs, cur, double);
     _globals.glhsn =cur;
   }
 }
@@ -1414,8 +1417,8 @@ void glhsSetup(int n){
 void gcovSetup(int n){
   if (_globals.gcovn < n){
     int cur = n;
-    Free(_globals.gcov);
-    _globals.gcov = Calloc(cur, double);
+    if (_globals.gcov == NULL) _globals.gcov = Calloc(cur, double);
+    else _globals.gcov = Realloc(_globals.gcov, cur, double);
     _globals.gcovn = cur;
   }
 }
@@ -1427,8 +1430,8 @@ void ginitsSetup(int n){
   }
   if (_globals.ginitsn < n){
     int cur = n;
-    Free(_globals.ginits);
-    _globals.ginits = Calloc(cur, double);
+    if (_globals.ginits == NULL) _globals.ginits = Calloc(cur, double);
+    else _globals.ginits = Realloc(_globals.ginits, cur, double);
     _globals.ginitsn = cur;
   }
 }
@@ -1436,8 +1439,8 @@ void ginitsSetup(int n){
 void gscaleSetup(int n){
   if (_globals.gscalen < n){
     int cur = n;
-    Free(_globals.gscale);
-    _globals.gscale = Calloc(cur, double);
+    if (_globals.gscale == NULL) _globals.gscale = Calloc(cur, double);
+    else _globals.gscale = Realloc(_globals.gscale, cur, double);
     _globals.gscalen = cur;
   }
 }
@@ -1445,8 +1448,8 @@ void gscaleSetup(int n){
 void gatol2Setup(int n){
   if (_globals.gatol2n < n){
     int cur = n;
-    Free(_globals.gatol2);
-    _globals.gatol2 = Calloc(cur, double);
+    if (_globals.gatol2 == NULL) _globals.gatol2 = Calloc(cur, double);
+    else _globals.gatol2 = Realloc(_globals.gatol2, cur, double);
     _globals.gatol2n = cur;
   }
 }
@@ -1454,8 +1457,8 @@ void gatol2Setup(int n){
 void grtol2Setup(int n){
   if (_globals.grtol2n < n){
     int cur = n;
-    Free(_globals.grtol2);
-    _globals.grtol2 = Calloc(cur, double);
+    if (_globals.grtol2 == NULL) _globals.grtol2 = Calloc(cur, double);
+    else _globals.grtol2 = Realloc(_globals.grtol2, cur, double);
     _globals.grtol2n = cur;
   }
 }
@@ -1497,8 +1500,8 @@ void gparsSetup(int n){
   }
   if (_globals.gparsn < n){
     int cur = n;
-    Free(_globals.gpars);
-    _globals.gpars = Calloc(cur, double);
+    if (_globals.gpars == NULL) _globals.gpars = Calloc(cur, double);
+    else _globals.gpars = Realloc(_globals.gpars, cur, double);
     cur = _globals.gparsn;
   }
 }
@@ -1529,8 +1532,8 @@ void gevidSetup(int n){
   }
   if (_globals.gevidn < n){
     int cur = n;
-    Free(_globals.gevid);
-    _globals.gevid = Calloc(cur, int);
+    if (_globals.gevid == NULL) _globals.gevid = Calloc(cur, int);
+    else _globals.gevid = Realloc(_globals.gevid, cur, int);
     _globals.gevidn  = cur;
   }
 }
@@ -1538,8 +1541,8 @@ void gevidSetup(int n){
 void gBadDoseSetup(int n){
   if (_globals.gBadDosen < n){
     int cur = n;
-    Free(_globals.gBadDose);
-    _globals.gBadDose = Calloc(cur, int);
+    if (_globals.gBadDose == NULL) _globals.gBadDose = Calloc(cur, int);
+    else _globals.gBadDose = Realloc(_globals.gBadDose, cur, int);
     _globals.gBadDosen  = cur;
   }
 }
@@ -1551,8 +1554,8 @@ void grcSetup(int n){
   }
   if (_globals.grcn < n){
     int cur = n;
-    Free(_globals.grc);
-    _globals.grc = Calloc(cur, int);
+    if (_globals.grc == NULL) _globals.grc = Calloc(cur, int);
+    else _globals.grc = Realloc(_globals.grc, cur, int);
     _globals.grcn  = cur;
   }
 }
@@ -1560,8 +1563,8 @@ void grcSetup(int n){
 extern "C" int *gslvr_counterSetup(int n){
   if (_globals.slvr_countern < n){
     int cur = n;
-    Free(_globals.slvr_counter);
-    _globals.slvr_counter = Calloc(cur , int);
+    if (_globals.slvr_counter == NULL) _globals.slvr_counter = Calloc(cur, int);
+    else _globals.slvr_counter = Realloc(_globals.slvr_counter, cur, int);
     _globals.slvr_countern = cur;
   }
   return _globals.slvr_counter;
@@ -1570,8 +1573,8 @@ extern "C" int *gslvr_counterSetup(int n){
 extern "C" int *gdadt_counterSetup(int n){
   if (_globals.dadt_countern < n){
     int cur = n;
-    Free(_globals.dadt_counter);
-    _globals.dadt_counter = Calloc(cur, int);
+    if (_globals.dadt_counter == NULL) _globals.dadt_counter = Calloc(cur, int);
+    else _globals.dadt_counter = Realloc(_globals.dadt_counter, cur, int);
     _globals.dadt_countern = cur;
   }
   return _globals.dadt_counter;
@@ -1580,8 +1583,8 @@ extern "C" int *gdadt_counterSetup(int n){
 extern "C" int *gjac_counterSetup(int n){
   if (_globals.jac_countern < n){
     int cur = n;
-    Free(_globals.jac_counter);
-    _globals.jac_counter = Calloc(cur, int);
+    if (_globals.jac_counter == NULL) _globals.jac_counter = Calloc(cur, int);
+    else _globals.jac_counter = Realloc(_globals.jac_counter, cur, int);
     _globals.jac_countern = cur;
   }
   return _globals.jac_counter;
@@ -1590,8 +1593,8 @@ extern "C" int *gjac_counterSetup(int n){
 extern "C" int *gidoseSetup(int n){
   if (_globals.gidosen < n){
     int cur = n;
-    Free(_globals.gidose);
-    _globals.gidose = Calloc(cur, int);
+    if (_globals.gidose == NULL) _globals.gidose = Calloc(cur, int);
+    else _globals.gidose = Realloc(_globals.gidose, cur, int);
     _globals.gidosen = cur;
   }
   return _globals.gidose;
@@ -1600,8 +1603,8 @@ extern "C" int *gidoseSetup(int n){
 void gpar_covSetup(int n){
   if (_globals.gpar_covn < n){
     int cur = n;
-    Free(_globals.gpar_cov);
-    _globals.gpar_cov = Calloc(cur, int);
+    if (_globals.gpar_cov == NULL) _globals.gpar_cov = Calloc(cur, int);
+    else _globals.gpar_cov = Realloc(_globals.gpar_cov, cur, int);
     _globals.gpar_covn = cur;
   }
 }
@@ -1609,10 +1612,10 @@ void gpar_covSetup(int n){
 void gParPosSetup(int n){
   if (_globals.gParPosn < n){
     int cur = n;
-    Free(_globals.gParPos);
-    Free(_globals.gParPos2);
-    _globals.gParPos = Calloc(cur, int);
-    _globals.gParPos2 = Calloc(cur, int);
+    if (_globals.gParPos == NULL) _globals.gParPos = Calloc(cur, int);
+    else _globals.gParPos = Realloc(_globals.gParPos, cur, int);
+    if (_globals.gParPos2 == NULL) _globals.gParPos2 = Calloc(cur, int);
+    else _globals.gParPos2 = Realloc(_globals.gParPos2, cur, int);
     _globals.gParPosn = cur;
   }
 }
@@ -1620,8 +1623,8 @@ void gParPosSetup(int n){
 void gsvarSetup(int n){
   if (_globals.gsvarn < n){
     int cur = n;
-    Free(_globals.gsvar);
-    _globals.gsvar = Calloc(cur, int);
+    if (_globals.gsvar == NULL) _globals.gsvar = Calloc(cur, int);
+    else _globals.gsvar = Realloc(_globals.gsvar, cur, int);
     _globals.gsvarn = cur;
   }
 }
@@ -1642,14 +1645,20 @@ extern "C" void protectOld(){
 extern "C" int *gsiVSetup(int n){
   if (_globals.gsiVn < n){
     int cur = n;
-    Free(_globals.gsiV);
-    _globals.gsiV = Calloc(cur, int);
+    if (_globals.gsiV == NULL) _globals.gsiV = Calloc(cur, int);
+    else _globals.gsiV = Realloc(_globals.gsiV, cur, int);
     _globals.gsiVn = cur;
   }
   return _globals.gsiV;
 }
 
+double *_rxGetErrs = NULL;
+void rxFreeErrs(){
+  Free(_rxGetErrs);
+}
+
 extern "C" void gFree(){
+  Free(_rxGetErrs);
   if (_globals.gsiV != NULL) Free(_globals.gsiV);
   _globals.gsiVn=0;
   if (_globals.gsvar != NULL) Free(_globals.gsvar);
@@ -1708,8 +1717,19 @@ extern "C" void gFree(){
   _globals.gmtime=NULL;
   _globals.gmtimen=0;
   if (_globals.gParPos != NULL) Free(_globals.gParPos);
+  _globals.gParPos=NULL;
   if (_globals.gParPos2 != NULL) Free(_globals.gParPos2);
+  _globals.gParPos2=NULL;
   _globals.gParPosn = 0;
+  if (_globals.slvr_counter != NULL) Free(_globals.slvr_counter);
+  _globals.slvr_counter=NULL;
+  _globals.slvr_countern=0;
+  if (_globals.jac_counter != NULL) Free(_globals.jac_counter);
+  _globals.jac_counter=NULL;
+  _globals.jac_countern=0;
+  if (_globals.dadt_counter != NULL) Free(_globals.dadt_counter);
+  _globals.dadt_counter=NULL;
+  _globals.dadt_countern=0;
 }
 
 arma::mat rwish5(double nu, int p){
@@ -1850,7 +1870,10 @@ extern "C" double *rxGetErrs(){
   getRxModels();
   if (_rxModels.exists(".sigma")){
     NumericMatrix sigma = _rxModels[".sigma"];
-    return &sigma[0];
+    Free(_rxGetErrs);
+    _rxGetErrs = Calloc(sigma.ncol()*sigma.nrow(),double);
+    std::copy(sigma.begin(),sigma.end(),&_rxGetErrs[0]);
+    return _rxGetErrs;
   }
   return NULL;
 }
@@ -1873,36 +1896,12 @@ extern "C" void setInits(SEXP init){
 extern "C" int getInits(char *s_aux_info, int *o){
   getRxModels();
   if (_rxModels.exists(".init")){
-    if (rxIs(_rxModels[".init"], "numeric") || rxIs(_rxModels[".init"], "integer")){
-      NumericVector ret = as<NumericVector>(_rxModels[".init"]);
-      StringVector retN = ret.attr("names");
-      int retS = ret.size();
-      for (int i = 0; i < retS; i++){
-	std::string cur = as<std::string>(retN[i]);
-	sprintf( s_aux_info + *o,"    SET_STRING_ELT(inin,%d,mkChar(\"%s\"));\n",i, cur.c_str());
-	*o = (int)strlen(s_aux_info);
-	if (NumericVector::is_na(ret[i])){
-	  sprintf(s_aux_info+*o,"    REAL(ini)[%d] = NA_REAL;\n",i);
-	} else{
-	  double curD = ret[i];
-	  if (std::isinf(curD)){
-	    if (ret[i] > 0){
-	      sprintf(s_aux_info+*o,"    REAL(ini)[%d] = R_PosInf;\n",i);
-	    } else {
-	      sprintf(s_aux_info+*o,"    REAL(ini)[%d] = R_NegInf;\n",i);
-	    }
-	  } else if (std::isnan(curD)){
-	    sprintf(s_aux_info+*o,"    REAL(ini)[%d] = R_NaN;\n",i);
-	  } else {
-	    sprintf(s_aux_info+*o,"    REAL(ini)[%d] = %.16f;\n",i, curD);
-	  }
-	}
-	*o = (int)strlen(s_aux_info);
-      }
-      return retS;
-    } else {
-      return 0;
-    }
+    List init = _rxModels[".init"];
+    int ret = as<int>(init[0]);
+    std::string str = as<std::string>(init[1]);
+    sprintf( s_aux_info + *o,"%s",str.c_str());
+    *o = (int)strlen(s_aux_info);
+    return ret;
   } else {
     return 0;
   }
@@ -2711,6 +2710,7 @@ SEXP rxSolve_(const RObject &obj,
     RObject par1ini;
     bool swappedEvents = false;
     bool doMean=true;
+    int nsvar = 0;
     NumericVector initsC;
     if (rxIs(par0, "rx.event")){
       // Swapped events and parameters
@@ -3401,6 +3401,7 @@ SEXP rxSolve_(const RObject &obj,
 	for (j = sigmaN.size(); j--;){
           if (sigmaN[j] == pars[i]){
 	    _globals.gsvar[j] = i;
+	    nsvar++;
 	    _globals.gParPos[i] = 0; // These are set at run-time and "dont" matter.
 	    curPar = true;
             eGparPos[i]=_globals.gParPos[i];
@@ -3455,6 +3456,7 @@ SEXP rxSolve_(const RObject &obj,
       stop(errStr);
     }
     op->svar = &_globals.gsvar[0];
+    op->nsvar = nsvar;
     // Now setup the rest of the rx_solve object
     if (nPopPar != 1 && nPopPar % rx->nsub != 0){
       stop("The number of parameters (%d) solved by RxODE for multi-subject data needs to be a multiple of the number of subjects (%d).",nPopPar, rx->nsub);

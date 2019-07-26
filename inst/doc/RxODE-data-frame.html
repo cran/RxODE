@@ -7,11 +7,12 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2019-07-11" />
+<meta name="date" content="2019-07-24" />
 
 <title>RxODE Data Frames</title>
 
@@ -95,7 +96,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -301,7 +302,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">RxODE Data Frames</h1>
-<h4 class="date">2019-07-11</h4>
+<h4 class="date">2019-07-24</h4>
 
 
 
@@ -345,66 +346,72 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb1-31" data-line-number="31"><span class="co">## Now solve</span></a>
 <a class="sourceLine" id="cb1-32" data-line-number="32">x &lt;-<span class="st"> </span><span class="kw">predict</span>(mod1,theta, ev, inits)</a>
 <a class="sourceLine" id="cb1-33" data-line-number="33"><span class="kw">print</span>(x)</a>
-<a class="sourceLine" id="cb1-34" data-line-number="34"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________ </span></a>
-<a class="sourceLine" id="cb1-35" data-line-number="35"><span class="co">#&gt; -- Parameters ($params): ------------------------------------------------------- </span></a>
-<a class="sourceLine" id="cb1-36" data-line-number="36"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
-<a class="sourceLine" id="cb1-37" data-line-number="37"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
-<a class="sourceLine" id="cb1-38" data-line-number="38"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb1-39" data-line-number="39"><span class="co">#&gt; depot centr  peri   eff </span></a>
-<a class="sourceLine" id="cb1-40" data-line-number="40"><span class="co">#&gt;     0     0     0     1 </span></a>
-<a class="sourceLine" id="cb1-41" data-line-number="41"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb1-42" data-line-number="42"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
-<a class="sourceLine" id="cb1-43" data-line-number="43"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
-<a class="sourceLine" id="cb1-44" data-line-number="44"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb1-45" data-line-number="45"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
-<a class="sourceLine" id="cb1-46" data-line-number="46"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
-<a class="sourceLine" id="cb1-47" data-line-number="47"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
-<a class="sourceLine" id="cb1-48" data-line-number="48"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
-<a class="sourceLine" id="cb1-49" data-line-number="49"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
-<a class="sourceLine" id="cb1-50" data-line-number="50"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
-<a class="sourceLine" id="cb1-51" data-line-number="51"><span class="co">#&gt; # ... with 235 more rows</span></a></code></pre></div>
+<a class="sourceLine" id="cb1-34" data-line-number="34"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________</span></a>
+<a class="sourceLine" id="cb1-35" data-line-number="35"><span class="co">#&gt; -- Parameters ($params): -------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb1-36" data-line-number="36"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb1-37" data-line-number="37"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
+<a class="sourceLine" id="cb1-38" data-line-number="38"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
+<a class="sourceLine" id="cb1-39" data-line-number="39"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb1-40" data-line-number="40"><span class="co">#&gt; depot centr  peri   eff </span></a>
+<a class="sourceLine" id="cb1-41" data-line-number="41"><span class="co">#&gt;     0     0     0     1 </span></a>
+<a class="sourceLine" id="cb1-42" data-line-number="42"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb1-43" data-line-number="43"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
+<a class="sourceLine" id="cb1-44" data-line-number="44"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
+<a class="sourceLine" id="cb1-45" data-line-number="45"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb1-46" data-line-number="46"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
+<a class="sourceLine" id="cb1-47" data-line-number="47"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
+<a class="sourceLine" id="cb1-48" data-line-number="48"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
+<a class="sourceLine" id="cb1-49" data-line-number="49"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
+<a class="sourceLine" id="cb1-50" data-line-number="50"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
+<a class="sourceLine" id="cb1-51" data-line-number="51"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
+<a class="sourceLine" id="cb1-52" data-line-number="52"><span class="co">#&gt; # ... with 235 more rows</span></a>
+<a class="sourceLine" id="cb1-53" data-line-number="53"><span class="co">#&gt; ________________________________________________________________________________</span></a></code></pre></div>
 <p>or</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">x &lt;-<span class="st"> </span><span class="kw">solve</span>(mod1,theta, ev, inits)</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2"><span class="kw">print</span>(x)</a>
-<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________ </span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): ------------------------------------------------------- </span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
-<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="co">#&gt; depot centr  peri   eff </span></a>
-<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">#&gt;     0     0     0     1 </span></a>
-<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
-<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
-<a class="sourceLine" id="cb2-15" data-line-number="15"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
-<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
-<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
-<a class="sourceLine" id="cb2-18" data-line-number="18"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
-<a class="sourceLine" id="cb2-19" data-line-number="19"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
-<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="co">#&gt; # ... with 235 more rows</span></a></code></pre></div>
+<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): -------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">#&gt; depot centr  peri   eff </span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="co">#&gt;     0     0     0     1 </span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
+<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
+<a class="sourceLine" id="cb2-18" data-line-number="18"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
+<a class="sourceLine" id="cb2-19" data-line-number="19"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
+<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
+<a class="sourceLine" id="cb2-21" data-line-number="21"><span class="co">#&gt; # ... with 235 more rows</span></a>
+<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="co">#&gt; ________________________________________________________________________________</span></a></code></pre></div>
 <p>Or with <code>mattigr</code></p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">x &lt;-<span class="st"> </span>mod1 <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">solve</span>(theta, ev, inits)</a>
 <a class="sourceLine" id="cb3-2" data-line-number="2"><span class="kw">print</span>(x)</a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________ </span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): ------------------------------------------------------- </span></a>
-<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="co">#&gt; depot centr  peri   eff </span></a>
-<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="co">#&gt;     0     0     0     1 </span></a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb3-11" data-line-number="11"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
-<a class="sourceLine" id="cb3-12" data-line-number="12"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
-<a class="sourceLine" id="cb3-13" data-line-number="13"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb3-14" data-line-number="14"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
-<a class="sourceLine" id="cb3-15" data-line-number="15"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
-<a class="sourceLine" id="cb3-16" data-line-number="16"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
-<a class="sourceLine" id="cb3-17" data-line-number="17"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
-<a class="sourceLine" id="cb3-18" data-line-number="18"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
-<a class="sourceLine" id="cb3-19" data-line-number="19"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
-<a class="sourceLine" id="cb3-20" data-line-number="20"><span class="co">#&gt; # ... with 235 more rows</span></a></code></pre></div>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): -------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="co">#&gt; depot centr  peri   eff </span></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="co">#&gt;     0     0     0     1 </span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb3-12" data-line-number="12"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
+<a class="sourceLine" id="cb3-13" data-line-number="13"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
+<a class="sourceLine" id="cb3-14" data-line-number="14"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb3-15" data-line-number="15"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
+<a class="sourceLine" id="cb3-16" data-line-number="16"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
+<a class="sourceLine" id="cb3-17" data-line-number="17"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
+<a class="sourceLine" id="cb3-18" data-line-number="18"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
+<a class="sourceLine" id="cb3-19" data-line-number="19"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
+<a class="sourceLine" id="cb3-20" data-line-number="20"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
+<a class="sourceLine" id="cb3-21" data-line-number="21"><span class="co">#&gt; # ... with 235 more rows</span></a>
+<a class="sourceLine" id="cb3-22" data-line-number="22"><span class="co">#&gt; ________________________________________________________________________________</span></a></code></pre></div>
 </div>
 <div id="using-the-solved-object-as-a-simple-data-frame" class="section level2">
 <h2>Using the solved object as a simple data frame</h2>
@@ -430,24 +437,26 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <p>First we need to recreate the original solved system:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">x &lt;-<span class="st"> </span>mod1 <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">solve</span>(theta,ev,inits);</a>
 <a class="sourceLine" id="cb5-2" data-line-number="2"><span class="kw">print</span>(x)</a>
-<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________ </span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): ------------------------------------------------------- </span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt; depot centr  peri   eff </span></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt;     0     0     0     1 </span></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
-<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
-<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
-<a class="sourceLine" id="cb5-15" data-line-number="15"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
-<a class="sourceLine" id="cb5-16" data-line-number="16"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
-<a class="sourceLine" id="cb5-17" data-line-number="17"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
-<a class="sourceLine" id="cb5-18" data-line-number="18"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
-<a class="sourceLine" id="cb5-19" data-line-number="19"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
-<a class="sourceLine" id="cb5-20" data-line-number="20"><span class="co">#&gt; # ... with 235 more rows</span></a></code></pre></div>
+<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): -------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt; depot centr  peri   eff </span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="co">#&gt;     0     0     0     1 </span></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
+<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
+<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb5-15" data-line-number="15"><span class="co">#&gt; 1     0   0   0     10000     0     0   1   </span></a>
+<a class="sourceLine" id="cb5-16" data-line-number="16"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.08</span></a>
+<a class="sourceLine" id="cb5-17" data-line-number="17"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.18</span></a>
+<a class="sourceLine" id="cb5-18" data-line-number="18"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.23</span></a>
+<a class="sourceLine" id="cb5-19" data-line-number="19"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span></a>
+<a class="sourceLine" id="cb5-20" data-line-number="20"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span></a>
+<a class="sourceLine" id="cb5-21" data-line-number="21"><span class="co">#&gt; # ... with 235 more rows</span></a>
+<a class="sourceLine" id="cb5-22" data-line-number="22"><span class="co">#&gt; ________________________________________________________________________________</span></a></code></pre></div>
 <div id="modifying-initial-conditions" class="section level2">
 <h2>Modifying initial conditions</h2>
 <p>To examine or change initial conditions, you can use the syntax <code>cmt.0</code>, <code>cmt0</code>, or <code>cmt_0</code>. In the case of the <code>eff</code> compartment defined by the model, this is:</p>
@@ -456,26 +465,28 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <p>which shows the initial condition of the effect compartment. If you wished to change this initial condition to 2, this can be done easily by:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">x<span class="op">$</span>eff0 &lt;-<span class="st"> </span><span class="dv">2</span></a>
 <a class="sourceLine" id="cb7-2" data-line-number="2"><span class="kw">print</span>(x)</a>
-<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________ </span></a>
-<a class="sourceLine" id="cb7-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): ------------------------------------------------------- </span></a>
-<a class="sourceLine" id="cb7-5" data-line-number="5"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
-<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
-<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb7-8" data-line-number="8"><span class="co">#&gt; depot centr  peri   eff </span></a>
-<a class="sourceLine" id="cb7-9" data-line-number="9"><span class="co">#&gt;     0     0     0     2 </span></a>
-<a class="sourceLine" id="cb7-10" data-line-number="10"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb7-11" data-line-number="11"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
-<a class="sourceLine" id="cb7-12" data-line-number="12"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
-<a class="sourceLine" id="cb7-13" data-line-number="13"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb7-14" data-line-number="14"><span class="co">#&gt; 1     0   0   0     10000     0     0   2   </span></a>
-<a class="sourceLine" id="cb7-15" data-line-number="15"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.50</span></a>
-<a class="sourceLine" id="cb7-16" data-line-number="16"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.37</span></a>
-<a class="sourceLine" id="cb7-17" data-line-number="17"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.31</span></a>
-<a class="sourceLine" id="cb7-18" data-line-number="18"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.27</span></a>
-<a class="sourceLine" id="cb7-19" data-line-number="19"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.23</span></a>
-<a class="sourceLine" id="cb7-20" data-line-number="20"><span class="co">#&gt; # ... with 235 more rows</span></a>
-<a class="sourceLine" id="cb7-21" data-line-number="21"><span class="kw">plot</span>(x)</a></code></pre></div>
-<p><img src="data:image/png;base64,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" width="100%" /></p>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________</span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): -------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb7-5" data-line-number="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
+<a class="sourceLine" id="cb7-8" data-line-number="8"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb7-9" data-line-number="9"><span class="co">#&gt; depot centr  peri   eff </span></a>
+<a class="sourceLine" id="cb7-10" data-line-number="10"><span class="co">#&gt;     0     0     0     2 </span></a>
+<a class="sourceLine" id="cb7-11" data-line-number="11"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb7-12" data-line-number="12"><span class="co">#&gt; # A tibble: 241 x 7</span></a>
+<a class="sourceLine" id="cb7-13" data-line-number="13"><span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span></a>
+<a class="sourceLine" id="cb7-14" data-line-number="14"><span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb7-15" data-line-number="15"><span class="co">#&gt; 1     0   0   0     10000     0     0   2   </span></a>
+<a class="sourceLine" id="cb7-16" data-line-number="16"><span class="co">#&gt; 2     1  44.4 0.920  7453. 1784.  273.  1.50</span></a>
+<a class="sourceLine" id="cb7-17" data-line-number="17"><span class="co">#&gt; 3     2  54.9 2.67   5554. 2206.  794.  1.37</span></a>
+<a class="sourceLine" id="cb7-18" data-line-number="18"><span class="co">#&gt; 4     3  51.9 4.46   4140. 2087. 1324.  1.31</span></a>
+<a class="sourceLine" id="cb7-19" data-line-number="19"><span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.27</span></a>
+<a class="sourceLine" id="cb7-20" data-line-number="20"><span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.23</span></a>
+<a class="sourceLine" id="cb7-21" data-line-number="21"><span class="co">#&gt; # ... with 235 more rows</span></a>
+<a class="sourceLine" id="cb7-22" data-line-number="22"><span class="co">#&gt; ________________________________________________________________________________</span></a>
+<a class="sourceLine" id="cb7-23" data-line-number="23"><span class="kw">plot</span>(x)</a></code></pre></div>
+<p><img src="data:image/png;base64,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" width="100%" /></p>
 </div>
 <div id="modifying-observation-times-for-rxode" class="section level2">
 <h2>Modifying observation times for RxODE</h2>
@@ -483,26 +494,28 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <p>You can also change the sampling times easily by this method by changing <code>t</code> or <code>time</code>. For example:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">x<span class="op">$</span>t &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">0</span>,<span class="dv">5</span>,<span class="dt">length.out=</span><span class="dv">20</span>)</a>
 <a class="sourceLine" id="cb8-2" data-line-number="2"><span class="kw">print</span>(x)</a>
-<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________ </span></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): ------------------------------------------------------- </span></a>
-<a class="sourceLine" id="cb8-5" data-line-number="5"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
-<a class="sourceLine" id="cb8-6" data-line-number="6"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
-<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb8-8" data-line-number="8"><span class="co">#&gt; depot centr  peri   eff </span></a>
-<a class="sourceLine" id="cb8-9" data-line-number="9"><span class="co">#&gt;     0     0     0     2 </span></a>
-<a class="sourceLine" id="cb8-10" data-line-number="10"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb8-11" data-line-number="11"><span class="co">#&gt; # A tibble: 20 x 7</span></a>
-<a class="sourceLine" id="cb8-12" data-line-number="12"><span class="co">#&gt;        time    C2     C3  depot centr  peri   eff</span></a>
-<a class="sourceLine" id="cb8-13" data-line-number="13"><span class="co">#&gt;         [h] &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb8-14" data-line-number="14"><span class="co">#&gt; 1 0.0000000   0   0      10000     0    0    2   </span></a>
-<a class="sourceLine" id="cb8-15" data-line-number="15"><span class="co">#&gt; 2 0.2631579  16.8 0.0817  9255.  677.  24.3  1.79</span></a>
-<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="co">#&gt; 3 0.5263158  29.5 0.299   8566. 1187.  88.7  1.65</span></a>
-<a class="sourceLine" id="cb8-17" data-line-number="17"><span class="co">#&gt; 4 0.7894737  38.9 0.615   7929. 1562. 183.   1.55</span></a>
-<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="co">#&gt; 5 1.0526316  45.5 1.00    7338. 1830. 298.   1.49</span></a>
-<a class="sourceLine" id="cb8-19" data-line-number="19"><span class="co">#&gt; 6 1.3157895  50.1 1.44    6792. 2013. 427.   1.44</span></a>
-<a class="sourceLine" id="cb8-20" data-line-number="20"><span class="co">#&gt; # ... with 14 more rows</span></a>
-<a class="sourceLine" id="cb8-21" data-line-number="21"><span class="kw">plot</span>(x)</a></code></pre></div>
-<p><img src="data:image/png;base64,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" width="100%" /></p>
+<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): -------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb8-5" data-line-number="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"><span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span></a>
+<a class="sourceLine" id="cb8-8" data-line-number="8"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9"><span class="co">#&gt; depot centr  peri   eff </span></a>
+<a class="sourceLine" id="cb8-10" data-line-number="10"><span class="co">#&gt;     0     0     0     2 </span></a>
+<a class="sourceLine" id="cb8-11" data-line-number="11"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12"><span class="co">#&gt; # A tibble: 20 x 7</span></a>
+<a class="sourceLine" id="cb8-13" data-line-number="13"><span class="co">#&gt;        time    C2     C3  depot centr  peri   eff</span></a>
+<a class="sourceLine" id="cb8-14" data-line-number="14"><span class="co">#&gt;         [h] &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb8-15" data-line-number="15"><span class="co">#&gt; 1 0.0000000   0   0      10000     0    0    2   </span></a>
+<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="co">#&gt; 2 0.2631579  16.8 0.0817  9255.  677.  24.3  1.79</span></a>
+<a class="sourceLine" id="cb8-17" data-line-number="17"><span class="co">#&gt; 3 0.5263158  29.5 0.299   8566. 1187.  88.7  1.65</span></a>
+<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="co">#&gt; 4 0.7894737  38.9 0.615   7929. 1562. 183.   1.55</span></a>
+<a class="sourceLine" id="cb8-19" data-line-number="19"><span class="co">#&gt; 5 1.0526316  45.5 1.00    7338. 1830. 298.   1.49</span></a>
+<a class="sourceLine" id="cb8-20" data-line-number="20"><span class="co">#&gt; 6 1.3157895  50.1 1.44    6792. 2013. 427.   1.44</span></a>
+<a class="sourceLine" id="cb8-21" data-line-number="21"><span class="co">#&gt; # ... with 14 more rows</span></a>
+<a class="sourceLine" id="cb8-22" data-line-number="22"><span class="co">#&gt; ________________________________________________________________________________</span></a>
+<a class="sourceLine" id="cb8-23" data-line-number="23"><span class="kw">plot</span>(x)</a></code></pre></div>
+<p><img src="data:image/png;base64,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" width="100%" /></p>
 </div>
 <div id="modifying-simulation-parameters" class="section level2">
 <h2>Modifying simulation parameters</h2>
@@ -512,31 +525,36 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <p>And you may change it by assigning it to a new value.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">x<span class="op">$</span>KA &lt;-<span class="st"> </span><span class="dv">1</span>;</a>
 <a class="sourceLine" id="cb10-2" data-line-number="2"><span class="kw">print</span>(x)</a>
-<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________ </span></a>
-<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): ------------------------------------------------------- </span></a>
-<a class="sourceLine" id="cb10-5" data-line-number="5"><span class="co">#&gt;    V2    V3    KA    CL     Q   Kin  Kout  EC50 </span></a>
-<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="co">#&gt;  40.2 297.0   1.0  18.6  10.5   1.0   1.0 200.0 </span></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="co">#&gt; depot centr  peri   eff </span></a>
-<a class="sourceLine" id="cb10-9" data-line-number="9"><span class="co">#&gt;     0     0     0     2 </span></a>
-<a class="sourceLine" id="cb10-10" data-line-number="10"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------ </span></a>
-<a class="sourceLine" id="cb10-11" data-line-number="11"><span class="co">#&gt; # A tibble: 20 x 7</span></a>
-<a class="sourceLine" id="cb10-12" data-line-number="12"><span class="co">#&gt;        time    C2    C3  depot centr   peri   eff</span></a>
-<a class="sourceLine" id="cb10-13" data-line-number="13"><span class="co">#&gt;         [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb10-14" data-line-number="14"><span class="co">#&gt; 1 0.0000000   0   0     10000     0     0    2   </span></a>
-<a class="sourceLine" id="cb10-15" data-line-number="15"><span class="co">#&gt; 2 0.2631579  52.2 0.261  7686. 2098.   77.6  1.82</span></a>
-<a class="sourceLine" id="cb10-16" data-line-number="16"><span class="co">#&gt; 3 0.5263158  83.3 0.900  5908. 3348.  267.   1.74</span></a>
-<a class="sourceLine" id="cb10-17" data-line-number="17"><span class="co">#&gt; 4 0.7894737  99.8 1.75   4541. 4010.  519.   1.69</span></a>
-<a class="sourceLine" id="cb10-18" data-line-number="18"><span class="co">#&gt; 5 1.0526316 106.  2.69   3490. 4273.  800.   1.67</span></a>
-<a class="sourceLine" id="cb10-19" data-line-number="19"><span class="co">#&gt; 6 1.3157895 106.  3.66   2683. 4272. 1086.   1.64</span></a>
-<a class="sourceLine" id="cb10-20" data-line-number="20"><span class="co">#&gt; # ... with 14 more rows</span></a>
-<a class="sourceLine" id="cb10-21" data-line-number="21"><span class="kw">plot</span>(x)</a></code></pre></div>
-<p><img src="data:image/png;base64,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" width="100%" /></p>
+<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="co">#&gt; ______________________________ Solved RxODE object _____________________________</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="co">#&gt; -- Parameters ($params): -------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5"><span class="co">#&gt;  </span></a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="co">#&gt;    V2    V3    KA    CL     Q   Kin  Kout  EC50 </span></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7"><span class="co">#&gt;  40.2 297.0   1.0  18.6  10.5   1.0   1.0 200.0 </span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="co">#&gt; -- Initial Conditions ($inits): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9"><span class="co">#&gt; depot centr  peri   eff </span></a>
+<a class="sourceLine" id="cb10-10" data-line-number="10"><span class="co">#&gt;     0     0     0     2 </span></a>
+<a class="sourceLine" id="cb10-11" data-line-number="11"><span class="co">#&gt; -- First part of data (object): ------------------------------------------------</span></a>
+<a class="sourceLine" id="cb10-12" data-line-number="12"><span class="co">#&gt; # A tibble: 20 x 7</span></a>
+<a class="sourceLine" id="cb10-13" data-line-number="13"><span class="co">#&gt;        time    C2    C3  depot centr   peri   eff</span></a>
+<a class="sourceLine" id="cb10-14" data-line-number="14"><span class="co">#&gt;         [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb10-15" data-line-number="15"><span class="co">#&gt; 1 0.0000000   0   0     10000     0     0    2   </span></a>
+<a class="sourceLine" id="cb10-16" data-line-number="16"><span class="co">#&gt; 2 0.2631579  52.2 0.261  7686. 2098.   77.6  1.82</span></a>
+<a class="sourceLine" id="cb10-17" data-line-number="17"><span class="co">#&gt; 3 0.5263158  83.3 0.900  5908. 3348.  267.   1.74</span></a>
+<a class="sourceLine" id="cb10-18" data-line-number="18"><span class="co">#&gt; 4 0.7894737  99.8 1.75   4541. 4010.  519.   1.69</span></a>
+<a class="sourceLine" id="cb10-19" data-line-number="19"><span class="co">#&gt; 5 1.0526316 106.  2.69   3490. 4273.  800.   1.67</span></a>
+<a class="sourceLine" id="cb10-20" data-line-number="20"><span class="co">#&gt; 6 1.3157895 106.  3.66   2683. 4272. 1086.   1.64</span></a>
+<a class="sourceLine" id="cb10-21" data-line-number="21"><span class="co">#&gt; # ... with 14 more rows</span></a>
+<a class="sourceLine" id="cb10-22" data-line-number="22"><span class="co">#&gt; ________________________________________________________________________________</span></a>
+<a class="sourceLine" id="cb10-23" data-line-number="23"><span class="kw">plot</span>(x)</a></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAEgCAMAAAAjXV6yAAAAFVBMVEUAAAAaGhozMzNNTU3Z2dnr6+v////Mrj8CAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAMF0lEQVR4nO2dC3vbKgyGWXfK///JO03sGAO6i0saaXu8pM0Efv0hhOzYKYehllZ3YHcLQIQFIMICEGEBiLAARJgc0JfW1vi1ulUA+k9nJKAxfq1uAxDhNgARbgMQ4TYAEW4DEOE2ABFuAxDh1gfQn+PP9UK8I6P8Wt2Gggi3Xgo6tn+Kt7IdGeXX6jYURLgNBYWCbG5DQaEgm9vIgyIPsrkNQITbAES4DUCE2wBEuA1AhNs4L0a4hQH9Pf5cL44Wc/7++Ve6IQF1/6PZr6C7t/cGBQWgp/09t3+Lt7IW1YDSw5pOo34BxasAJa2CHoPz+zulb7mNBgS6lQL6adqmoGffByoopYuQQEHd/goBvZq2xKAZgJ5dtfp9Cl5gB55C8PMVBM+O5ycP7QgBeSio0O3GCkoXoDQzBp3qeb435UG8nguO9Fc5FtI5ByTWZOCloDP4sAFBZgUE+70UdL2apqB6VlgHCI5tPUBJ4NeSB6W6rX0VVPZUAgjuLqN/t9GV91ZQ2VNOMuQBKLUTggEQN3oCwRTekxZQngPojD+7KAjPg2pAVEphB9TN2reOQffgYPNLA+qv+94IENGWC6DHq90BXauhanVkim0koGv+8gNUHWVXBVXw6YNBASLmjvqA1Ny3B0S2ZVNQOQsIFYTVpH8VoKKtYhMKemySARBWk54JiFpvWAHd2soCQN3WjrKEJpXeEVCyABqlIDyTrhPDehi4A8pqQGiLnGW2aoh1ABELMgOgZAKEnhczAMJX87MB1W1tqqCr5NqNbmjI0wPqHQyRgpBz81MVhK9Y1RXFplLgrCDeaT2PGISvWNUKanbBExCnkuWnIHRBpj2r0R7jTQDBflFAYF6hPbNK5HIrFYTkQdBRZQASKqjj0UtBHP7y2YYEBM0KuhjU06TrEJOffzYBQqZNnYJ6Ue3dAQFjWq2gtwOEj1zwN6o8qNv73QGhCoJPAKkUNAeQrHJvBAQekV0BiU9t7ASoH9CEgKjrpEcAaueqG6Bug8sAUS3OBgQ1qAAETIliBR1b6DppYVnRA1CvQR2gXicdFNS/VE6WSWNLDRQQcESWAdpOQcCOyc+sso6sPQZh6yMMEHYRJ9H17mliuYKgI+utIGFZ0UFB3dlHDAisnTjEoHuLfgp6+mUBapIhDaB+J8UKor4vNl9BvWxRCgheAoxQkKBq5qGg3uFXAAI66Q5IVlZkKIgqYuVeAPl1gJA8iAGo/YwQENLnTQDBfrmA0uaAiLyEyrzgPWEBauKUDBAWN/0VJKqaOQK67aKsoojNvLsD4q7uKt2KFTQZELvm4aWg+osVorMa6PJoACBJUcgN0EGI47c5s8oPmu8MKHcBcRUEd3KEggQ1D0dAt5EiikGegHj37lgDqJzKJAoCF/JDFcRcsTpl0sfmWtdLFIRHBLGCji1YD8rHsVygoGICleRBroC6O9FecMPOpunVfK/7KKAkVBCRlYxREHtBRk3HX8KzAOk4NDJAWCeHxCC62TYGHVubgl7fFFwGiKsgbjpNxyAhoCwFRGl9lIKY2aK7gn4aFsUgZ0D8e5jh2cU4BbH8CirEwxTES4boPGgMoDKqC+YAV0Cs8v1qBdFHcZyCzgrE7oAIZwMB1TWazwaEpm30oIb9yoIE0+8JiDHVjlTQoSEsEC1W0HJAZCBaC4iTzY4GRAQiElAXryMg0tlwQFWxeCdAjFk2TwCEBqLVgGhnEwAdgahLaSUgTiKb5wC6CNUxeyEgZl14DqCjP5UtBZR2A/TYiACdFUVFnogmiufdnQ33pDPXpFG7AMnuJ+09xDh+8mQFSXdkJCBmJwPQJEDG5zBM9mt1WwB6zCJyYL/cLiD/40mPbVhpqXyVckiotgBEWAwxwu5BOgWf2gIIYeUQ40loUL7yBnlQ932nxTEPSnubB7DRChqzIwHolwBixKAxO7I/IGaM/lxAXAtAAah0ewC6n4gIQCMUhDyanLMjo/yCgAi/Mc0z3TaLVTWgP8VWsSOj/CIKQv32pvmzJKRskbC3VxC3YPa5CjICouz9FZSOv8od+fUKehZcIwZVbiMPItzehpgJEGW/QEG8kv0HA8osGX02oJjma7ehIMJtxCDCrWIWG3P+6l3Oi3WM/EpmXGGmbfFDAFFfCx8AqKhMLQGUjLemGPHFNzMg2/Pmi7ae13VbFMT55oxCQe3l1R7ghYBepy4sMWgQoELhKTG/wXRT0LGtbsMsUXnnuveNFPT65DG6hIBAt3wFXSPbNosNBpQuQOS3KAkFZQmgA8/x3pQH8XpuAPSKlhMVlO5j2pQHTQKUiwNK+7UpqBxd+Z0A8e8JAneXC+j2w30BlVQkgEx5UBvvtgZ0iwtGvyxAnZTCAMj4Fb6XdZ/1XN1jYw6g3nF4DwVxskU7oDo+500AdR48cmSz99xWqsyqu7z0GXS7uYIY2aJZQa9ZwU9BpufNv6z7pN76hmj0wbACuhrcDVDj9+xvngmokOhugEAF3QCRbdkAlbPAboAav4sAFW0VG1vR3klBvTxoLqDkAajT4kwFUesNAjwJ6NZW1gDq5SuKXHoaoNotAii5AOq1yFlFqhRUZ871MGAp6NrSgLIdUO+0z0xAxIIM80vUpLsptEcmTXZaBejsc28/JEOXr6B2OF8b64nDAYBABeFFcH0M6rblFIN2BsRVUFMp0Cuod/GC+NSGDRC83lArqDnGrgqaCghdkGnzoHZydAckq3kYAWlvYIkBqn7mCwjttBoQdFT9AXU8egHiZBGc6bjZExwQlHjpAPUOr7OCRjyIFg6cekD9w0UeXCdAgrmetZrHAAFtqRXU/MxdQewrVBwUBCdeKkDdjvsDEk1lrIoiCqh/MLYH5PH4LE4ZBfrV1oBeTyAaryAwM9UA6vd5CKDXVVkuMQhL3qBm1gOiLiRPvJSRoyA0u+UCopcagOrHKCgfhIYrCErdFQoCuqtX0LXtt8gKRJw8CF8fMQHR5Q5nQIV9ATXMxFh2mBUE7Ji85MpaIrkq6HUF5NAhBsQOuYKgkDksBvEitQOg7uwjjkFgT8fFoLNZ9dmHp18WoCYZEisI1PpQBUEDwBdQL1uUKggOBnoFMb9Qh69dOad96PDZfkKaB8GdHK0g2+mZzHuUcRtAFAoCOjkFkPrsAxNQ+xkhICQOjAdkKa4LAKX3BqQsjXIBNYFcBgibSbwAETEUirOOgG67KKtJs7Losru+CjLUjtmA6slSrCCw9xOGWNv9QYCSEhBad5gDiF/YalfzPEDVskYKCO79JEDKuo0A0H0ueD9AurqNBNCtAPWegBR1G9HXrIrZUrLUwEsOWkDym5to6jYiBZVzgURBeNFqmoJUdRshoGsukJQ7xgBS3NxEUbfJ0kcZn8NFUHJlFIaNiSJUk+7GCKBF0LcQ0BnqBApCqw3V+7EKYpUlmtimAJREMWgQIKRFvPvSGCQElAFAoILwimdWA9LdYElallAAypwH3E4ABLfIOL5DAXGG7hfYIUcF6W7yJlt1+wGq3RaAcGeTFVTHxNWA0IX8MkD8skT+0t3QgX0BFbrKWAPoPtcvVhC+DFsE6CbrVYCu1FUlTOeadGVliXqtgqAy3mIFneXR9UOMSKKXAeKXJfJXdx+cAIGV8uWAkLJE7XcwINrZGkCsssTD76cCAssStd+BgMhVxlJA0Kq79usFqF2L0Um0CZD5htuTAVVuuZcpZzWgtkUhILos8axUqlYa6PfmpSdLOm6H1YOaDaNo3/mPLjGInuG9FMSuSXOOdLMnToC0N7s1xKCywXdUELOTXjHI+ByG4X4rBRndyhWUy4Mmf4VY9+OD/LLbkitI0OIaQFVaMh5Q0+DmgFh+xyrokywAERaACAtAhAUgwgIQYQGIsABEWAAiLAARFoAIC0CEBSDCAhBhAYiwAERYACIsABEWgAh7J0DnNRq9d+MandCGl9VAPhQQ3KMnkFS9H2x7AUo5AKGG9yYAPcLu4+/jRTp+ll6/fmzPCw4/ENA5xE48xcvHb9O5vV5N6dI+dgK6v8x3QNcmAOXi5noBKIMKOn8bgAIQYb0h1gTpa/N5gH72+Q6oN83nDwaEWqzFCAtAhAUgwqIetKMFIMICEGEBiLAARFgAIiwAERaACAtAhAUgwgIQYf8AiuTYoEPjeEAAAAAASUVORK5CYII=" width="100%" /></p>
 <p>You can access/change all the parametrs, initilizations or events with the <code>$params</code>, <code>$inits</code>, <code>$events</code> accessor syntax, similar to what is used above.</p>
 <p>This syntax makes it easy to update and explore the effect of various parameters on the solved object.</p>
 </div>
 </div>
 
+
+
+<!-- code folding -->
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

@@ -7,11 +7,12 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2019-07-11" />
+<meta name="date" content="2019-07-24" />
 
 <title>Changing RxODE compartment numbers</title>
 
@@ -95,7 +96,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -301,7 +302,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">Changing RxODE compartment numbers</h1>
-<h4 class="date">2019-07-11</h4>
+<h4 class="date">2019-07-24</h4>
 
 
 
@@ -393,14 +394,14 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb1-82" data-line-number="82">})</a></code></pre></div>
 <p>If you look at the summary, you can see where RxODE assigned the compartment number(s)</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">summary</span>(pbpk)</a></code></pre></div>
-<pre><code>#&gt; RxODE 0.9.0-9 model named rx_e4882cb2407f6c265f4b2f2fec9f6826 model (ready). 
-#&gt; DLL: /tmp/RtmplZ5OaY/.rxCache/rx_e4882cb2407f6c265f4b2f2fec9f6826__.rxd/rx_e4882cb2407f6c265f4b2f2fec9f6826_.so
-#&gt; -- User supplied parameters: --------------------------------------------------- 
+<pre><code>#&gt; RxODE 0.9.1-1 model named rx_9a5847bd415e9f73b96fad1c7336c1b4 model (ready). 
+#&gt; DLL: /tmp/RtmpMK97ZV/.rxCache/rx_9a5847bd415e9f73b96fad1c7336c1b4__.rxd/rx_9a5847bd415e9f73b96fad1c7336c1b4_.so
+#&gt; -- User supplied parameters: ---------------------------------------------------
 #&gt;      lKbBR      lKbMU      lKbAD     lCLint eta.LClint      lKbBO      lKbRB 
 #&gt;         NA         NA         NA         NA         NA         NA         NA 
 #&gt;         WT         BP        fup 
 #&gt;         NA      0.610      0.028 
-#&gt; -- User initial conditions: ---------------------------------------------------- 
+#&gt; -- User initial conditions: ----------------------------------------------------
 #&gt;          Lungs          Heart          Brain        Muscles        Adipose 
 #&gt;              0              0              0              0              0 
 #&gt;           Skin         Spleen       Pancreas          Liver        Stomach 
@@ -409,7 +410,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 #&gt;              0              0              0              0              0 
 #&gt;   Rest_of_Body 
 #&gt;              0 
-#&gt; -- Compartments: --------------------------------------------------------------- 
+#&gt; -- Compartments: ---------------------------------------------------------------
 #&gt;            cmt=1            cmt=2            cmt=3            cmt=4 
 #&gt;          &quot;Lungs&quot;          &quot;Heart&quot;          &quot;Brain&quot;        &quot;Muscles&quot; 
 #&gt;            cmt=5            cmt=6            cmt=7            cmt=8 
@@ -426,7 +427,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 #&gt; [28] &quot;VSK&quot;   &quot;VSP&quot;   &quot;VPA&quot;   &quot;VLI&quot;   &quot;VST&quot;   &quot;VGU&quot;   &quot;VBO&quot;   &quot;VKI&quot;   &quot;VAB&quot;  
 #&gt; [37] &quot;VVB&quot;   &quot;VRB&quot;   &quot;fub&quot;   &quot;KbLU&quot;  &quot;KbHT&quot;  &quot;KbSK&quot;  &quot;KbSP&quot;  &quot;KbPA&quot;  &quot;KbLI&quot; 
 #&gt; [46] &quot;KbST&quot;  &quot;KbGU&quot;  &quot;KbKI&quot;  &quot;S15&quot;   &quot;C15&quot;  
-#&gt; ______________________________ RxODE Model Syntax ______________________________ 
+#&gt; ______________________________ RxODE Model Syntax ______________________________
 #&gt; RxODE({
 #&gt;     KbBR = exp(lKbBR)
 #&gt;     KbMU = exp(lKbMU)
@@ -594,7 +595,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb4-83" data-line-number="83">})</a></code></pre></div>
 <p>You can see this change in the simple printout</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">pbpk2</a></code></pre></div>
-<pre><code>#&gt; RxODE 0.9.0-9 model named rx_e19e96555231e7f6270ab98931c95238 model (ready). 
+<pre><code>#&gt; RxODE 0.9.1-1 model named rx_831205f1ebfc0a906375fbfaf626a97d model (ready). 
 #&gt; x$state: Venous_Blood, Skin, Lungs, Heart, Brain, Muscles, Adipose, Spleen, Pancreas, Liver, Stomach, Gut, Bones, Kidneys, Arterial_Blood, Rest_of_Body
 #&gt; x$params: lKbBR, lKbMU, lKbAD, lCLint, eta.LClint, lKbBO, lKbRB, WT, BP, fup
 #&gt; x$lhs: KbBR, KbMU, KbAD, CLint, KbBO, KbRB, CO, QHT, QBR, QMU, QAD, QSK, QSP, QPA, QLI, QST, QGU, QHA, QBO, QKI, QRB, QLU, VLU, VHT, VBR, VMU, VAD, VSK, VSP, VPA, VLI, VST, VGU, VBO, VKI, VAB, VVB, VRB, fub, KbLU, KbHT, KbSK, KbSP, KbPA, KbLI, KbST, KbGU, KbKI, S15, C15</code></pre>
@@ -611,7 +612,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb7-5" data-line-number="5">    <span class="kw">cmt</span>(eff);</a>
 <a class="sourceLine" id="cb7-6" data-line-number="6">})</a>
 <a class="sourceLine" id="cb7-7" data-line-number="7"><span class="kw">print</span>(ode<span class="fl">.1</span>c.ka)</a></code></pre></div>
-<pre><code>#&gt; RxODE 0.9.0-9 model named rx_028ccd175b0367647e5a11eaaf760aba model (ready). 
+<pre><code>#&gt; RxODE 0.9.1-1 model named rx_11c03c7bb18227b89df0a04fcf50089c model (ready). 
 #&gt; $state: depot, center
 #&gt; $stateExtra: eff
 #&gt; $params: V, KA, CL
@@ -628,6 +629,9 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
   Evaluation error: Compartment 'eff' needs differential equations defined.</code></pre>
 </div>
 
+
+
+<!-- code folding -->
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
