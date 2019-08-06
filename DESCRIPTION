@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 0.9.1-2
+Version: 0.9.1-3
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -61,7 +61,7 @@ LinkingTo: dparser(>= 0.1.8), Rcpp (>= 0.12.3), RcppArmadillo(>=
         0.9.300.2.0), PreciseSums (>= 0.3)
 Encoding: UTF-8
 LazyData: true
-Packaged: 2019-07-31 22:06:24 UTC; annie
+Packaged: 2019-08-06 12:03:53 UTC; annie
 Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -82,4 +82,4 @@ Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   R core team [cph],
   odepack authors [cph]
 Repository: CRAN
-Date/Publication: 2019-08-01 12:50:07 UTC
+Date/Publication: 2019-08-06 15:20:05 UTC
