@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 0.9.1-3
+Version: 0.9.1-4
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -35,9 +35,8 @@ Suggests: knitr, DT, nlme, shiny, tcltk, testthat, usethis, devtools,
         reticulate, rlang, installr
 Imports: Matrix, PreciseSums (>= 0.3), Rcpp (>= 0.12.3), brew, cli,
         crayon, digest, dparser (>= 0.1.8), ggforce, ggplot2, inline,
-        magrittr, memoise, methods, mvnfast, n1qn1 (>= 6.0.1-2),
-        pillar, rex, sys, units(>= 0.6-0), utils, assertthat, lotri,
-        remotes
+        magrittr, memoise, methods, mvnfast, pillar, rex, sys, units(>=
+        0.6-0), utils, assertthat, lotri, remotes
 Description: Facilities for running simulations from ordinary
     differential equation (ODE) models, such as pharmacometrics and other
     compartmental models.  A compilation manager translates the ODE model
@@ -61,7 +60,7 @@ LinkingTo: dparser(>= 0.1.8), Rcpp (>= 0.12.3), RcppArmadillo(>=
         0.9.300.2.0), PreciseSums (>= 0.3)
 Encoding: UTF-8
 LazyData: true
-Packaged: 2019-08-06 12:03:53 UTC; annie
+Packaged: 2019-08-28 11:43:05 UTC; annie
 Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -82,4 +81,4 @@ Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   R core team [cph],
   odepack authors [cph]
 Repository: CRAN
-Date/Publication: 2019-08-06 15:20:05 UTC
+Date/Publication: 2019-08-29 04:40:12 UTC

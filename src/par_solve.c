@@ -387,6 +387,8 @@ void F77_NAME(dlsoda)(
                       int *);
 
 extern rx_solve *getRxSolve_(){
+  if (set_solve == NULL)
+    error("RxODE model function pointers are not setup.");
   set_solve(&rx_global);
   return &rx_global;
 }
@@ -815,6 +817,18 @@ int handle_evid(int evid, int neq,
 	    ind->err += 4194304;
 	  }
 	}
+	break;
+      case 4: // replace
+	ind->on[cmt] = 1;
+	ind->podo = 0;
+	ind->tlast = xout;
+	yp[cmt] = AMT(id, cmt, dose[ind->ixds], xout);     //dosing before obs
+	break;
+      case 5: //multiply
+	ind->on[cmt] = 1;
+	ind->podo = 0;
+	ind->tlast = xout;
+	yp[cmt] *= AMT(id, cmt, dose[ind->ixds], xout);     //dosing before obs
 	break;
       case 0:
 	if (do_transit_abs) {
@@ -1870,21 +1884,29 @@ void ind_solve(rx_solve *rx, unsigned int cid,
       ind_dop(rx, cid, c_dydt, u_inis);
       break;
     }
+  } else {
+    assignFuns();
   }
 }
 
 inline void par_solve(rx_solve *rx){
   rx_solving_options *op = &op_global;
   if (op->neq != 0){
-    if (op->stiff == 2){
+    switch(op->stiff){
+    case 2:
       par_liblsoda(rx);
-    } else if (op->stiff == 1){
+      break;
+    case 1:
       // lsoda
       par_lsoda(rx);
-    } else if (op->stiff == 0){
+      break;
+    case 0:
       // dop
       par_dop(rx);
+      break;
     }
+  } else {
+    assignFuns();
   }
 }
 
@@ -2205,7 +2227,13 @@ extern SEXP RxODE_df(int doDose0, int doTBS){
 		  dfi[ii] = -2; // evid
 		} else {
 		  if (curAmt > 0) {
-		    dfi[ii] = 1; // evid
+		    if (whI == 4){
+		      dfi[ii] = 5;
+		    } else if (whI == 5){
+		      dfi[ii] = 6;
+		    } else {
+		      dfi[ii] = 1; // evid
+		    }
 		  } else {
 		    if (whI == 1){
 		      dullRate=0;
@@ -2213,6 +2241,10 @@ extern SEXP RxODE_df(int doDose0, int doTBS){
 		    } else if (whI == 2) {
 		      dullDur=0;
 		      dfi[ii] = -20; // evid
+		    } else if (whI == 4){
+		      dfi[ii] = 5;
+		    } else if (whI == 5){
+		      dfi[ii] = 6;
 		    } else {
 		      dfi[ii] = 1;
 		    }
@@ -2547,7 +2579,7 @@ extern SEXP RxODE_df(int doDose0, int doTBS){
     SET_STRING_ELT(sexp_colnames,jj, STRING_ELT(ikeepNames, i));
     jj++;
   }
-  SEXP fkeepNames = PROTECT(get_ikeepn()); pro++;
+  SEXP fkeepNames = PROTECT(get_fkeepn()); pro++;
   for (i = 0; i < nkeep; i++){
     SET_STRING_ELT(sexp_colnames,jj, STRING_ELT(fkeepNames, i));
     jj++;

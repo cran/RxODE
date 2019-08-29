@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2019-08-06" />
+<meta name="date" content="2019-08-28" />
 
 <title>RxODE Events</title>
 
@@ -301,7 +301,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">RxODE Events</h1>
-<h4 class="date">2019-08-06</h4>
+<h4 class="date">2019-08-28</h4>
 
 
 
@@ -321,13 +321,18 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <li>Similarly, when specifying <code>rate</code>/<code>amt</code> for an infusion, the bioavailability will change the infusion duration since <code>rate</code>/<code>amt</code> are fixed in the input data.</li>
 </ul></li>
 <li>Some infrequent NONMEM columns are not supported: <code>pcmt</code>, <code>call</code>.</li>
+<li>Additional events are supported:
+<ul>
+<li><code>evid=5</code> or replace event; This replaces the value of a compartment with the value specified in the <code>amt</code> column. This is equivalent to <code>deSolve</code>=<code>replace</code>.</li>
+<li><code>evid=6</code> or multiply event; This multiplies the value in the compartment with the value specified by the <code>amt</code> column. This is equivalent to <code>deSolve</code>=<code>multiply</code>.</li>
+</ul></li>
 </ul>
 <p>Here are the legal entries to a data table:</p>
 <table>
 <colgroup>
-<col width="10%"></col>
-<col width="22%"></col>
-<col width="66%"></col>
+<col width="9%"></col>
+<col width="20%"></col>
+<col width="69%"></col>
 </colgroup>
 <thead>
 <tr class="header">
@@ -370,7 +375,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <tr class="odd">
 <td>evid</td>
 <td>event ID</td>
-<td>0=Observation; 1=Dose; 2=Other; 3=Reset; 4=Reset+Dose</td>
+<td>0=Observation; 1=Dose; 2=Other; 3=Reset; 4=Reset+Dose; 5=Replace; 6=Multiply</td>
 </tr>
 <tr class="even">
 <td>cmt</td>
@@ -399,6 +404,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <li>The <code>evid</code> can be the classic RxODE (described at the end of this document) or the NONMEM-style evid described above.</li>
 <li>NONMEM’s <code>DV</code> is not required; RxODE is a ODE solving framework.</li>
 <li>NONMEM’s <code>MDV</code> is not required, since it is captured in <code>EVID</code></li>
+<li>Instead of NONMEM-compatible data, it can accept <code>deSolve</code> compatible data-frames</li>
 </ul>
 <p>When returning the RxODE solved data-set there are a few additional event ids (EVID):</p>
 <ul>
@@ -1149,7 +1155,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <thead>
 <tr class="header">
 <th>100+ cmt</th>
-<th>Infusion Flag</th>
+<th>Infusion/Event Flag</th>
 <th>&lt;99 Cmt</th>
 <th>SS flag &amp; Turning of Compartment</th>
 </tr>
@@ -1197,10 +1203,22 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <td></td>
 <td></td>
 </tr>
+<tr class="even">
+<td></td>
+<td>4 = replace event</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>5 = multiply event</td>
+<td></td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <p>The classic EVID concatenate the numbers in the above table, so an infusion would to compartment 1 would be <code>10101</code> and an infusion to compartment 199 would be <code>119901</code>.</p>
-<p>EVID = 0 (observations), EVID=2 (other type event) and EVID=3 are all supported. EVID 10-99 represents modeled time interventions, similar to NONMEM’s MTIME. This along with amount (amt) and time columns specify the events in the ODE system.</p>
+<p>EVID = 0 (observations), EVID=2 (other type event) and EVID=3 are all supported. Internally an EVID=9 is a non-observation event and makes sure the system is initialized to zero; EVID=9 should not be manually set. EVID 10-99 represents modeled time interventions, similar to NONMEM’s MTIME. This along with amount (amt) and time columns specify the events in the ODE system.</p>
 <p>For infusions specified with EVIDs &gt; 100 the amt column represents the rate value.</p>
 <p>For Infusion flags 1 and 2 <code>+amt</code> turn on the infusion to a specific compartment <code>-amt</code> turn off the infusion to a specific compartment. To specify a dose/duration you place the dosing records at the time the duration starts or stops.</p>
 <p>For modeled rate/duration infusion flags the on infusion flag must be followed by an off infusion record.</p>
