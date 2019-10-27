@@ -29,6 +29,12 @@ typedef double (*t_DUR)(int _cSub,  int _cmt, double _amt, double t);
 
 typedef void (*t_calc_mtime)(int cSub, double *mtime);
 
+typedef struct sbuf {
+  char *s;        /* curr print buffer */
+  int sN;
+  int o;                        /* offset of print buffer */
+} sbuf;
+
 typedef struct {
   // These options should not change based on an individual solve
   int badSolve;
@@ -60,6 +66,8 @@ typedef struct {
   double hmax2; // Determined by diff
   double *rtol2;
   double *atol2;
+  double *ssRtol;
+  double *ssAtol;
   int nDisplayProgress;
   int ncoresRV;
   int isChol;
@@ -68,9 +76,11 @@ typedef struct {
   int abort;
   int minSS;
   int maxSS;
-  double atolSS;
-  double rtolSS;
   int linLog;
+  int strictSS;
+  double infSSstep;
+  int mxhnil;
+  double hmxi;
 } rx_solving_options;
 
 
@@ -90,6 +100,8 @@ typedef struct {
   double *solve;
   double *mtime;
   double *solveSave;
+  double *solveLast;
+  double *solveLast2;
   double *lhs;
   int  *evid;
   int *rc;
@@ -155,6 +167,7 @@ typedef double *(*t_get_theta)(double *theta);
 typedef void *(*t_assignFuns)();
 
 rx_solve *getRxSolve_();
+rx_solve *getRxSolve2_();
 rx_solve *getRxSolve(SEXP ptr);
 
 void par_solve(rx_solve *rx);

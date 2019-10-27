@@ -1,4 +1,4 @@
-set.seed(42)
+rxPermissive({set.seed(42)
 for (d in seq(1, ifelse(identical(Sys.getenv("RxODE_VALIDATION_FULL"), "true"), 4, rxSymInvCholN()))){
     if (identical(Sys.getenv("RxODE_VALIDATION_FULL"), "true")){
         dgs <- c("log", "identity")
@@ -7,8 +7,6 @@ for (d in seq(1, ifelse(identical(Sys.getenv("RxODE_VALIDATION_FULL"), "true"), 
     }
     for (dg in dgs){
         test_that("omega chol", {
-            skip_on_os("solaris")
-            skip_on_os("windows")
             context(sprintf("Omega Cholesky %sx%s, %s", d, d, dg));
             ## Creating covariance matrix
             tmp <- matrix(rnorm(d^2), d, d)
@@ -40,4 +38,4 @@ for (d in seq(1, ifelse(identical(Sys.getenv("RxODE_VALIDATION_FULL"), "true"), 
     })
 
 
-}
+}}, cran=FALSE)

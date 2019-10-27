@@ -4,7 +4,7 @@
 ##' This excludes network drives.  See
 ##' \url{https://www.forensicmag.com/article/2012/06/windows-7-registry-forensics-part-5}
 ##'
-##' @param duplicates Return drives with duplicate entires in
+##' @param duplicates Return drives with duplicate entries in
 ##'     \code{SYSTEM\\MountedDevices}; These are likely removable media.  By default this is \code{FALSE}
 ##' @return Drives with letters
 ##' @author Matthew L. Fidler
@@ -119,7 +119,7 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
 })
 
 .rxRtoolsBaseWin <- memoise::memoise(function(retry=FALSE){
-    if (.Platform$OS.type == "unix"){
+    if (.Platform$OS.type == "unix" || getOption("RxODE.rtools.setup", FALSE)){
         return("");
     } else {
         for (.i in rxPhysicalDrives()){
@@ -197,6 +197,9 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
                         return(.rtools)
                     } else {
                         if (is.na(retry)) return(FALSE)
+                        if (file.exists(file.path(Sys.getenv("BINPREF"), "gcc"))){
+                            return(NULL)
+                        }
                         if (retry){
                             stop("This package requires Rtools!\nPlease download from http://cran.r-project.org/bin/windows/Rtools/,\ninstall and restart your R session before proceeding.")
                         }
@@ -222,7 +225,7 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
 .rxWinRtoolsPath <- function(rm.rtools=TRUE, rm.python=TRUE, retry=FALSE){
     ## Note that devtools seems to assume that rtools/bin is setup
     ## appropriately, and figures out the c compiler from there.
-    if (.Platform$OS.type == "unix"){
+    if (.Platform$OS.type == "unix" || getOption("RxODE.rtools.setup", FALSE)){
         return(TRUE)
     } else {
         .path <- unique(sapply(sub(rex::rex('"', end), "", sub(rex::rex(start, '"'), "",
@@ -249,9 +252,10 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
         ## Look in the registry...
         ## This is taken from devtools and adapted.
         .rtoolsBase <- .rxRtoolsBaseWin(retry=retry);
+        if (is.null(.rtoolsBase)) return("");
         .x <- file.path(.rtoolsBase, ifelse(.Platform$r_arch == "i386","mingw_32/bin", "mingw_64/bin"));
         if (file.exists(.x)){
-            Sys.setenv(BINPREF=gsub("([^/])$", "\\1/", gsub("\\\\", "/", .normalizePath(.x))));
+            Sys.setenv(rxBINPREF=gsub("([^/])$", "\\1/", gsub("\\\\", "/", .normalizePath(.x))));
         }
         .exists <- try(file.exists(.rtoolsBase), silent=TRUE);
         if (inherits(.exists, "try-error")) .exists <- FALSE
@@ -316,7 +320,7 @@ rxPhysicalDrives <- memoise::memoise(function(duplicates=FALSE){
                     }
                 }
             }
-            ## Last Cran check for Rtools is qpdf
+            ## Last CRAN check for Rtools is qpdf
             .qpdf <- c(paste0(.rtoolsBase, "/qpdf/bin"), paste0(rxPhysicalDrives(), "/qpdf/bin"))
             for (.p in .qpdf){
                 if (file.exists(.p)){

@@ -22,7 +22,7 @@ rxSymPySetupPred(obj, predfn, pkpars = NULL, errfn = NULL,
 
 \item{init}{Initialization parameters for scaling.}
 
-\item{grad}{Boolaen indicated if the the equations for the
+\item{grad}{Boolean indicated if the the equations for the
 gradient be calculated}
 
 \item{sum.prod}{A boolean determining if RxODE should use more
@@ -50,8 +50,8 @@ evaluation.}
 \item{run.internal}{Boolean to see if the function should be run
 internally.}
 
-\item{interaction}{Boolean to determine if dR^2/deta is calculated
-for FOCEi (not needed for FOCE)}
+\item{interaction}{Boolean to determine if \code{dR^2/deta} is
+calculated for FOCEi (not needed for FOCE)}
 }
 \value{
 RxODE object expanded with predfn and with calculated
