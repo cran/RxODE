@@ -17,7 +17,7 @@ rxControl <- function(scale = NULL,
                       omega = NULL, omegaDf = NULL, omegaIsChol = FALSE,
                       omegaLower=-Inf, omegaUpper=Inf,
                       nSub = 1L, thetaMat = NULL, thetaDf = NULL, thetaIsChol = FALSE,
-                      nStud = 1L, dfSub=0.0, dfObs=0.0, returnType=c("rxSolve", "matrix", "data.frame", "data.frame.TBS"),
+                      nStud = 1L, dfSub=0.0, dfObs=0.0, returnType=c("rxSolve", "matrix", "data.frame", "data.frame.TBS", "data.table", "tbl", "tibble"),
                       seed=NULL, nsim=NULL,
                       minSS=10L, maxSS=1000L,
                       infSSstep=12,
@@ -37,7 +37,8 @@ rxControl <- function(scale = NULL,
                       mxhnil=0,
                       hmxi=0.0,
                       warnIdSort=TRUE,
-                      ssAtol = 1.0e-8, ssRtol = 1.0e-6){
+                      ssAtol = 1.0e-8, ssRtol = 1.0e-6,
+                      safeZero=TRUE){
     .xtra <- list(...);
     if (is.null(transitAbs) && !is.null(.xtra$transit_abs)){
         transitAbs <- .xtra$transit_abs;
@@ -81,7 +82,8 @@ rxControl <- function(scale = NULL,
             method <- match.arg(method);
         }
     }
-    .matrixIdx <- c("rxSolve"=0, "matrix"=1, "data.frame"=2, "data.frame.TBS"=3);
+    .matrixIdx <- c("rxSolve"=0, "matrix"=1, "data.frame"=2, "data.frame.TBS"=3, "data.table"=4,
+                    "tbl"=5, "tibble"=5);
     if (!missing(returnType)){
         matrix <- .matrixIdx[match.arg(returnType)];
     } else if (!is.null(.xtra$return.type)){
@@ -171,7 +173,7 @@ rxControl <- function(scale = NULL,
                  thetaLower=thetaLower, thetaUpper=thetaUpper,
                  idFactor=idFactor,
                  mxhnil=mxhnil, hmxi=hmxi, warnIdSort=warnIdSort,
-                 ssAtol=ssAtol, ssRtol = ssRtol);
+                 ssAtol=ssAtol, ssRtol = ssRtol, safeZero=as.integer(safeZero));
     return(.ret)
 }
 
@@ -372,9 +374,12 @@ rxControl <- function(scale = NULL,
 ##'      update the data frame.  This is the currently standard solving
 ##'      method in RxODE,  is used for \code{rxSolve(object, ...)}, \code{solve(object,...)},
 ##' \item \code{"data.frame"} -- returns a plain, non-reactive data
-##'      frame; Currently very slightly Faster than \code{returnType="matrix"}
+##'      frame; Currently very slightly faster than \code{returnType="matrix"}
 ##' \item \code{"matrix"} -- returns a plain matrix with column names attached
 ##'     to the solved object.  This is what is used \code{object$run} as well as \code{object$solve}
+##' \item \code{"data.table"} -- returns a \code{data.table}; The \code{data.table} is
+##'     created by reference (ie \code{setDt()}), which should be fast.
+##' \item \code{"tbl"} or \code{"tibble"} returns a tibble format.
 ##' }
 ##'
 ##' @param seed an object specifying if and how the random number
@@ -500,6 +505,9 @@ rxControl <- function(scale = NULL,
 ##' @param warnIdSort Warn if the ID is not present and RxODE assumes
 ##'     the order of the parameters/iCov are the same as the order of
 ##'     the parameters in the input dataset.
+##'
+##' @param safeZero Use safe zero divide and log routines.  By default
+##'     this is turned on but you may turn it off if you wish.
 ##'
 ##' @return An \dQuote{rxSolve} solve object that stores the solved
 ##'     value in a matrix with as many rows as there are sampled time
@@ -720,6 +728,11 @@ rxSolve.default <- function(object, params=NULL, events=NULL, inits = NULL, ...)
     .ctl$keepF <- .keepF
     .ret <- rxSolve_(object, .ctl, .nms, .xtra,
                      params, events, inits,setupOnly=.setupOnly);
+    if (.ctl$matrix == 4L){
+        data.table::setDT(.ret);
+    } else if (.ctl$matrix == 5L){
+        .ret <- tibble::as_tibble(.ret);
+    }
     return(.ret)
 }
 

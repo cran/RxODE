@@ -551,7 +551,9 @@ RxODE <- function(model, modName = basename(wd),
     class(.env) <- "RxODE"
     reg.finalizer(.env, eval(bquote(function(...){
                             RxODE::rxUnlock(.(.env));
-                            rxUnloadAll();
+                            if (getOption("RxODE.unload.unused", FALSE)){
+                                rxUnloadAll();
+                            }
                         })));
     RxODE::rxForget();
     if (!is.null(.env$package)){
@@ -1457,7 +1459,8 @@ rxCompile.rxModelVars <-  function(model, # Model
                       .trans["parsed_md5"], paste(.rxTimeId(.trans["parsed_md5"])), .fixInis)
                 }
                 .defs <- ""
-                .ret <- sprintf("#RxODE Makevars\nPKG_CFLAGS=-O3 %s -I\"%s\"\nPKG_LIBS=$(BLAS_LIBS) $(LAPACK_LIBS) $(FLIBS)\n",
+                .ret <- sprintf("#RxODE Makevars\nPKG_CFLAGS=-O%s %s -I\"%s\"\nPKG_LIBS=$(BLAS_LIBS) $(LAPACK_LIBS) $(FLIBS)\n",
+                                getOption("RxODE.compile.O", "2"),
                                 .defs, .normalizePath(system.file("include", package="RxODE")));
                 ## .ret <- paste(.ret, "-g");
                 sink(.Makevars);

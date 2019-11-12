@@ -21,91 +21,106 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#define RSprintf(fmt,...) if (_setSilentErr == 0) REprintf(fmt,__VA_ARGS__);
-#define RSprintf0(fmt) if (_setSilentErr == 0) REprintf(fmt);
 int _setSilentErr=0;
 void setSilentErr(int silent){
   _setSilentErr = silent;
 }
-
 extern int getSilentErr(){return _setSilentErr;}
+
+int _isRstudio = 0;
+
+static inline void RSprintf(const char *format, ...){
+  if (_setSilentErr == 0) {
+    if(_isRstudio){
+      va_list args;
+      va_start(args, format);
+      REvprintf(format, args);
+      va_end(args);
+    } else{
+      va_list args;
+      va_start(args, format);
+      Rvprintf(format, args);
+      va_end(args);
+    } 
+  }
+}
 
 void printErr(int err, int id){
   RSprintf("Recovered solving errors for internal ID %d (%d):\n", id+1, err);
   if (err & 1){
-    RSprintf0("  Corrupted event table during sort (1)\n");
+    RSprintf("  Corrupted event table during sort (1)\n");
   }
   if (err & 2){
-    RSprintf0("  Rate is zero/negative\n");
+    RSprintf("  Rate is zero/negative\n");
   }
   if (err & 4){
-    RSprintf0("  Modeled rate requested in event table, but not in model; use 'rate(cmt) ='\n");
+    RSprintf("  Modeled rate requested in event table, but not in model; use 'rate(cmt) ='\n");
   }
   if (err & 4){
-    RSprintf0("  Modeled rate requested in event table, but not in model; use 'rate(cmt) ='\n");
+    RSprintf("  Modeled rate requested in event table, but not in model; use 'rate(cmt) ='\n");
   }
   if (err & 8){
-    RSprintf0("  Corrupted event table during sort (2)\n");
+    RSprintf("  Corrupted event table during sort (2)\n");
   }
   if (err & 16){
-    RSprintf0("  Duration is zero/negative\n");
+    RSprintf("  Duration is zero/negative\n");
   }
   if (err & 32){
-    RSprintf0("  Modeled duration requested in event table, but not in model; use 'dur(cmt) ='\n");
+    RSprintf("  Modeled duration requested in event table, but not in model; use 'dur(cmt) ='\n");
   }
   if (err & 64){
-    RSprintf0("  Data error 686\n");
+    RSprintf("  Data error 686\n");
   }
   if (err & 128){
-    RSprintf0("  Data Error -6\n");
+    RSprintf("  Data Error -6\n");
   }
   if (err & 256){
-    RSprintf0("  Data Error 8\n");
+    RSprintf("  Data Error 8\n");
   }
   if (err & 512){
-    RSprintf0("  Data error 886\n");
+    RSprintf("  Data error 886\n");
   }
   if (err & 1024){
-    RSprintf0("  Data error 797\n");
+    RSprintf("  Data error 797\n");
   }
   if (err & 2048){
-    RSprintf0("  Data Error -7\n");
+    RSprintf("  Data Error -7\n");
   }
   if (err & 4096){
-    RSprintf0("  Data Error 9\n");
+    RSprintf("  Data Error 9\n");
   }
   if (err & 8192){
-    RSprintf0("  Data error 997\n");
+    RSprintf("  Data error 997\n");
   }
   if (err & 16384){
-    RSprintf0("  Corrupted event table during sort (1)\n");
+    RSprintf("  Corrupted event table during sort (1)\n");
   }
   if (err & 32768){
-    RSprintf0("  Corrupted event table\n");
+    RSprintf("  Corrupted event table\n");
   }
   if (err & 131072){
-    RSprintf0("  Corrupted events\n");
+    RSprintf("  Corrupted events\n");
   }
   if (err & 65536){
-    RSprintf0("  Supplied an invalid EVID\n");
+    RSprintf("  Supplied an invalid EVID\n");
   }
   if (err & 262144){
-    RSprintf0("  Corrupted event table\n");
+    RSprintf("  Corrupted event table\n");
   }
   if (err & 524288){
-    RSprintf0("  The event table has been corrupted\n");
+    RSprintf("  The event table has been corrupted\n");
   }
   if (err & 1048576){
-    RSprintf0("  SS=2 & Modeled F does not work\n");
+    RSprintf("  SS=2 & Modeled F does not work\n");
   }
   if (err & 2097152){
-    RSprintf0("  SS=2 & Modeled F does not work\n");
+    RSprintf("  SS=2 & Modeled F does not work\n");
   }
   if (err & 4194304){
-    RSprintf0("  SS=2 & Modeled F does not work\n");
+    RSprintf("  SS=2 & Modeled F does not work\n");
   }
   if (err & 8388608){
-    RSprintf0(" Rate is zero/negative\n");
+    RSprintf(" Rate is zero/negative\n");
   }
   
 }
@@ -126,139 +141,123 @@ void par_flush_console() {
 int isRstudio();
 int isProgSupported();
 int par_progress_0=0;
+int par_progress_1=0;
+double par_progress__=1.0;
+SEXP _rxParProgress(SEXP num){
+  par_progress__=REAL(num)[0];
+  return R_NilValue;
+}
+clock_t _lastT0;
 int par_progress(int c, int n, int d, int cores, clock_t t0, int stop){
-  float progress = (float)(c)/((float)(n));
-  if (progress < 0.) progress = 0.;
-  if (progress > 1.) progress = 1.;
-  if (progress == 0.) par_progress_0=0;
-  if (c <= n){
-    int nticks= (int)(progress * 50);
-    int curTicks = d;
-    if (nticks < 0) nticks=0;
-    if (nticks > 50) nticks=50;
-    if (curTicks < 0) curTicks=0;
-    if (curTicks > 50) curTicks=50;
-    int isSupported = isProgSupported();
-    if (isSupported == -1){
-    } else if (isSupported == 0){
-      int i;
-      for (i = curTicks; i < nticks; i++){
-	if (i == 0) {
-	  Rprintf("[");
-	} else if (i % 5 == 0) {
-	  Rprintf("|");
-	} else {
-	  Rprintf("=");
-	}
+  if (par_progress__ > 0.0){
+    float progress =0.0;
+    progress = (float)(c);
+    progress /=((float)(n));
+    if (progress < 0.) progress = 0.;
+    if (progress > 1.) progress = 1.;
+    if (progress == 0.) {
+      par_progress_0=0;
+      par_progress_1=0;
+    }
+    if (c <= n && ((!par_progress_1 && progress == 1.0) ||
+		   ((double)(clock() - _lastT0))/CLOCKS_PER_SEC > par_progress__)){
+      if (progress == 1.0){
+	par_progress_1=1;
       }
-      if (nticks == 50){
+      int nticks= (int)(progress * 50);
+      int curTicks = d;
+      if (nticks < 0) nticks=0;
+      if (nticks > 50) nticks=50;
+      if (curTicks < 0) curTicks=0;
+      if (curTicks > 50) curTicks=50;
+      int isSupported = isProgSupported();
+      if (_isRstudio) isSupported = 0;
+      if (isSupported == -1){
+      } else if (isSupported == 0){
+	int i;
+	for (i = curTicks; i < nticks; i++){
+	  if (i == 0) {
+	    RSprintf("[");
+	  } else if (i % 5 == 0) {
+	    RSprintf("|");
+	  } else {
+	    RSprintf("=");
+	  }
+	}
+	if (nticks == 50){
+	  if (!par_progress_0){
+	    par_progress_0 = 1;
+	    RSprintf("] ");
+	    _lastT0 = clock();
+	    clock_t t = _lastT0 - t0;
+	    double ts = ((double)t)/CLOCKS_PER_SEC;
+	    if (ts < 60){
+	      RSprintf("0:00:%02.f ", floor(ts));
+	    } else {
+	      double f = floor(ts/60);
+	      double s = ts-f*60;
+	      if (f >= 60){
+		double h = floor(f/60);
+		f = f-h*60;
+		RSprintf("%.0f:%02.f:%02.f ", h, f, floor(s));
+	      } else {
+		RSprintf("0:%02.f:%02.f ", f, floor(s));
+	      }
+	    }
+	    RSprintf("\n");
+	  }
+	}
+      } else {
 	if (!par_progress_0){
-	  par_progress_0 = 1;
-	  Rprintf("] ");
-	  clock_t t = clock() - t0;
+	  RSprintf("\r");
+	  int i;
+	  for (i = 0; i < nticks; i++){
+	    if (i == 0) {
+	      RSprintf("[");
+	    } else if (i % 5 == 0) {
+	      RSprintf("|");
+	    } else {
+	      RSprintf("=");
+	    }
+	  }
+	  if (nticks < 50) {
+	    RSprintf(">");
+	  }
+	  else {
+	    par_progress_0 = 1;
+	  }
+	  for (i = nticks+1; i < 50; i++){
+	    RSprintf("-");
+	  }
+	  RSprintf("] ");
+	  if (nticks < 50) RSprintf(" ");
+	  RSprintf("%02.f%%; ",100*progress,cores);
+	  _lastT0 = clock();
+	  clock_t t = _lastT0 - t0;
 	  double ts = ((double)t)/CLOCKS_PER_SEC;
 	  if (ts < 60){
-	    Rprintf("0:00:%02.f ", floor(ts));
+	    RSprintf("0:00:%02.f ", floor(ts));
 	  } else {
 	    double f = floor(ts/60);
 	    double s = ts-f*60;
 	    if (f >= 60){
 	      double h = floor(f/60);
 	      f = f-h*60;
-	      Rprintf("%.0f:%02.f:%02.f ", h, f, floor(s));
+	      RSprintf("%.0f:%02.f:%02.f ", h, f, floor(s));
 	    } else {
-	      Rprintf("0:%02.f:%02.f ", f, floor(s));
+	      RSprintf("0:%02.f:%02.f ", f, floor(s));
 	    }
 	  }
+	  if (stop){
+	    RSprintf("Stopped Calculation!\n");
+	  }
+	  par_flush_console();
 	}
       }
-    } else if (isRstudio()){
-      if (!par_progress_0){
-	Rprintf("\r");
-	int i;
-	for (i = 0; i < nticks; i++){
-	  if (i == 0) {
-	    Rprintf("[");
-	  } else if (i % 5 == 0) {
-	    Rprintf("|");
-	  } else {
-	    Rprintf("=");
-	  }
-	}
-	if (nticks < 50) {Rprintf(">");}
-	else {par_progress_0 = 1;}
-	for (i = nticks+1; i < 50; i++){
-	  Rprintf("-");
-	}
-	Rprintf("] ");
-	if (nticks < 50) Rprintf(" ");
-	Rprintf("%02.f%%; ",100*progress,cores);
-	clock_t t = clock() - t0;
-	double ts = ((double)t)/CLOCKS_PER_SEC;
-	if (ts < 60){
-	  Rprintf("0:00:%02.f ", floor(ts));
-	} else {
-	  double f = floor(ts/60);
-	  double s = ts-f*60;
-	  if (f >= 60){
-	    double h = floor(f/60);
-	    f = f-h*60;
-	    Rprintf("%.0f:%02.f:%02.f ", h, f, floor(s));
-	  } else {
-	    Rprintf("0:%02.f:%02.f ", f, floor(s));
-	  }
-	}
-	if (stop){
-	  Rprintf("Stopped Calculation!\n");
-	}
-      }
-    } else {
-      if (!par_progress_0){
-	RSprintf0("\r");
-	int i;
-	for (i = 0; i < nticks; i++){
-	  if (i == 0) {
-	    RSprintf0("%%[");
-	  } else if (i % 5 == 0) {
-	    RSprintf0("|");
-	  } else {
-	    RSprintf0("=");
-	  }
-	}
-	if (nticks < 50) { RSprintf0(">");}
-	else {par_progress_0 = 1;}
-	if (nticks + 1 < 50){
-	  for (i = nticks+1; i < 50; i++){
-	    RSprintf0("-");
-	  }
-	}
-	RSprintf0("] ");
-	if (nticks < 50) RSprintf0(" ");
-	RSprintf("%02.f%%; ",100*progress,cores);
-	clock_t t = clock() - t0;
-	double ts = ((double)t)/CLOCKS_PER_SEC;
-	if (ts < 60){
-	  RSprintf("0:00:%02.f ", floor(ts));
-	} else {
-	  double f = floor(ts/60);
-	  double s = ts-f*60;
-	  if (f >= 60){
-	    double h = floor(f/60);
-	    f = f-h*60;
-	    RSprintf("%.0f:%02.f:%02.f ", h, f, floor(s));
-	  } else {
-	    RSprintf("0:%02.f:%02.f", f, floor(s));
-	  }
-	}
-	if (stop){
-	  RSprintf0("Stopped Calculation!\n");
-	}
-      }
+      return nticks;
     }
-    par_flush_console();
-    return nticks;
   }
-  return d;
+  return d;  
 }
 
 typedef struct {
@@ -281,6 +280,7 @@ SEXP _rxTick(){
 }
 
 SEXP _rxProgress(SEXP num, SEXP core){
+  par_progress_1=0;
   rxt.t0 = clock();
   rxt.cores = INTEGER(core)[0];
   rxt.n = INTEGER(num)[0];
@@ -290,18 +290,18 @@ SEXP _rxProgress(SEXP num, SEXP core){
 }
 
 SEXP _rxProgressStop(SEXP clear){
-  par_progress_0=0;
   int clearB = INTEGER(clear)[0];
+  par_progress(rxt.n, rxt.n, rxt.d, rxt.cores, rxt.t0, 0);
+  par_progress_0=0;
   if (clearB){
     int doIt=isProgSupported();
     if (doIt == -1){
     } else if (isRstudio() || doIt==0){
       Rprintf("\n");
     } else {
-      RSprintf0("\r                                                                                 \r");
+      RSprintf("\r                                                                                 \r");
     }
   } else {
-    par_progress(rxt.n, rxt.n, rxt.d, rxt.cores, rxt.t0, 1);
     int doIt=isProgSupported();
     if (isRstudio() || doIt == 0){
       Rprintf("\n");
@@ -313,9 +313,9 @@ SEXP _rxProgressStop(SEXP clear){
 }
 
 SEXP _rxProgressAbort(SEXP str){
+  par_progress(rxt.n, rxt.n, rxt.d, rxt.cores, rxt.t0, 0);
   par_progress_0=0;
   if (rxt.d != rxt.n || rxt.cur != rxt.n){
-    par_progress(rxt.n, rxt.n, rxt.d, rxt.cores, rxt.t0, 0);
     error(CHAR(STRING_ELT(str,0)));
   }
   return R_NilValue;
@@ -1551,7 +1551,7 @@ extern void par_liblsoda(rx_solve *rx){
     } else if (isRstudio() || doIt == 0){
       Rprintf("\n");
     } else {
-      RSprintf0("\r                                                                                \r");
+      RSprintf("\r                                                                                \r");
     }
   }
 }
@@ -2016,7 +2016,7 @@ void par_dop(rx_solve *rx){
     } else if (isRstudio() || doIt == 0){
       Rprintf("\n");
     } else {
-      RSprintf0("\r                                                                                \r");
+      RSprintf("\r                                                                                \r");
     }
   }
 }
@@ -2026,6 +2026,13 @@ void ind_solve(rx_solve *rx, unsigned int cid,
 	       t_dydt_lsoda_dum dydt_lsoda, t_jdum_lsoda jdum,
 	       t_dydt c_dydt, t_update_inis u_inis,
 	       int jt){
+  par_progress_1=0;
+  _isRstudio = isRstudio();
+  rxt.t0 = clock();
+  rxt.cores = 1;
+  rxt.n = 100;
+  rxt.d = 0;
+  rxt.cur = 0;
   assignFuns();
   rx_solving_options *op = &op_global;
   if (op->neq !=  0){
@@ -2040,10 +2047,18 @@ void ind_solve(rx_solve *rx, unsigned int cid,
       ind_dop(rx, cid, c_dydt, u_inis);
       break;
     }
-  } 
+  }
+  par_progress_0=0;
 }
 
 inline void par_solve(rx_solve *rx){
+  _isRstudio = isRstudio();
+  par_progress_1=0;
+  rxt.t0 = clock();
+  rxt.cores = 1;
+  rxt.n = 100;
+  rxt.d = 0;
+  rxt.cur = 0;
   assignFuns();
   rx_solving_options *op = &op_global;
   if (op->neq != 0){
@@ -2060,7 +2075,8 @@ inline void par_solve(rx_solve *rx){
       par_dop(rx);
       break;
     }
-  } 
+  }
+  par_progress_0=0;
 }
 
 rx_solve *_globalRx = NULL;

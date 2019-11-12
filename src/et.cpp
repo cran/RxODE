@@ -10,6 +10,9 @@ using namespace Rcpp;
 bool rxIs(const RObject &obj, std::string cls);
 Environment RxODEenv();
 
+Function getForder();
+bool useForder();
+
 RObject evCur;
 RObject curSolve;
 
@@ -33,6 +36,8 @@ NumericVector setUnits(NumericVector obj, std::string unit){
 }
 
 extern "C" void getWh(int evid, int *wh, int *cmt, int *wh100, int *whI, int *wh0);
+
+extern bool useRadix();
 
 //[[Rcpp::export]]
 RObject etUpdate(RObject obj,
@@ -285,20 +290,39 @@ List etSort(List& curEt){
   IntegerVector curEvid = as<IntegerVector>(curEt["evid"]);
   std::copy(curEvid.begin(), curEvid.end(), std::back_inserter(evid));
   std::vector<int> idx(id.size());
-  std::iota(idx.begin(),idx.end(),0);
-  SORT(idx.begin(),idx.end(),
-       [id,time,evid](int a, int b){
-	 if (id[a] == id[b]){
-	   if (time[a] == time[b]){
-	     if (evid[a] == evid[b]){
-	       return a < b;
+  Environment b=Rcpp::Environment::base_namespace();
+  if (useRadix()){
+    IntegerVector ivId=wrap(id);
+    NumericVector nvTime=wrap(time);
+    IntegerVector ivEvid=wrap(evid);
+    Function order = getForder();
+    IntegerVector ord;
+    if (useForder()){
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL));
+    } else {
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL),
+		  _["method"]="radix");
+    }
+    ord = ord - 1;
+    idx = as<std::vector<int>>(ord);
+  } else {
+    std::iota(idx.begin(),idx.end(),0);
+    SORT(idx.begin(),idx.end(),
+	 [id,time,evid](int a, int b){
+	   if (id[a] == id[b]){
+	     if (time[a] == time[b]){
+	       if (evid[a] == evid[b]){
+		 return a < b;
+	       }
+	       return evid[a] < evid[b];
 	     }
-	     return evid[a] < evid[b];
+	     return time[a] < time[b];
 	   }
-	   return time[a] < time[b];
-	 }
-	 return id[a] < id[b];
-       });
+	   return id[a] < id[b];
+	 });
+  }
   List newEt(curEt.size());
   int i, j, newSize = time.size();
   IntegerVector tmpI, tmpI2;
@@ -402,7 +426,6 @@ List etAddWindow(List windowLst, IntegerVector IDs, RObject cmt, bool turnOnShow
   std::vector<int> evid;
   evid.reserve(size);
   std::copy(curEvid.begin(), curEvid.end(), std::back_inserter(evid));
-  std::iota(idx.begin(),idx.end(),0);
   double c = 0;
   CharacterVector cls = clone(as<CharacterVector>(curEt.attr("class")));
   List eOld = cls.attr(".RxODE.lst");
@@ -432,7 +455,25 @@ List etAddWindow(List windowLst, IntegerVector IDs, RObject cmt, bool turnOnShow
       nobs++;
     }
   }
-  SORT(idx.begin(),idx.end(),
+  if (useRadix()){
+    IntegerVector ivId=wrap(id);
+    NumericVector nvTime=wrap(time);
+    IntegerVector ivEvid=wrap(evid);
+    Function order = getForder();
+    IntegerVector ord;
+    if (useForder()){
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL));
+    } else {
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL),
+		  _["method"]="radix");
+    }
+    ord = ord - 1;
+    idx = as<std::vector<int>>(ord);
+  } else {
+    std::iota(idx.begin(),idx.end(),0);
+    SORT(idx.begin(),idx.end(),
        [id,time,evid](int a, int b){
 	 if (id[a] == id[b]){
 	   if (time[a] == time[b]){
@@ -445,6 +486,7 @@ List etAddWindow(List windowLst, IntegerVector IDs, RObject cmt, bool turnOnShow
 	 }
 	 return id[a] < id[b];
        });
+  }
   List lst(curEt.size());
   IntegerVector tmpI = as<IntegerVector>(curEt["id"]), tmpI2;
   NumericVector tmpN, tmpN2;
@@ -1035,7 +1077,7 @@ List etImportEventTable(List inData){
   int wh, cmtI, wh100, whI, wh0, ndose=0, nobs=0;
 
   CharacterVector units = CharacterVector::create(_["dosing"]=NA_STRING,
-						 _["time"]=NA_STRING);
+						  _["time"]=NA_STRING);
   List lst = etEmpty(units);
   CharacterVector cls = lst.attr("class");
   List e = cls.attr(".RxODE.lst");
@@ -1043,8 +1085,14 @@ List etImportEventTable(List inData){
   show["id"] = true;
   show["amt"] = true;
   std::vector<int> uIds;
+  int curevid;
   for (int i = 0; i < oldEvid.size(); i++){
-    if (oldEvid[i] == 0){
+    curevid = oldEvid[i];
+    // Handle missing evid
+    if (evidCol == -1 && methodCol == -1 && amtCol != -1){
+      if (oldAmt[i] != 0) curevid = 1;
+    }
+    if (curevid == 0){
       id.push_back(oldId[i]);
       if (std::find(uIds.begin(), uIds.end(), oldId[i]) == uIds.end()){
 	uIds.push_back(oldId[i]);
@@ -1081,7 +1129,7 @@ List etImportEventTable(List inData){
 	ss.push_back(NA_INTEGER);
 	nobs++;
       }
-    } else if (oldEvid[i] <= 6){
+    } else if (curevid <= 6){
       id.push_back(oldId[i]);
       if (std::find(uIds.begin(), uIds.end(), oldId[i]) == uIds.end()){
 	uIds.push_back(oldId[i]);
@@ -1094,9 +1142,9 @@ List etImportEventTable(List inData){
 	if (oldCmt[i] > 1) show["cmt"] = true;
       }
       amt.push_back(oldAmt[i]);
-      if (oldEvid[i] >= 5 && oldRate[i] != 0) stop("replacement/multiplication events cannot be combined with infusions");
+      if (curevid >= 5 && oldRate[i] != 0) stop("replacement/multiplication events cannot be combined with infusions");
       rate.push_back(oldRate[i]);
-      if (oldEvid[i] >= 5 && oldDur[i] != 0) stop("replacement/multiplication events cannot be combined with infusions");
+      if (curevid >= 5 && oldDur[i] != 0) stop("replacement/multiplication events cannot be combined with infusions");
       dur.push_back(oldDur[i]);
       if (oldRate[i] > 0) show["rate"] = true;
       if (oldDur[i] > 0) show["dur"] = true;
@@ -1104,14 +1152,14 @@ List etImportEventTable(List inData){
       if (oldIi[i] > 0) show["ii"] = true;
       addl.push_back(oldAddl[i]);
       if (oldAddl[i] > 0) show["addl"] = true;
-      evid.push_back(oldEvid[i]);
+      evid.push_back(curevid);
       ss.push_back(oldSs[i]);
       if (oldSs[i] > 0) show["ss"] = true;
       ndose++;
     } else {
       // Convert evid
       if (cmtC) stop("Old RxODE EVIDs are not supported with string compartments");
-      getWh(oldEvid[i], &wh, &cmtI, &wh100, &whI, &wh0);
+      getWh(curevid, &wh, &cmtI, &wh100, &whI, &wh0);
       cmtI++;
       if (cmtI != 1) show["cmt"] = true;
       if (oldIi[i] > 0) show["ii"] = true;
@@ -1180,7 +1228,7 @@ List etImportEventTable(List inData){
       case 1:
 	if (oldAmt[i] > 0){
 	  for (j = i; j < oldEvid.size(); j++){
-	    if (oldEvid[i] == oldEvid[j] && oldAmt[i] == -oldAmt[j]){
+	    if (curevid == oldEvid[j] && oldAmt[i] == -oldAmt[j]){
 	      double durC = oldTime[j] - oldTime[i];
 	      id.push_back(oldId[i]);
 	      if (std::find(uIds.begin(), uIds.end(), oldId[i]) == uIds.end()){
@@ -1404,21 +1452,38 @@ List etExpandAddl(List curEt){
     }
   }
   std::vector<int> idx(time.size());
-  std::iota(idx.begin(),idx.end(),0);
-  SORT(idx.begin(),idx.end(),
-       [id,time,evid](int a, int b){
-	 if (id[a] == id[b]){
-	   if (time[a] == time[b]){
-	     if (evid[a] == evid[b]){
-	       return a < b;
+  if (useRadix()){
+    IntegerVector ivId=wrap(id);
+    NumericVector nvTime=wrap(time);
+    IntegerVector ivEvid=wrap(evid);
+    Function order = getForder();
+    IntegerVector ord;
+    if (useForder()){
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL));
+    } else {
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL),
+		  _["method"]="radix");
+    }
+    ord = ord - 1;
+    idx = as<std::vector<int>>(ord);
+  } else {
+    std::iota(idx.begin(),idx.end(),0);
+    SORT(idx.begin(),idx.end(),
+	 [id,time,evid](int a, int b){
+	   if (id[a] == id[b]){
+	     if (time[a] == time[b]){
+	       if (evid[a] == evid[b]){
+		 return a < b;
+	       }
+	       return evid[a] < evid[b];
 	     }
-	     return evid[a] < evid[b];
+	     return time[a] < time[b];
 	   }
-	   return time[a] < time[b];
-	 }
-	 return id[a] < id[b];
-       });
-
+	   return id[a] < id[b];
+	 });
+  }
   List lst(curEt.size());
 
   lst.attr("names") = curEt.attr("names");
@@ -1585,20 +1650,38 @@ List etAddDose(NumericVector curTime, RObject cmt,  double amt, double rate, dou
     }
   }
   std::vector<int> idx(time.size());
-  std::iota(idx.begin(),idx.end(),0);
-  SORT(idx.begin(),idx.end(),
-	       [id,time,evid](int a, int b){
-		 if (id[a] == id[b]){
-		   if (time[a] == time[b]){
-		     if (evid[a] == evid[b]){
-		       return a < b;
-		     }
-		     return evid[a] < evid[b];
-		   }
-		   return time[a] < time[b];
-		 }
-		 return id[a] < id[b];
-	       });
+  if (useRadix()){
+    IntegerVector ivId=wrap(id);
+    NumericVector nvTime=wrap(time);
+    IntegerVector ivEvid=wrap(evid);
+    Function order = getForder();
+    IntegerVector ord;
+    if (useForder()){
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL));
+    } else {
+      ord = order(ivId, nvTime, ivEvid,
+		  _["na.last"] = LogicalVector::create(NA_LOGICAL),
+		  _["method"]="radix");
+    }
+    ord = ord - 1;
+    idx = as<std::vector<int>>(ord);
+  } else {
+    std::iota(idx.begin(),idx.end(),0);
+    SORT(idx.begin(),idx.end(),
+	 [id,time,evid](int a, int b){
+	   if (id[a] == id[b]){
+	     if (time[a] == time[b]){
+	       if (evid[a] == evid[b]){
+		 return a < b;
+	       }
+	       return evid[a] < evid[b];
+	     }
+	     return time[a] < time[b];
+	   }
+	   return id[a] < id[b];
+	 });
+  }
 
   List lst(curEt.size());
   IntegerVector tmpI = as<IntegerVector>(curEt["id"]), tmpI2;
@@ -3138,19 +3221,37 @@ List etSeq_(List ets, int handleSamples=0, int waitType = 0,
     timeDelta += maxTime;
   }
   if (needSort){
-    SORT(idx.begin(),idx.end(),
-	 [id,time,evid](int a, int b){
-	   if (id[a] == id[b]){
-	     if (time[a] == time[b]){
-	       if (evid[a] == evid[b]){
-		 return a < b;
+    if (useRadix()){
+      IntegerVector ivId=wrap(id);
+      NumericVector nvTime=wrap(time);
+      IntegerVector ivEvid=wrap(evid);
+      Function order = getForder();
+      IntegerVector ord;
+      if (useForder()){
+	ord = order(ivId, nvTime, ivEvid,
+		    _["na.last"] = LogicalVector::create(NA_LOGICAL));
+      } else {
+	ord = order(ivId, nvTime, ivEvid,
+		    _["na.last"] = LogicalVector::create(NA_LOGICAL),
+		    _["method"]="radix");
+      }
+      ord = ord - 1;
+      idx = as<std::vector<int>>(ord);
+    } else {
+      SORT(idx.begin(),idx.end(),
+	   [id,time,evid](int a, int b){
+	     if (id[a] == id[b]){
+	       if (time[a] == time[b]){
+		 if (evid[a] == evid[b]){
+		   return a < b;
+		 }
+		 return evid[a] < evid[b];
 	       }
-	       return evid[a] < evid[b];
+	       return time[a] < time[b];
 	     }
-	     return time[a] < time[b];
-	   }
-	   return id[a] < id[b];
-	 });
+	     return id[a] < id[b];
+	   });
+    }
   }
   if (!gotUnits){
     stop("No events table found for seq/rep/rbind/c.");

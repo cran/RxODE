@@ -2204,6 +2204,7 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
     }
     // Get the C solve object
     rx_solve* rx = getRxSolve2_();
+    rx->safeZero = as<int>(rxControl["safeZero"]);
     rx_solving_options* op = rx->op;
     op->mxhnil = as<int>(rxControl["mxhnil"]);
     op->hmxi = as<double>(rxControl["hmxi"]);
@@ -2440,7 +2441,6 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
     CharacterVector sigmaN;
     bool usePar1 = false;
     bool simSubjects = false;
-    bool didSim = false;
     bool addTimeUnits = false;
     RObject timeUnitsU;
     List covUnits;
@@ -2538,7 +2538,7 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 				 as<NumericVector>(rxControl["sigmaUpper"]),
 				 sigmaDf, sigmaIsChol, nCoresRV, curObs,
 				 dfSub, dfObs, simSubjects);
-      didSim = true;
+      warnIdSort=false;
       par1 =  as<RObject>(lst);
       usePar1=true;
       // The parameters are in the same format as they would be if they were
@@ -2569,9 +2569,6 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
         stop("If parameters are not named, they must match the order and size of the parameters in the model.");
       }
       RObject iCov = rxControl["iCov"];
-      if (warnIdSort && didSim){
-	warnIdSort = false;
-      }
       if (setupOnly){
 	warnIdSort = false;
       }
@@ -3055,6 +3052,12 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
       stop(errStr);
     }
     op->svar = &_globals.gsvar[0];
+    if (nsvar == 0){
+      getRxModels();
+      if(_rxModels.exists(".sigma")){
+	_rxModels.remove(".sigma");
+      }
+    }
     op->nsvar = nsvar;
     // Now setup the rest of the rx_solve object
     if (nPopPar != 1 && nPopPar % rx->nsub != 0){
@@ -3269,7 +3272,21 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
     rx->stateIgnore = &si[0];
     int doTBS = (rx->matrix == 3);
     if (doTBS) rx->matrix=2;
+    if (rx->matrix == 4 || rx->matrix == 5) rx->matrix=2;
     List dat = RxODE_df(doDose, doTBS);
+    // According to https://stackoverflow.com/questions/20039335/what-is-the-purpose-of-setting-a-key-in-data-table
+    // Setting a key is not necessary unless doing something else, so for now exclude it.
+    // if (doDT){
+    //   if (rx->nsim > 1 && rx->nsub > 1){
+    // 	dat.attr("sorted") = CharacterVector::create("sim.id","id","time");
+    //   } else if (rx->nsim > 1){
+    // 	dat.attr("sorted") = CharacterVector::create("sim.id","time");
+    //   } else if (rx->nsub > 1){
+    // 	dat.attr("sorted") = CharacterVector::create("id","time");
+    //   } else {
+    // 	dat.attr("sorted") = CharacterVector::create("time");
+    //   }
+    // }
     if (idFactor && labelID && rx->nsub > 1){
       IntegerVector did = as<IntegerVector>(dat["id"]);
       did.attr("class") = "factor";

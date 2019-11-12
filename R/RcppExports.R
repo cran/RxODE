@@ -80,6 +80,22 @@ etRep_ <- function(curEt, times, wait, ids, handleSamples, waitType, ii) {
     .Call(`_RxODE_etRep_`, curEt, times, wait, ids, handleSamples, waitType, ii)
 }
 
+#' Force using base order for RxODE radix sorting
+#'
+#' @param forceBase boolean indicating if RxODE should use R's
+#'   \code{\link{order}} for radix sorting instead of
+#'   \code{data.table}'s parallel radix sorting.
+#'
+#' @examples
+#' \dontrun{
+#' forderForceBase(TRUE) # Use base `order` for RxODE sorts
+#' forderForceBase(FALSE) # Use base `data.table` for RxODE sorts
+#' }
+#'@export
+forderForceBase <- function(forceBase = FALSE) {
+    .Call(`_RxODE_forderForceBase`, forceBase)
+}
+
 #' Set Initial conditions to time zero instead of the first observed/dosed time
 #'
 #' @param ini0 When TRUE (default), set initial conditions to time
@@ -89,6 +105,19 @@ etRep_ <- function(curEt, times, wait, ids, handleSamples, waitType, ii) {
 #' @export
 rxSetIni0 <- function(ini0 = TRUE) {
     .Call(`_RxODE_rxSetIni0`, ini0)
+}
+
+#' Use Radix Sort when possible
+#'
+#' By default RxODE uses radix sort when possible.
+#'
+#' @param useRadix Use \code{order} with \code{method} = \code{radix}
+#'   when appropriate.  Otherwise use \code{timsort}.
+#'
+#' @export
+#' @author Matthew Fidler
+rxUseRadixSort <- function(useRadix = TRUE) {
+    .Call(`_RxODE_rxUseRadixSort`, useRadix)
 }
 
 #' Event translation for RxODE
@@ -576,8 +605,8 @@ rxSymInvCholEnvCalculate <- function(obj, what, theta = NULL) {
 #' @param vars Variables to include in stacked data; By default this
 #'   is all the variables when vars is NULL.
 #'
-#' @return Stacked data with value and trt, where value is the values
-#'   and trt is the state and lhs variables.
+#' @return Stacked data with \code{value} and \code{trt}, where value is the values
+#'   and \code{trt} is the state and \code{lhs} variables.
 #' 
 #' @author Matthew Fidler
 rxStack <- function(Data, vars = NULL) {

@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 0.9.1-7
+Version: 0.9.1-8
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -26,16 +26,18 @@ Authors@R: c(
    person("G", "Grothendieck", role="ctb"),
    person("Robert", "Gentleman",role="ctb"),
    person("Daniel C.", "Dillon", role="ctb"),
-   person("Ross", "Ihaka",role="ctb"),
-   person("R core team", role="cph"),
-   person("odepack authors", role="cph")
+   person("Ross", "Ihaka", role="ctb"),
+   person("Cleve", "Moler", role="ctb"),
+   person("Jack", "Dongarra", role="ctb"),
+   person("R core team", role="cph")
    )
 Maintainer: Wenping Wang <wwang8198@gmail.com>
 Depends: R (>= 3.5.0)
-Suggests: knitr, DT, data.table, nlme, shiny, tcltk, testthat, usethis,
-        devtools, covr, rmarkdown, SnakeCharmR, dplyr (>= 0.8.0),
-        tidyr, tibble, curl, gridExtra, microbenchmark, scales,
-        stringi, htmltools, reticulate, rlang, installr
+Suggests: knitr, DT, data.table (>= 1.12.4), nlme, shiny, tcltk,
+        testthat, usethis, devtools, covr, rmarkdown, SnakeCharmR,
+        dplyr (>= 0.8.0), tidyr, tibble, curl, gridExtra,
+        microbenchmark, scales, stringi, htmltools, reticulate, rlang,
+        installr
 Imports: Matrix, PreciseSums (>= 0.3), Rcpp (>= 0.12.3), brew, cli,
         crayon, digest, dparser (>= 0.1.8), ggforce, ggplot2, inline,
         magrittr, memoise, methods, mvnfast, pillar, rex, sys, units(>=
@@ -64,7 +66,7 @@ LinkingTo: dparser(>= 0.1.8), Rcpp (>= 0.12.3), RcppArmadillo(>=
 Encoding: UTF-8
 LazyData: true
 Language: en-US
-Packaged: 2019-10-21 02:49:46 UTC; matt
+Packaged: 2019-11-11 23:40:11 UTC; matt
 Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -85,7 +87,8 @@ Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Robert Gentleman [ctb],
   Daniel C. Dillon [ctb],
   Ross Ihaka [ctb],
-  R core team [cph],
-  odepack authors [cph]
+  Cleve Moler [ctb],
+  Jack Dongarra [ctb],
+  R core team [cph]
 Repository: CRAN
-Date/Publication: 2019-10-27 08:50:06 UTC
+Date/Publication: 2019-11-12 14:30:06 UTC
