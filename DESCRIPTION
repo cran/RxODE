@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 0.9.1-8
+Version: 0.9.1-9
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -59,14 +59,14 @@ NeedsCompilation: yes
 VignetteBuilder: knitr
 License: GPL (>= 3)
 URL: https://nlmixrdevelopment.github.io/RxODE/
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
 Biarch: true
 LinkingTo: dparser(>= 0.1.8), Rcpp (>= 0.12.3), RcppArmadillo(>=
         0.9.300.2.0), PreciseSums (>= 0.3)
 Encoding: UTF-8
 LazyData: true
 Language: en-US
-Packaged: 2019-11-11 23:40:11 UTC; matt
+Packaged: 2020-01-06 20:52:23 UTC; matt
 Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -91,4 +91,4 @@ Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Jack Dongarra [ctb],
   R core team [cph]
 Repository: CRAN
-Date/Publication: 2019-11-12 14:30:06 UTC
+Date/Publication: 2020-01-10 23:20:06 UTC

@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2019-11-11" />
+<meta name="date" content="2020-01-06" />
 
 <title>Introduction to RxODE</title>
 
@@ -94,7 +93,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 <h1 class="title toc-ignore">Introduction to RxODE</h1>
-<h4 class="date">2019-11-11</h4>
+<h4 class="date">2020-01-06</h4>
 
 
 
@@ -338,15 +337,15 @@ eff
 <p>You can also solve this and create a RxODE data frame:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span>mod1 <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">solve</span>(theta, ev, inits);
 x
-<span class="co">#&gt; ▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂ Solved RxODE object ▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂</span>
-<span class="co">#&gt; ── Parameters (x$params): ─────────────────────────────────────────────────</span>
+<span class="co">#&gt; ▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂ Solved RxODE object ▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂</span>
+<span class="co">#&gt; ── Parameters (x$params): ──────────────────────────────────────────────────────</span>
 <span class="co">#&gt;  </span>
 <span class="co">#&gt;      V2      V3      KA      CL       Q     Kin    Kout    EC50 </span>
 <span class="co">#&gt;  40.200 297.000   0.294  18.600  10.500   1.000   1.000 200.000 </span>
-<span class="co">#&gt; ── Initial Conditions (x$inits): ──────────────────────────────────────────</span>
+<span class="co">#&gt; ── Initial Conditions (x$inits): ───────────────────────────────────────────────</span>
 <span class="co">#&gt; depot centr  peri   eff </span>
 <span class="co">#&gt;     0     0     0     1 </span>
-<span class="co">#&gt; ── First part of data (object): ───────────────────────────────────────────</span>
+<span class="co">#&gt; ── First part of data (object): ────────────────────────────────────────────────</span>
 <span class="co">#&gt; # A tibble: 241 x 7</span>
 <span class="co">#&gt;    time    C2    C3  depot centr  peri   eff</span>
 <span class="co">#&gt;     [h] &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;</span>
@@ -357,7 +356,7 @@ x
 <span class="co">#&gt; 5     4  44.5 5.98   3085. 1789. 1776.  1.23</span>
 <span class="co">#&gt; 6     5  36.5 7.18   2299. 1467. 2132.  1.21</span>
 <span class="co">#&gt; # … with 235 more rows</span>
-<span class="co">#&gt; ▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂</span></code></pre></div>
+<span class="co">#&gt; ▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂</span></code></pre></div>
 <p>This returns a modified data frame. You can see the compartment values in the plot below:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(ggplot2)
 <span class="kw">plot</span>(x,C2) <span class="op">+</span><span class="st"> </span><span class="kw">ylab</span>(<span class="st">&quot;Central Concentration&quot;</span>) <span class="op">+</span><span class="st"> </span><span class="kw">xlab</span>(<span class="st">&quot;Time&quot;</span>);</code></pre></div>
