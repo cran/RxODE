@@ -1,3 +1,9 @@
+.ggplot2Fix <- function(){
+    .ggplot2 <- loadNamespace("ggplot2")
+    if (any(ls(.ggplot2) == "guide_none")){
+        assignInMyNamespace("guide_none", .ggplot2$guide_none)
+    }
+}
 .onLoad <- function(libname, pkgname){ ## nocov start
     ## Setup RxODE.prefer.tbl
     .Call(`_RxODE_setRstudio`, Sys.getenv("RSTUDIO")=="1")
@@ -7,6 +13,8 @@
     if (!interactive()){
         setProgSupported(0);
     }
+    .getDTEnv()
+    .ggplot2Fix()
 } ## nocov end
 
 .onAttach <- function(libname, pkgname){
@@ -20,7 +28,9 @@
     if (!interactive()){
         setProgSupported(0);
     }
-    rxTempDir();
+    rxTempDir()
+    .getDTEnv()
+    .ggplot2Fix()
 }
 
 .onUnload <- function (libpath) {
@@ -141,15 +151,20 @@ RxODE.unload.unused <- NULL
 ##' @param respect when TRUE, respect any options that are specified.
 ##'     This is called at startup, but really should not be called
 ##'     elsewhere, otherwise the options are not changed.
-##' @param cran When specified and true, run on CRAN. Otherwise it is skipped on CRAN.
+##' @param cran When specified and true, run on CRAN. Otherwise it is
+##'     skipped on CRAN.
 ##' @param on.validate When TRUE run only when validating.
 ##' @param silent when true, also silence the syntax errors and
 ##'     interactive output (useful in testing).
+##' @param test When specified as a string, the enclosed test is
+##'     skipped unless the environmental variable "rxTest" equals this
+##'     value.
 ##' @author Matthew L. Fidler
 ##' @export
 rxPermissive <- function(expr, silent=.isTestthat(),
                          respect=FALSE,
-                         cran=FALSE, on.validate=FALSE){
+                         cran=FALSE, on.validate=FALSE,
+                         test=NULL){
     args  <- as.list(match.call())[-1];
     args$op.rx <- 2;
     do.call(getFromNamespace("rxOptions", "RxODE"), args, envir=parent.frame(1));
@@ -178,25 +193,35 @@ rxStrict <- function(expr, silent=.isTestthat(), respect=FALSE,
 ##' @author Matthew L. Fidler
 ##' @export
 rxOptions <- function(expr, op.rx=NULL, silent=.isTestthat(), respect=FALSE,
-                      cran=FALSE, on.validate=FALSE){
+                      cran=FALSE, on.validate=FALSE,
+                      test=NULL){
     rxSetSilentErr(1L);
     on.exit(rxSetSilentErr(0L));
     do.it <- TRUE
-    if (!identical(Sys.getenv("NOT_CRAN"), "true") && !cran){
-        ## on Cran, but only tested when not on cran, skip.
+    .test <- Sys.getenv("rxTest");
+    if (identical(test, .test)){
+        do.it <- TRUE
+    } else if (.test != ""){
         do.it <- FALSE
-    }
-    if (is(on.validate, "character")){
-        val.txt <- on.validate;
-        on.validate <- TRUE
     } else {
-        val.txt <- "RxODE_VALIDATION_FULL"
-    }
-    if (on.validate && !identical(Sys.getenv(val.txt), "true")){
-        do.it <- FALSE
-    }
-    if (!on.validate && identical(Sys.getenv(val.txt), "true")){
-        do.it <- FALSE
+        if (is.null(test)) {
+            if (!identical(Sys.getenv("NOT_CRAN"), "true") && !cran){
+                ## on Cran, but only tested when not on cran, skip.
+                do.it <- FALSE
+            }
+            if (is(on.validate, "character")){
+                val.txt <- on.validate;
+                on.validate <- TRUE
+            } else {
+                val.txt <- "RxODE_VALIDATION_FULL"
+            }
+            if (on.validate && !identical(Sys.getenv(val.txt), "true")) {
+                do.it <- FALSE
+            }
+            if (!on.validate && identical(Sys.getenv(val.txt), "true")) {
+                do.it <- FALSE
+            }
+        }
     }
     if (do.it){
         if (missing(expr) && is.null(op.rx)){

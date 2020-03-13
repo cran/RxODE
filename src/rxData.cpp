@@ -8,6 +8,7 @@
 // NONMEM nTHETA=20
 // NONMEM nETA=30
 // NONMEM nSIGMA=10
+
 #define NPARS 60
 #include <RcppArmadillo.h>
 #include <Rmath.h>
@@ -169,6 +170,46 @@ bool rxIs_list(const RObject &obj, std::string cls){
   }
 }
 
+bool rxDropB = false;
+
+List rxDrop(CharacterVector drop, List input, bool &warnDrop) {
+  rxDropB=false;
+  CharacterVector inNames = input.attr("names");
+  std::vector<int> keepI;
+  int ndrop=0;
+  for (int i = 0; i < inNames.size(); ++i) {
+    std::string curName = as<std::string>(inNames[i]);
+    bool dropCur = false;
+    for (int j = drop.size();j--;){
+      if (as<std::string>(drop[j]) == curName){
+	dropCur = true;
+	break;
+      }
+    }
+    if (dropCur) ndrop++;
+    else keepI.push_back(i);
+    if (dropCur && !rxDropB && i < 10){
+      if (curName == "time" ||
+	  curName == "sim.id" ||
+	  curName == "id") {
+	rxDropB=true;
+      }
+    }
+  }
+  if (warnDrop && ndrop != drop.size()) {
+    warning("column(s) in 'drop' were not in solved data");
+  }
+  List ret(keepI.size());
+  CharacterVector retN(keepI.size());
+  for (int i = keepI.size(); i--;){
+    ret[i] = input[keepI[i]];
+    retN[i] = inNames[keepI[i]];
+  }
+  ret.attr("names") = retN;
+  ret.attr("row.names")=input.attr("row.names");
+  return ret;
+}
+
 //' Check the type of an object using Rcpp
 //'
 //' @param obj Object to check
@@ -184,12 +225,14 @@ bool rxIs_list(const RObject &obj, std::string cls){
 //' @export
 // [[Rcpp::export]]
 bool rxIs(const RObject &obj, std::string cls){
+  if (obj == NULL) return false;
   if (cls == "units"){
     if (obj.hasAttribute("class")){
       CharacterVector cls = obj.attr("class");
       return as<std::string>(cls[0]) == "units";
     }
   }
+  if (obj == NULL) return false;
   int type = obj.sexp_type();
   bool hasDim = false;
   bool hasCls = false;
@@ -405,14 +448,10 @@ bool _RxODE_found = false;
 Environment _RxODE;
 
 Environment RxODEenv(){
-  if (_RxODE_found){
-    return _RxODE;
-  } else {
-    Function loadNamespace("loadNamespace", R_BaseNamespace);
-    _RxODE = loadNamespace("RxODE");
-    _RxODE_found = true;
-    return _RxODE;
-  }
+  Function loadNamespace("loadNamespace", R_BaseNamespace);
+  _RxODE = loadNamespace("RxODE");
+  _RxODE_found = true;
+  return _RxODE;
 }
 // Export for C.
 //[[Rcpp::export]]
@@ -617,6 +656,9 @@ List rxModelVars_character(const RObject &obj){
       }
     }
   }
+  if (obj == NULL) {
+    return rxModelVars_blank();
+  }
   // fileExists(const std::string& name)
   Function f = getRxFn(".rxModelVarsCharacter");
   return f(obj);
@@ -657,6 +699,7 @@ List rxModelVars_list(const RObject &obj){
 
 // [[Rcpp::export]]
 List rxModelVars_(const RObject &obj){
+  if (obj == NULL) return rxModelVars_blank();
   getRxModels();
   if (rxIs(obj, "rxModelVars")){
     List ret(obj);
@@ -2115,6 +2158,7 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 	      const Nullable<List> &extraArgs,
 	      const RObject &params, const RObject &events, const RObject &inits,
 	      const int setupOnly){
+  rxDropB = false;
   if (rxIs(rxControl,"rxControl")){
     rxSolveFree();
     stop("Control list not setup correctly.");
@@ -2149,7 +2193,25 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
   CharacterVector amountUnits = as<CharacterVector>(rxControl["amountUnits"]);
   CharacterVector timeUnits = as<CharacterVector>(rxControl["timeUnits"]);
   Nullable<LogicalVector> addDosing = as<Nullable<LogicalVector>>(rxControl["addDosing"]);
-  double stateTrim = as<double>(rxControl["stateTrim"]);
+  NumericVector stateTrim = rxControl["stateTrim"];
+  double stateTrimU= R_PosInf;
+  double stateTrimL= R_NegInf;
+  if (stateTrim.size() == 2){
+    if (stateTrim[0] > stateTrim[1]){
+      stateTrimU = stateTrim[0];
+      stateTrimL = stateTrim[1];
+    } else {
+      stateTrimU = stateTrim[1];
+      stateTrimL = stateTrim[0];
+    }
+  } else if (stateTrim.size() == 1){
+    if (!ISNA(stateTrimU)){
+      stateTrimU = fabs(stateTrim[0]);
+      stateTrimL = -stateTrimU;
+    }
+  } else {
+    stop("'stateTrim' must be a vector of 1-2 elements");
+  }
   RObject theta = rxControl["theta"];
   RObject eta = rxControl["eta"];
   bool updateObject = as<bool>(rxControl["updateObject"]);
@@ -2212,11 +2274,8 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
     rx_solving_options_ind* ind;
     rx->nKeep0 = 0;
     rx->nKeepF = 0;
-    if (ISNA(stateTrim)){
-      rx->stateTrim = R_PosInf;
-    } else {
-      rx->stateTrim = stateTrim;
-    }
+    rx->stateTrimU = stateTrimU;
+    rx->stateTrimL = stateTrimL;
     rx->matrix = matrix;
     rx->needSort = as<int>(mv["needSort"]);
     rx->nMtime = as<int>(mv["nMtime"]);
@@ -3274,6 +3333,10 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
     if (doTBS) rx->matrix=2;
     if (rx->matrix == 4 || rx->matrix == 5) rx->matrix=2;
     List dat = RxODE_df(doDose, doTBS);
+    bool warnDrop = as<bool>(rxControl["warnDrop"]);
+    if (!rxIs(rxControl["drop"], "NULL")) {
+      dat = rxDrop(as<CharacterVector>(rxControl["drop"]), dat, warnDrop);
+    }
     // According to https://stackoverflow.com/questions/20039335/what-is-the-purpose-of-setting-a-key-in-data-table
     // Setting a key is not necessary unless doing something else, so for now exclude it.
     // if (doDT){
@@ -3312,6 +3375,10 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 	  tmpN2.attr("units") = tmpN.attr("units");
 	}
       }
+    }
+    if (rx->matrix == 0 && rxDropB){
+      rx->matrix=2;
+      warning("dropped key column, returning data.frame instead of special solved data.frame");
     }
     if (rx->matrix){
       if(_rxModels.exists(".sigma")){

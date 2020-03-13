@@ -85,10 +85,12 @@ rxControl(
   length.out = NULL,
   iCov = NULL,
   keep = NULL,
+  drop = NULL,
   idFactor = TRUE,
   mxhnil = 0,
   hmxi = 0,
   warnIdSort = TRUE,
+  warnDrop = TRUE,
   ssAtol = 1e-08,
   ssRtol = 1e-06,
   safeZero = TRUE
@@ -306,7 +308,10 @@ first model time, 102 is the second etc.
 \item{stateTrim}{When amounts/concentrations in one of the states
 are above this value, trim them to be this value. By default
 Inf.  Also trims to -stateTrim for large negative
-amounts/concentrations}
+amounts/concentrations.  If you want to trim between a range
+say `c(0, 2000000)` you may specify 2 values with a lower and
+upper range to make sure all state values are in the
+reasonable range.}
 
 \item{updateObject}{This is an internally used flag to update the
 RxODE solved object (when supplying an RxODE solved object) as
@@ -443,6 +448,8 @@ is kept once per line.  For the input dataset, if any records
 are added to the data LOCF (Last Observation Carried forward)
 imputation is performed.}
 
+\item{drop}{Columns to drop from the output}
+
 \item{idFactor}{This boolean indicates if original ID values
 should be maintained. This changes the default sequentially
 ordered ID to a factor with the original ID values in the
@@ -462,6 +469,9 @@ This option is only considered with method=liblsoda.}
 \item{warnIdSort}{Warn if the ID is not present and RxODE assumes
 the order of the parameters/iCov are the same as the order of
 the parameters in the input dataset.}
+
+\item{warnDrop}{Warn if column(s) were supposed to be dropped, but
+were not present.}
 
 \item{ssAtol}{Steady state atol convergence factor.  Can be
 a vector based on each state.}

@@ -33,10 +33,12 @@ rxControl <- function(scale = NULL,
                       length.out=NULL,
                       iCov=NULL,
                       keep=NULL,
+                      drop=NULL,
                       idFactor=TRUE,
                       mxhnil=0,
                       hmxi=0.0,
                       warnIdSort=TRUE,
+                      warnDrop=TRUE,
                       ssAtol = 1.0e-8, ssRtol = 1.0e-6,
                       safeZero=TRUE){
     .xtra <- list(...);
@@ -168,6 +170,8 @@ rxControl <- function(scale = NULL,
                  length.out=length.out,
                  iCov=iCov,
                  keep=keep, keepF=character(0), keepI=character(0),
+                 drop=drop,
+                 warnDrop=warnDrop,
                  omegaLower=omegaLower, omegaUpper=omegaUpper,
                  sigmaLower=sigmaLower, sigmaUpper=sigmaUpper,
                  thetaLower=thetaLower, thetaUpper=thetaUpper,
@@ -355,11 +359,13 @@ rxControl <- function(scale = NULL,
 ##' @param eta A vector of parameters that will be named ETA[#] and
 ##'     added to parameters
 ##'
-##'
 ##' @param stateTrim When amounts/concentrations in one of the states
 ##'     are above this value, trim them to be this value. By default
 ##'     Inf.  Also trims to -stateTrim for large negative
-##'     amounts/concentrations
+##'     amounts/concentrations.  If you want to trim between a range
+##'     say `c(0, 2000000)` you may specify 2 values with a lower and
+##'     upper range to make sure all state values are in the
+##'     reasonable range.
 ##'
 ##' @param updateObject This is an internally used flag to update the
 ##'     RxODE solved object (when supplying an RxODE solved object) as
@@ -497,6 +503,8 @@ rxControl <- function(scale = NULL,
 ##'     are added to the data LOCF (Last Observation Carried forward)
 ##'     imputation is performed.
 ##'
+##' @param drop Columns to drop from the output
+##'
 ##' @param idFactor This boolean indicates if original ID values
 ##'     should be maintained. This changes the default sequentially
 ##'     ordered ID to a factor with the original ID values in the
@@ -505,6 +513,9 @@ rxControl <- function(scale = NULL,
 ##' @param warnIdSort Warn if the ID is not present and RxODE assumes
 ##'     the order of the parameters/iCov are the same as the order of
 ##'     the parameters in the input dataset.
+##'
+##' @param warnDrop Warn if column(s) were supposed to be dropped, but
+##'     were not present.
 ##'
 ##' @param safeZero Use safe zero divide and log routines.  By default
 ##'     this is turned on but you may turn it off if you wish.
@@ -1066,50 +1077,6 @@ print.rxModelText <- function(x, ...){
 }
 
 ##'@export
-plot.rxSolve <- function(x,y,...){
-    ## nocov start
-    .cmts <- c(as.character(substitute(y)),
-               names(sapply(as.character(as.list(match.call()[-(1:3)])),`c`)))
-    if (length(.cmts)==1 &&.cmts[1]==""){
-        .cmts <- NULL
-    }
-    .dat <- rxStack(x,.cmts);
-    time <- value <- id <- sim.id  <- NULL
-    if (any(names(.dat)=="id")){
-        .dat$id <- factor(.dat$id);
-        if (length(.cmts)==1){
-            .ret <- ggplot(.dat,ggplot2::aes(time,value,color=id))+
-                geom_line(size=1.2) + ylab(.cmts)
-        } else {
-            .ret <- ggplot(.dat,ggplot2::aes(time,value,color=id))+
-                geom_line(size=1.2) +facet_wrap( ~ trt, scales="free_y")
-        }
-    } else if (any(names(.dat)=="sim.id")){
-        .dat$sim.id <- factor(.dat$sim.id);
-        if (length(.cmts)==1){
-            .ret <- ggplot(.dat,ggplot2::aes(time,value,color=sim.id))+
-                geom_line(size=1.2) + ylab(.cmts)
-        } else {
-            .ret <- ggplot(.dat,ggplot2::aes(time,value,color=sim.id))+
-                geom_line(size=1.2) +facet_wrap( ~ trt, scales="free_y")
-        }
-    } else {
-        if (length(.cmts)==1){
-            .ret <- ggplot(.dat,ggplot2::aes(time,value))+
-                geom_line(size=1.2) + ylab(.cmts)
-        } else {
-            .ret <- ggplot(.dat,ggplot2::aes(time,value))+
-                geom_line(size=1.2) +facet_wrap(~ trt, scales="free_y")
-        }
-    }
-    if (getOption("RxODE.theme_bw", TRUE)){
-        .ret <- .ret + ggplot2::theme_bw()
-    }
-    return(.ret)
-    ## nocov end
-}
-
-##'@export
 drop_units.rxSolve <- function(x){
     dropUnitsRxSolve(x);
 }
@@ -1125,15 +1092,23 @@ drop_units.rxSolve <- function(x){
 ## [31] subset        tail          transform     unique        within
 
 
+.SD <- NULL
+`:=` <- function (...) {
+    stop("This is only used in data.table")
+}
+
+
 ##'@export
 confint.rxSolve <- function(object, parm=NULL, level = 0.95, ...){
-    p1 <-eff <-Percentile <-sim.id <-id <-p2 <-p50 <-p05 <- p95 <- . <- time <- trt <- NULL
-    RxODE::rxReq("dplyr")
-    RxODE::rxReq("tidyr")
+    RxODE::rxReq("data.table")
+    ## p1 <-eff <-Percentile <-sim.id <-id <-p2 <-p50 <-p05 <- p95 <- . <- time <- trt <- NULL
+    ## RxODE::rxReq("dplyr")
+    ## RxODE::rxReq("tidyr")
     if (level <=0 || level >=1){
         stop("simulation summaries must be between 0 and 1");
     }
-    .stk <- rxStack(object, parm);
+    .stk <- rxStack(object, parm)
+    data.table::setDT(.stk)
     .a <- (1-level)/2;
     .p <- c(.a, 0.5, 1-.a);
     .lst <- list(lvl=paste0("p",.p*100),
@@ -1142,17 +1117,17 @@ confint.rxSolve <- function(object, parm=NULL, level = 0.95, ...){
     if (object$env$args$nStud <= 1){
         if (object$env$args$nSub < 2500){
             warning("In order to put confidence bands around the intervals, you need at least 2500 simulations.")
-            message("Summarizing data")
-            .ret <- .stk %>% dplyr::group_by(time, trt) %>%
-                dplyr::do(data.frame(p1=.p, eff=stats::quantile(.$value, probs=.p))) %>%
-                dplyr::mutate(Percentile=factor(sprintf("%s%%",p1*100)))
-            .cls <- c("rxSolveConfint1", class(.ret));
+            message("summarizing data...", appendLF=FALSE)
+            .stk <- .stk[, list(p1=.p, eff=stats::quantile(.SD$value, probs=.p, na.rm=TRUE), Percentile=sprintf("%s%%",.p*100)),
+                 by=c("time", "trt")]
+            if (requireNamespace("tibble", quietly = TRUE)){
+                .stk <- tibble::as_tibble(.stk)
+            }
+            .cls <- c("rxSolveConfint1", class(.stk));
             attr(.cls, ".rx") <- .lst
-            class(.ret) <- .cls
+            class(.stk) <- .cls
             message("done.")
-            ## .ret <- ggplot2::ggplot(.ret,aes(time,eff,col=Percentile,fill=Percentile)) +
-            ##     ggplot2::geom_line(size=1.2)
-            return(.ret)
+            return(.stk)
         } else {
             .n <- round(sqrt(object$env$args$nSub));
         }
@@ -1160,49 +1135,19 @@ confint.rxSolve <- function(object, parm=NULL, level = 0.95, ...){
         .n <- object$env$args$nStud;
     }
     message("Summarizing data")
-    .ret <- .stk %>% dplyr::mutate(id=sim.id%%.n) %>% dplyr::group_by(id,time,trt) %>%
-        dplyr::do(data.frame(p1=.p, eff=stats::quantile(.$value, probs=.p))) %>%
-        dplyr::group_by(p1, time, trt) %>%
-        dplyr::do(data.frame(p2=.p, eff=stats::quantile(.$eff, probs=.p))) %>%
-        dplyr::ungroup()  %>% dplyr::mutate(p2=sprintf("p%s",p2*100))%>%
-        tidyr::spread(p2,eff) %>% dplyr::mutate(Percentile=factor(sprintf("%s%%",p1*100)));
+    .ret <- .stk[, id := sim.id %% .n
+         ][, list(p1=.p, eff=stats::quantile(.SD$value, probs=.p, na.rm=TRUE)), by = c("id", "time", "trt")
+           ][,setNames(as.list(stats::quantile(.SD$eff, probs=.p, na.rm=TRUE)),
+                       sprintf("p%s",.p*100)),
+             by = c("p1", "time", "trt")
+             ]
+    .ret$Percentile <- factor(sprintf("%s%%",.ret$p1*100))
+    if (requireNamespace("tibble", quietly = TRUE)){
+        .ret <- tibble::as_tibble(.ret)
+    }
     message("done.")
     .cls <- c("rxSolveConfint2", class(.ret));
     attr(.cls, ".rx") <- .lst
     class(.ret) <- .cls
     return(.ret);
 }
-
-##'@export
-plot.rxSolveConfint1 <- function(x,y,...){
-    p1 <-eff <- time<-Percentile <-sim.id <-id <-p2 <-p50 <-p05 <- p95 <- . <- NULL
-    .lvl <- attr(class(x), ".rx")$lvl
-    .parm <- attr(class(x), ".rx")$parm
-    .ret <- ggplot2::ggplot(x,ggplot2::aes(time,eff,col=Percentile,fill=Percentile)) +
-        ggplot2::geom_line(size=1.2);
-    if (length(.parm) > 1){
-        .ret <- .ret + facet_wrap( ~ trt, scales="free_y")
-    }
-    if (getOption("RxODE.theme_bw", TRUE)){
-        .ret <- .ret + ggplot2::theme_bw()
-    }
-    return(.ret)
-}
-
-##'@export
-plot.rxSolveConfint2 <- function(x,y,...){
-    p1 <- time <- eff <-Percentile <-sim.id <-id <-p2 <-p50 <-p05 <- p95 <- . <- NULL
-    .lvl <- attr(class(x), ".rx")$lvl
-    .parm <- attr(class(x), ".rx")$parm
-    .ret <- ggplot2::ggplot(x,ggplot2::aes(time,p50,col=Percentile,fill=Percentile)) +
-        ggplot2::geom_ribbon(ggplot2::aes_string(ymin=.lvl[1],ymax=.lvl[3]),alpha=0.5)+
-        ggplot2::geom_line(size=1.2);
-    if (length(.parm) > 1){
-        .ret <- .ret + facet_wrap( ~ trt, scales="free_y")
-    }
-    if (getOption("RxODE.theme_bw", TRUE)){
-        .ret <- .ret + ggplot2::theme_bw()
-    }
-    return(.ret)
-}
-
