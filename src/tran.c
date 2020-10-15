@@ -1,5 +1,6 @@
 #include <sys/stat.h> 
 #include <fcntl.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>   /* dj: import intptr_t */
@@ -306,7 +307,12 @@ void sAppend(sbuf *sbb, const char *format, ...){
   va_list argptr, copy;
   va_start(argptr, format);
   va_copy(copy, argptr);
+#if defined(_WIN32) || defined(WIN32)
   n = vsnprintf(NULL, 0, format, copy) + 1;
+#else
+  char zero[2];
+  n = vsnprintf(zero, 0, format, copy) + 1;
+#endif
   va_end(copy);
   if (sbb->sN <= sbb->o + n + 1){
     int mx = sbb->o + n + 1 + MXBUF;
@@ -324,7 +330,12 @@ void sPrint(sbuf *sbb, const char *format, ...){
   va_list argptr, copy;
   va_start(argptr, format);
   va_copy(copy, argptr);
+#if defined(_WIN32) || defined(WIN32)
   n = vsnprintf(NULL, 0, format, copy) + 1;
+#else
+  char zero[2];
+  n = vsnprintf(zero, 0, format, copy) + 1;
+#endif
   va_end(copy);
   if (sbb->sN <= sbb->o + n + 1){
     int mx = sbb->o + n + 1 + MXBUF;
@@ -373,10 +384,16 @@ void addLine(vLines *sbb, const char *format, ...){
   va_list argptr, copy;
   va_start(argptr, format);
   va_copy(copy, argptr);
+  errno = 0;
   // Try first.
+#if defined(_WIN32) || defined(WIN32)
   n = vsnprintf(NULL, 0, format, copy);
+#else
+  char zero[2];
+  n = vsnprintf(zero, 0, format, copy);
+#endif
   if (n < 0){
-    error("Encoding error in addLine");
+    error("encoding error in 'addLine' format: '%s' n: %d; errno: %d", format, n, errno);
   }
   va_end(copy);
   if (sbb->sN <= sbb->o + n + 1){
@@ -2184,7 +2201,7 @@ void codegen(char *model, int show_ode, const char *prefix, const char *libname,
       sAppend(&sbOut, "extern void  %sode_solver_solvedata (rx_solve *solve){\n  _solveData = solve;\n}\n",prefix);
       sAppend(&sbOut, "extern rx_solve *%sode_solver_get_solvedata(){\n  return _solveData;\n}\n", prefix);
       sAppend(&sbOut, "SEXP %smodel_vars();\n", prefix);
-      sAppend(&sbOut, "%s\nextern double* %stheta(double *theta){\n  %s\n  return _theta;\n}\n", fixInis0, prefix, fixInis1);
+      sAppend(&sbOut, "%s\nextern double* %stheta(double *theta){\n  %s\n  return _%s_t;\n}\n", fixInis0, prefix, fixInis1, prefix);
       sAppendN(&sbOut,"\n", 1);
       sAppendN(&sbOut, "\n// prj-specific differential eqns\nvoid ", 40);
       sAppend(&sbOut, "%sdydt(int *_neq, double t, double *__zzStateVar__, double *__DDtStateVar__)\n{\n  int _cSub = _neq[1];\n", prefix);

@@ -79,11 +79,11 @@ specified as \code{evid=reset}.
 }}
 
 \item{cmt}{Compartment name or number.  If a number, this is an
-    integer starting at 1.  Negative compartments are not
-    supported (there is no way to turn off a compartment
-    currently). If the compartment is a name, the compartment name
-    is changed to the correct state/compartment number before
-    running the simulation.
+  integer starting at 1.  Negative compartments turn off a
+  compartment. If the compartment is a name, the compartment name
+  is changed to the correct state/compartment number before
+  running the simulation.  For a compartment named "-cmt" the
+  compartment is turned off.
 
     Can also specify \code{cmt} as \code{dosing.to},
     \code{dose.to}, \code{doseTo}, \code{dosingTo}, and
@@ -256,7 +256,7 @@ plot(repCycle4, C2)
 Wang W, Hallow K, James D (2015). "A Tutorial on RxODE: Simulating
 Differential Equation Pharmacometric Models in R." CPT:
 Pharmacometrics \& Systems Pharmacology, 5(1), 3-10. ISSN 2163-8306,
-<URL: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4728294/>.
+<URL: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4728294/>.
 }
 \seealso{
 \code{\link{eventTable}}, \code{\link{add.sampling}},

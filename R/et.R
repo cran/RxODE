@@ -62,11 +62,11 @@
 ##' }
 ##'
 ##' @param cmt Compartment name or number.  If a number, this is an
-##'     integer starting at 1.  Negative compartments are not
-##'     supported (there is no way to turn off a compartment
-##'     currently). If the compartment is a name, the compartment name
-##'     is changed to the correct state/compartment number before
-##'     running the simulation.
+##'   integer starting at 1.  Negative compartments turn off a
+##'   compartment. If the compartment is a name, the compartment name
+##'   is changed to the correct state/compartment number before
+##'   running the simulation.  For a compartment named "-cmt" the
+##'   compartment is turned off.
 ##'
 ##'     Can also specify \code{cmt} as \code{dosing.to},
 ##'     \code{dose.to}, \code{doseTo}, \code{dosingTo}, and
@@ -1091,35 +1091,22 @@ as.data.table.rxEt <- function (x, keep.rownames = FALSE, ...){
 ##'
 ##' @param x RxODE event table
 ##'
-##' @param ... Other arguments to \code{as.tbl}
+##' @param ... Other arguments to \code{as_tibble}
 ##'
-##' @return tibble
+##' @return tibble of event table
 ##'
-##' @export as_tibble.rxEt
-as_tibble.rxEt <- function(x, ...){
-    rxReq("tibble");
-    if (rxIs(x, "rxEt")){
-        .x <- x
-        .tmp <- .x[,.x$show,drop = FALSE];
-        class(.tmp) <- c("rxEt2", "data.frame");
-        return(tibble::as_tibble(.tmp, ...))
-    } else {
-        return(tibble::as_tibble(x, ...))
-    }
-}
-
-##'@rdname as_tibble.rxEt
-##'@export as.tbl.rxEt
-as.tbl.rxEt <- function(x, ...){
-    rxReq("dplyr");
-    if (rxIs(x, "rxEt")){
-        .x <- x
-        .tmp <- .x[,.x$show,drop = FALSE];
-        class(.tmp) <- c("rxEt2", "data.frame");
-        return(dplyr::as.tbl(.tmp, ...))
-    } else {
-        return(dplyr::as.tbl(x, ...))
-    }
+##'@export as_tibble.rxEt
+as_tibble.rxEt <- function(x, ...) {
+  rxReq("tibble")
+  if (rxIs(x, "rxEt")) {
+    .x <- x
+    .show <- .x$show
+    class(.x) <- "data.frame"
+    .tmp <- .x[, .show, drop = FALSE]
+    return(tibble::as_tibble(.tmp, ...))
+  } else {
+    return(tibble::as_tibble(x, ...))
+  }
 }
 
 ##' Check to see if this is an rxEt object.

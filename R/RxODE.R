@@ -1427,26 +1427,27 @@ rxCompile.rxModelVars <-  function(model, # Model
                 ## Now create C file
                 .mv <- model;
                 .j <- 0;
-                .i <- 0;
+              .i <- 0;
+              .md5 <- rxMd5(.mv)
                 if (length(.mv$ini) > 0){
-                    .fixInis <- c(sprintf("double _theta[%d];", length(.mv$params)),
+                    .fixInis <- c(sprintf("double _%s_t[%d];", prefix, length(.mv$params)),
                                   paste(sapply(.mv$params, function(x){
                                       if (!is.na(.mv$ini[x])){
-                                          ret <- sprintf("_theta[%d] = %.16f;", .i, as.vector(.mv$ini[x]));
+                                          ret <- sprintf("_%s_t[%d] = %.16f;", prefix, .i, as.vector(.mv$ini[x]));
                                           .i <<- .i + 1;
                                           return(ret)
                                       } else {
-                                          ret <- sprintf("_theta[%d] = theta[%d];", .i, .j);
+                                          ret <- sprintf("_%s_t[%d] = theta[%d];", prefix, .i, .j);
                                           .i <<- .i + 1;
                                           .j <<- .j + 1;
                                           return(ret);
                                       }
                                   }), collapse=" "))
                 } else {
-                    .fixInis <- c(sprintf("double _theta[%d];",length(.mv$params)),
+                    .fixInis <- c(sprintf("double _%s_t[%d];", prefix, length(.mv$params)),
                                   ifelse(length(.mv$params)==0,
                                          "",
-                                         paste(paste0("_theta[",seq_along(.mv$params)-1,"] = theta[",
+                                         paste(paste0("_", prefix, "_t[",seq_along(.mv$params)-1,"] = theta[",
                                                       seq_along(.mv$params)-1,"];"),collapse="\n")));
                 }
                 .trans <- c(.mv$trans, .mv$md5);
