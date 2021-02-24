@@ -1,9 +1,15 @@
 #! /bin/sh
-echo "if(!file.exists(\"src/Makevars.win\")) writeLines(gsub(\"@OPENMP_CXXFLAGS@\",\"-fopenmp\",gsub(\"@OPENMP_CFLAGS@\",\"-fopenmp\",suppressWarnings(readLines(\"src/Makevars.in\")))),\"src/Makevars.win\")" > build.R
-${R_HOME}/bin/R CMD BATCH build.R
-rm build.R
-rm build.Rout
-#sh inst/tools/stripper
+
+${R_HOME}/bin/R CMD BATCH inst/tools/r-stripper/stripper.R
+rm stripper.Rout
+
+${R_HOME}/bin/R CMD BATCH  inst/tools/r-stripper/workaround.R
+rm workaround.Rout
+
 echo --------[[begin src/Makevars.win]]--------
 cat src/Makevars.win
 echo --------[[end src/Makevars.win]]--------
+
+echo --------[begin R/RxODE_md5.R]--------
+cat R/RxODE_md5.R
+echo --------[end R/RxODE_md5.R]--------

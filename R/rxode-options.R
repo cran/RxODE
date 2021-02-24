@@ -1,123 +1,189 @@
-.ggplot2Fix <- function(){
-    .ggplot2 <- loadNamespace("ggplot2")
-    if (any(ls(.ggplot2) == "guide_none")){
-        assignInMyNamespace("guide_none", .ggplot2$guide_none)
-    }
+.ggplot2Fix <- function() {
+  .ggplot2 <- loadNamespace("ggplot2")
+  if (any(ls(.ggplot2) == "guide_none")) {
+    assignInMyNamespace("guide_none", .ggplot2$guide_none)
+  }
 }
-.onLoad <- function(libname, pkgname){ ## nocov start
-    ## Setup RxODE.prefer.tbl
-    .Call(`_RxODE_setRstudio`, Sys.getenv("RSTUDIO")=="1")
-    rxPermissive(respect=TRUE); ## need to call respect on the first time
-    rxTempDir();
-    if (!interactive()){
-        setProgSupported(0);
-    }
-    .getDTEnv()
-    .ggplot2Fix()
+.onLoad <- function(libname, pkgname) { ## nocov start
+  if (requireNamespace("pillar", quietly = TRUE)) {
+    .s3register("pillar::type_sum", "rxEvid")
+    .s3register("pillar::type_sum", "rxRateDur")
+    .s3register("pillar::pillar_shaft", "rxEvid")
+    .s3register("pillar::pillar_shaft", "rxRateDur")
+    .s3register("pillar::type_sum", "units")
+    .s3register("pillar::type_sum", "mixed_units")
+    .s3register("pillar::pillar_shaft", "units")
+    .s3register("pillar::pillar_shaft", "mixed_units")
+    .s3register("pillar::format_type_sum", "type_sum_units")
+  }
+  if (requireNamespace("tibble", quietly = TRUE)) {
+    .s3register("tibble::as_tibble", "rxEt")
+  }
+  if (requireNamespace("data.table", quietly = TRUE)) {
+    .s3register("data.table::as.data.table", "rxEt")
+  }
+  backports::import(pkgname)
+  ## Setup RxODE.prefer.tbl
+  .Call(`_RxODE_setRstudio`, Sys.getenv("RSTUDIO") == "1")
+  rxSyncOptions("permissive")
+  suppressMessages(.rxWinRtoolsPath(retry = NA))
+  rxTempDir()
+  if (!interactive()) {
+    setProgSupported(0)
+  }
+  .getDTEnv()
+  .ggplot2Fix()
 } ## nocov end
 
-.onAttach <- function(libname, pkgname){
-    .Call(`_RxODE_setRstudio`, Sys.getenv("RSTUDIO")=="1")
-    rxPermissive(respect=TRUE); ## need to call respect on the first time
-    if (Sys.which("make") == "") {
-        packageStartupMessage("make not found; you may need Rtools to use RxODE")
-    }
-    #if (!.rxWinRtoolsPath(retry=NA)){
-    #    ## nocov start
-    #    packageStartupMessage("Rtools is not set up correctly!\n\nYou need a working Rtools installation for RxODE to work.\nYou can set up Rtools using the command 'rxWinSetup()'.\n");
-    #    ## nocov end
-    #}
-    if (!interactive()){
-        setProgSupported(0);
-    }
-    rxTempDir()
-    .getDTEnv()
-    .ggplot2Fix()
-}
-
-.onUnload <- function (libpath) {
+.onAttach <- function(libname, pkgname) {
+  ## For some strange reason, mvnfast needs to be loaded before RxODE to work correctly
+  .Call(`_RxODE_setRstudio`, Sys.getenv("RSTUDIO") == "1")
+  rxSyncOptions("permissive")
+  if (!.rxWinRtoolsPath(retry = NA)) {
     ## nocov start
-    rxUnloadAll();
-    gc(); # Force garbage collection finalization
-    library.dynam.unload("RxODE", libpath)
+    packageStartupMessage("Rtools is not set up correctly!\n\nYou need a working Rtools installation for RxODE to compile models\n")
     ## nocov end
+  }
+  if (!interactive()) {
+    setProgSupported(0)
+  }
+  rxTempDir()
+  .getDTEnv()
+  .ggplot2Fix()
+  v <- utils::packageVersion("RxODE")
+  packageStartupMessage("RxODE ", v, " using ", getRxThreads(verbose=FALSE),
+                        " threads (see ?getRxThreads)",
+                        ifelse(.cacheIsTemp, "\n  no cache: create with `rxCreateCache()`", ""))
+  if (!.Call(`_rxHasOpenMp`)) {
+    packageStartupMessage("========================================\n",
+        "RxODE has not detected OpenMP support and will run in single-threaded mode\n",
+        if (Sys.info()["sysname"]=="Darwin")
+          "This is a Mac. Please read https://mac.r-project.org/openmp/"
+        else
+          paste0("The system is ", Sys.info()["sysname"], "; To get best performance enable OpenMP"),
+        "\n========================================\n")
+  }
 }
 
-.rxTempDir0 <- NULL;
-.cacheDefault <- NULL;
-##' Get the RxODE temporary directory
-##'
-##' @return RxODE temporary directory.
-##' @export
-rxTempDir <- function(){
-    if (is.null(getFromNamespace(".rxTempDir0", "RxODE"))){
-        .tmp <- Sys.getenv("rxTempDir")
-        if (.tmp == ""){
-            if (is.null(.cacheDefault)){
-                assignInMyNamespace(".cacheDefault", file.path(tempdir(),".rxCache"));
-            }
-            if (getOption("RxODE.cache.directory", .cacheDefault) != "."){
-                .tmp <- getOption("RxODE.cache.directory", .cacheDefault);
-            } else {
-                .tmp <- tempdir()
-            }
-        }
-        if (!file.exists(.tmp))
-            dir.create(.tmp, recursive = TRUE);
-        .tmp <- .normalizePath(.tmp);
-        Sys.setenv(rxTempDir=.tmp);
-        utils::assignInMyNamespace(".rxTempDir0", .tmp)
-        utils::assignInMyNamespace("RxODE.cache.directory", .tmp)
-        return(.tmp)
-    } else {
-        .tmp <- getFromNamespace(".rxTempDir0", "RxODE");
-        if (!file.exists(.tmp))
-            dir.create(.tmp, recursive = TRUE);
-        utils::assignInMyNamespace("RxODE.cache.directory", .tmp)
-        return(.tmp);
+.onUnload <- function(libpath) {
+  ## nocov start
+  rxUnloadAll()
+  gc() # Force garbage collection finalization
+  library.dynam.unload("RxODE", libpath)
+  ## nocov end
+}
+
+.mkCache <- function(.tmp) {
+  if (!file.exists(.tmp)) {
+    dir.create(.tmp, recursive = TRUE)
+  } else if (!file.exists(file.path(.tmp, paste0(RxODE.md5, ".md5")))) {
+    if (!.cacheIsTemp) packageStartupMessage("detected new version of RxODE, cleaning cache")
+    unlink(.tmp, recursive=TRUE, force=TRUE)
+    dir.create(.tmp, recursive = TRUE)
+    writeLines("RxODE", file.path(.tmp, paste0(RxODE.md5, ".md5")))
+  }
+}
+
+.cacheIsTemp <- TRUE
+.rxTempDir0 <- NULL
+.cacheDefault <- NULL
+#' Get the RxODE temporary directory
+#'
+#' @return RxODE temporary directory.
+#' @export
+rxTempDir <- function() {
+  if (is.null(getFromNamespace(".rxTempDir0", "RxODE"))) {
+    .tmp <- Sys.getenv("rxTempDir")
+    .rxUserDir <- R_user_dir("RxODE", "cache")
+    assignInMyNamespace(".cacheIsTemp", FALSE)
+    if (!file.exists(.rxUserDir)) {
+      .rxUserDir <- file.path(tempdir(),"RxODE")
+      assignInMyNamespace(".cacheIsTemp", TRUE)
     }
+    if (.tmp == "") {
+      if (is.null(.cacheDefault)) {
+        assignInMyNamespace(".cacheDefault", .rxUserDir)
+      }
+      if (getOption("RxODE.cache.directory", .cacheDefault) != ".") {
+        .tmp <- getOption("RxODE.cache.directory", .cacheDefault)
+      } else {
+        .tmp <- .rxUserDir
+      }
+    }
+    .mkCache(.tmp)
+    .tmp <- .normalizePath(.tmp)
+    Sys.setenv(rxTempDir = .tmp)
+    utils::assignInMyNamespace(".rxTempDir0", .tmp)
+    utils::assignInMyNamespace("RxODE.cache.directory", .tmp)
+    return(.tmp)
+  } else {
+    .tmp <- getFromNamespace(".rxTempDir0", "RxODE")
+    .mkCache(.tmp)
+    utils::assignInMyNamespace("RxODE.cache.directory", .tmp)
+    return(.tmp)
+  }
+}
+#' This will create the cache directory for RxODE to save between sessions
+#'
+#' When run, if the `R_user_dir` for RxODE's cache isn't present,
+#' create the cache
+#'
+#' @return nothing
+#'
+#' @author Matthew Fidler
+#'
+#' @export
+rxCreateCache <- function() {
+  .tmp <- R_user_dir("RxODE", "cache")
+  assignInMyNamespace(".cacheDefault", R_user_dir("RxODE", "cache"))
+  .mkCache(.tmp)
+  .tmp <- .normalizePath(.tmp)
+  Sys.setenv(rxTempDir = .tmp)
+  utils::assignInMyNamespace(".rxTempDir0", .tmp)
+  utils::assignInMyNamespace("RxODE.cache.directory", .tmp)
+  invisible()
 }
 
 
-##' Clear memoise cache for RxODE
-##'
-##' @author Matthew L. Fidler
-##' @keywords internal
-##' @export
-rxForget <- function(){
-    for (fn in ls(envir=getNamespace("RxODE"))){
-        if (memoise::is.memoised(getFromNamespace(fn, "RxODE"))){
-            memoise::forget(getFromNamespace(fn, "RxODE"));
-        }
+#' Clear memoise cache for RxODE
+#'
+#' @author Matthew L. Fidler
+#' @return nothing; called for side effects
+#' @keywords internal
+#' @export
+rxForget <- function() {
+  for (fn in ls(envir = getNamespace("RxODE"))) {
+    if (memoise::is.memoised(getFromNamespace(fn, "RxODE"))) {
+      memoise::forget(getFromNamespace(fn, "RxODE"))
     }
+  }
 }
 
 ## strict/permissive
-rxOpt <- list(RxODE.prefer.tbl               =c(FALSE, FALSE),
-              RxODE.display.tbl              =c(TRUE, TRUE),
-              RxODE.warn.on.assign           =c(TRUE, TRUE),
-              RxODE.syntax.assign            =c(FALSE, TRUE),
-              RxODE.syntax.star.pow          =c(FALSE, TRUE),
-              RxODE.syntax.require.semicolon =c(TRUE, FALSE),
-              RxODE.syntax.allow.dots        =c(FALSE, TRUE),
-              RxODE.syntax.allow.ini0        =c(FALSE, TRUE),
-              RxODE.syntax.allow.ini         =c(FALSE, TRUE),
-              RxODE.calculate.jacobian       =c(FALSE, FALSE),
-              RxODE.calculate.sensitivity    =c(FALSE, FALSE),
-              RxODE.verbose                  =c(TRUE, TRUE),
-              RxODE.suppress.syntax.info     =c(FALSE, FALSE),
-              RxODE.sympy.engine             =c("", ""),
-              RxODE.cache.directory          =c(.cacheDefault, .cacheDefault),
-              RxODE.syntax.assign.state      =c(FALSE, FALSE),
-              RxODE.tempfiles                =c(TRUE, TRUE),
-              RxODE.sympy.run.internal       =c(FALSE, FALSE),
-              RxODE.syntax.require.ode.first =c(TRUE, TRUE),
-              RxODE.compile.O                =c("2", "2"),
-              RxODE.unload.unused            =c(TRUE, TRUE)
-              );
+rxOpt <- list(
+  RxODE.prefer.tbl = c(FALSE, FALSE),
+  RxODE.warn.on.assign = c(TRUE, TRUE),
+  RxODE.syntax.assign = c(FALSE, TRUE),
+  RxODE.syntax.star.pow = c(FALSE, TRUE),
+  RxODE.syntax.require.semicolon = c(TRUE, FALSE),
+  RxODE.syntax.allow.dots = c(FALSE, TRUE),
+  RxODE.syntax.allow.ini0 = c(FALSE, TRUE),
+  RxODE.syntax.allow.ini = c(FALSE, TRUE),
+  RxODE.calculate.jacobian = c(FALSE, FALSE),
+  RxODE.calculate.sensitivity = c(FALSE, FALSE),
+  RxODE.verbose = c(TRUE, TRUE),
+  RxODE.suppress.syntax.info = c(FALSE, FALSE),
+  RxODE.sympy.engine = c("", ""),
+  RxODE.cache.directory = c(.cacheDefault, .cacheDefault),
+  RxODE.syntax.assign.state = c(FALSE, FALSE),
+  RxODE.tempfiles = c(TRUE, TRUE),
+  RxODE.sympy.run.internal = c(FALSE, FALSE),
+  RxODE.syntax.require.ode.first = c(TRUE, TRUE),
+  RxODE.compile.O = c("3", "3"),
+  RxODE.unload.unused = c(FALSE, FALSE)
+)
 
 RxODE.prefer.tbl <- NULL
-RxODE.display.tbl <- NULL
 RxODE.warn.on.assign <- NULL
 RxODE.syntax.assign <- NULL
 RxODE.syntax.star.pow <- NULL
@@ -133,174 +199,83 @@ RxODE.sympy.engine <- NULL
 RxODE.cache.directory <- NULL
 RxODE.delete.unnamed <- NULL
 RxODE.syntax.assign.state <- NULL
-RxODE.tempfiles <- NULL;
+RxODE.tempfiles <- NULL
 RxODE.sympy.run.internal <- NULL
 RxODE.syntax.require.ode.first <- NULL
 RxODE.compile.O <- NULL
 RxODE.unload.unused <- NULL
 
-.isTestthat <- function(){
-    return(regexpr("/tests/testthat/", getwd(), fixed=TRUE) != -1) # nolint
+.isTestthat <- function() {
+  return(regexpr("/tests/testthat/", getwd(), fixed = TRUE) != -1) # nolint
 }
-
-##' Permissive or Strict RxODE syntax options
-##'
-##' This sets the RxODE syntax to be permissive or strict
-##'
-##' @param expr Expression to evaluate in the permissive/strict
-##'     environment.  If unspecified, set the options for the current
-##'     environment.
-##' @param respect when TRUE, respect any options that are specified.
-##'     This is called at startup, but really should not be called
-##'     elsewhere, otherwise the options are not changed.
-##' @param cran When specified and true, run on CRAN. Otherwise it is
-##'     skipped on CRAN.
-##' @param on.validate When TRUE run only when validating.
-##' @param silent when true, also silence the syntax errors and
-##'     interactive output (useful in testing).
-##' @param test When specified as a string, the enclosed test is
-##'     skipped unless the environmental variable "rxTest" equals this
-##'     value.
-##' @author Matthew L. Fidler
-##' @export
-rxPermissive <- function(expr, silent=.isTestthat(),
-                         respect=FALSE,
-                         cran=FALSE, on.validate=FALSE,
-                         test=NULL){
-    args  <- as.list(match.call())[-1];
-    args$op.rx <- 2;
-    do.call(getFromNamespace("rxOptions", "RxODE"), args, envir=parent.frame(1));
-}
-##' @rdname rxPermissive
-##' @export
-rxStrict <- function(expr, silent=.isTestthat(), respect=FALSE,
-                     cran=FALSE, on.validate=FALSE){
-    ## nocov start
-    args  <- as.list(match.call())[-1];
-    args$op.rx <- 1;
-    do.call(getFromNamespace("rxOptions", "RxODE"), args, envir=parent.frame(1));
-    ## nocov end
-}
-##' Options for RxODE
-##'
-##' This is a backend for \code{rxPermissive} (with
-##' \code{op.rx} = \code{2}) and \code{rxStrict} (with
-##' \code{op.rx} =\code{1})
-##'
-##' When \code{expr} is missing and \code{op.rx} is NULL, this
-##' displays the current RxODE options.
-##'
-##' @inheritParams rxPermissive
-##' @param op.rx A numeric for strict (1) or permissive (2) syntax.
-##' @author Matthew L. Fidler
-##' @export
-rxOptions <- function(expr, op.rx=NULL, silent=.isTestthat(), respect=FALSE,
-                      cran=FALSE, on.validate=FALSE,
-                      test=NULL){
-    rxSetSilentErr(1L);
-    on.exit(rxSetSilentErr(0L));
-    do.it <- TRUE
-    .test <- Sys.getenv("rxTest");
-    if (identical(test, .test)){
-        do.it <- TRUE
-    } else if (.test != ""){
-        do.it <- FALSE
+#' Respect suppress messages
+#'
+#' This turns on the silent REprintf in C when `suppressMessages()` is
+#' turned on. This makes the `REprintf` act like `messages` in R,
+#' they can be suppressed with `suppressMessages()`
+#'
+#' @return Nothing
+#' @author Matthew Fidler
+#' @export
+#' @examples
+#'
+#' # rxSupressMsg() is called with RxODE()
+#'
+#' # Note the errors are output to the console
+#'
+#' try(RxODE("d/dt(matt)=/3"),silent=TRUE)
+#'
+#' # When using suppressMessages, the output is suppressed
+#'
+#' suppressMessages(try(RxODE("d/dt(matt)=/3"),silent=TRUE))
+#'
+#' # In RxODE, we use REprintf so that interrupted threads do not crash R
+#' # if there is a user interrupt. This isn't captured by R's messages, but
+#' # This interface allows the `suppressMessages()` to suppress the C printing
+#' # as well
+#'
+#' # If you  want to suppress messages from RxODE in other packages, you can use
+#' # this function
+rxSuppressMsg <- function() {
+  if (requireNamespace("knitr", quietly = TRUE)) {
+    if (!is.null(knitr::opts_knit$get('rmarkdown.pandoc.to'))) {
+      return(invisible(NULL))
     } else {
-        if (is.null(test)) {
-            if (!identical(Sys.getenv("NOT_CRAN"), "true") && !cran){
-                ## on Cran, but only tested when not on cran, skip.
-                do.it <- FALSE
-            }
-            if (is(on.validate, "character")){
-                val.txt <- on.validate;
-                on.validate <- TRUE
-            } else {
-                val.txt <- "RxODE_VALIDATION_FULL"
-            }
-            if (on.validate && !identical(Sys.getenv(val.txt), "true")) {
-                do.it <- FALSE
-            }
-            if (!on.validate && identical(Sys.getenv(val.txt), "true")) {
-                do.it <- FALSE
-            }
-        }
+      rxSetSilentErr(as.integer(length(capture.output(message(" "),type="message")) == 0L))
     }
-    if (do.it){
-        if (missing(expr) && is.null(op.rx)){
-            op <- options()
-            op <- op[regexpr(rex::rex("RxODE."), names(op)) != -1];
-            op <- op[order(names(op))];
-            sapply(names(op), function(n){rxCat(sprintf("%s: %s\n", n, op[[n]]))});
-            return(invisible(op));
-        } else {
-            if (is(op.rx,"character")){
-                if (op.rx == "strict"){
-                    op.rx  <- 1;
-                } else {
-                    op.rx <- 2;
-                }
-            }
-            if (is(op.rx,"numeric")){
-                if (op.rx <= 2){
-                    x  <- op.rx;
-                    op.rx  <- list()
-                    for (v in names(rxOpt)){
-                        op.rx[[v]] <- rxOpt[[v]][x];
-                    }
-                }
-            }
-            if (!missing(silent)){
-                op.rx$RxODE.verbose=!silent;
-                op.rx$RxODE.suppress.syntax.info=silent;
-            }
-            if (!missing(expr)){
-                opOld <- options();
-                .oldProg <- getProgSupported();
-                if (silent){
-                    setProgSupported(-1);
-                }
-                on.exit({options(opOld);
-                    setProgSupported(.oldProg);
-                    rxSyncOptions();
-                });
-            }
-            if (respect){
-                op <- options();
-                w <- !(names(op.rx) %in% names(op))
-                if (any(w)) options(op.rx[w]);
-                rxSyncOptions()
-            } else if (length(op.rx) > 0){
-                options(op.rx);
-                rxSyncOptions()
-            }
-            if (is(substitute(expr),"{")){
-                if (silent){
-                    return(suppressMessages(eval(substitute(expr), envir=parent.frame(1))));
-                } else {
-                    return(eval(substitute(expr), envir=parent.frame(1)));
-                }
-            }
-        }
-    }
+  } else {
+    rxSetSilentErr(as.integer(length(capture.output(message(" "),type="message")) == 0L))
+  }
+  invisible(NULL)
 }
 
-##' Sync options with RxODE variables
-##'
-##' Accessing RxODE options via getOption slows down solving.  This
-##' allows the options to be synced with variables.
-##'
-##' @author Matthew L. Fidler
-##' @export
-rxSyncOptions <- function(){
-    for (var in names(rxOpt)){
-        assignInMyNamespace(var, getOption(var, rxOpt[[var]][1]));
+#' Sync options with RxODE variables
+#'
+#' Accessing RxODE options via getOption slows down solving.  This
+#' allows the options to be synced with variables.
+#'
+#' @param setDefaults This will setup RxODE's default solving options with the following options:
+#'
+#' - `"none"` leave the options alone
+#' - `"permissive"` This is a permissive option set similar to R language specifications.
+#' - `"strict"` This is a strict option set similar to the original
+#'    RxODE(). It requires semicolons at the end of lines and equals for
+#'    assignment
+#'
+#' @author Matthew L. Fidler
+#' @return nothing; called for side effects
+#' @export
+rxSyncOptions <- function(setDefaults=c("none", "permissive", "strict")) {
+  x <- c("none" = 0L, "permissive" = 2L,
+         "strict" = 1L)[match.arg(setDefaults)]
+  if (x > 0) {
+    op.rx <- list()
+    for (v in names(rxOpt)) {
+      op.rx[[v]] <- rxOpt[[v]][x]
     }
+    options(op.rx) # nolint
+  }
+  for (var in names(rxOpt)) {
+    assignInMyNamespace(var, getOption(var, rxOpt[[var]][1]))
+  }
 }
-
-rxSkipValidate <- function(){
-    if(!identical(Sys.getenv("RxODE_VALIDATION_FULL"), "true")){
-        testthat::skip("Only run on full validation")
-    }
-}
-
-rxSyncOptions();

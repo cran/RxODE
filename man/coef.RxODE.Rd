@@ -2,18 +2,9 @@
 % Please edit documentation in R/RxODE.R
 \name{coef.RxODE}
 \alias{coef.RxODE}
-\alias{coef.RxCompilationManager}
-\alias{coef.solveRxODE}
-\alias{coef.rxDll}
 \title{Return the RxODE coefficients}
 \usage{
 \method{coef}{RxODE}(object, ...)
-
-\method{coef}{RxCompilationManager}(...)
-
-\method{coef}{solveRxODE}(object, ...)
-
-\method{coef}{rxDll}(...)
 }
 \arguments{
 \item{object}{is an RxODE object}
@@ -22,13 +13,14 @@
 }
 \value{
 a rxCoef object with the following
-
-\item{params}{ is a list of strings for parameters for the RxODE object}
-\item{state}{ is a list of strings for the names of each state in
-    the RxODE object.}
-\item{ini}{ is the model specified default values for the
-    parameters.}
-\item{RxODE}{ is the referring RxODE object}
+\itemize{
+\item \code{params}  is a list of strings for parameters for the RxODE object
+\item \code{state} is a list of strings for the names of each state in
+the RxODE object.
+\item \code{ini} is the model specified default values for the
+parameters.
+\item \code{RxODE} is the referring RxODE object
+}
 }
 \description{
 This returns the parameters , state variables

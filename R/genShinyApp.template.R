@@ -1,68 +1,69 @@
 ## nocov start
-##' Generate an example (template) of a dosing regimen shiny app
-##'
-##' Create a complete shiny application for exploring dosing regimens
-##' given a (hardcoded) PK/PD model.
-##'
-##' @param appDir a string with a directory where to store the shiny
-##'     app, by default is \code{"shinyExample"}. The directory
-##'     \code{appDir} will be created if it does not exist.
-##'
-##'
-##' @param verbose logical specifying whether to write messages as the
-##'     shiny app is generated. Defaults to \code{TRUE}.
-##'
-##' @param statevars List of statevars passed to to the \code{\link{write.template.ui}} function.  This usually isn't called directly.
-##'
-##' A PK/PD model is defined using \code{\link{RxODE}}, and
-##' a set of parameters and initial values are defined.  Then
-##' the appropriate R scripts for the shiny's user interface \code{ui.R}
-##' and the server logic \code{server.R} are created in the
-##' directory \code{appDir}.
-##'
-##' The function evaluates the following PK/PD model by default:
-##' \preformatted{
-##'     C2 = centr/V2;
-##'     C3 = peri/V3;
-##'     d/dt(depot) =-KA*depot;
-##'     d/dt(centr) = KA*depot - CL*C2 - Q*C2 + Q*C3;
-##'     d/dt(peri)  =                    Q*C2 - Q*C3;
-##'     d/dt(eff)  = Kin - Kout*(1-C2/(EC50+C2))*eff;
-##' }
-##'
-##' This can be changed by the \code{ODE.config} parameter.
-##'
-##' To launch the shiny app, simply issue the \code{runApp(appDir)}
-##' R command.
-##'
-##' @param ODE.config model name compiled and list of parameters sent to \code{\link{rxSolve}}.
-##'
-##' @return None, these functions are used for their side effects.
-##'
-##' @note These functions create a simple, but working example of a
-##'     dosing regimen simulation web application. Users may want to
-##'     modify the code to experiment creating shiny applications for
-##'     their specific \code{RxODE} models.
-##' @seealso \code{\link{RxODE}},\code{\link{eventTable}}, and the package \pkg{shiny} (\url{https://shiny.rstudio.com}).
-##'
-##' @examples
-##' \dontrun{
-##' # create the shiny app example (template)
-##' genShinyApp.template(appDir = "myapp")
-##' # run the shiny app
-##' runApp("myapp")
-##' }
-##' @keywords simulation nonlinear
-##' @concept PK/PD
-##' @concept pharmacometrics
-##' @export genShinyApp.template
+#' Generate an example (template) of a dosing regimen shiny app
+#'
+#' Create a complete shiny application for exploring dosing regimens
+#' given a (hardcoded) PK/PD model.
+#'
+#' @param appDir a string with a directory where to store the shiny
+#'     app, by default is `"shinyExample"`. The directory
+#'     `appDir` will be created if it does not exist.
+#'
+#'
+#' @param verbose logical specifying whether to write messages as the
+#'     shiny app is generated. Defaults to `TRUE`.
+#'
+#' @param statevars List of statevars passed to to the [write.template.ui()] function.  This usually isn't called directly.
+#'
+#' A PK/PD model is defined using [RxODE()], and
+#' a set of parameters and initial values are defined.  Then
+#' the appropriate R scripts for the shiny's user interface `ui.R`
+#' and the server logic `server.R` are created in the
+#' directory `appDir`.
+#'
+#' The function evaluates the following PK/PD model by default:
+#' \preformatted{
+#'     C2 = centr/V2;
+#'     C3 = peri/V3;
+#'     d/dt(depot) =-KA*depot;
+#'     d/dt(centr) = KA*depot - CL*C2 - Q*C2 + Q*C3;
+#'     d/dt(peri)  =                    Q*C2 - Q*C3;
+#'     d/dt(eff)  = Kin - Kout*(1-C2/(EC50+C2))*eff;
+#' }
+#'
+#' This can be changed by the `ODE.config` parameter.
+#'
+#' To launch the shiny app, simply issue the `runApp(appDir)`
+#' R command.
+#'
+#' @param ODE.config model name compiled and list of parameters sent to [rxSolve()].
+#'
+#' @return None, these functions are used for their side effects.
+#'
+#' @note These functions create a simple, but working example of a
+#'     dosing regimen simulation web application. Users may want to
+#'     modify the code to experiment creating shiny applications for
+#'     their specific `RxODE` models.
+#' @seealso [RxODE()],[eventTable()], and the package \pkg{shiny} (<https://shiny.rstudio.com>).
+#'
+#' @examples
+#' \donttest{
+#' # create the shiny app example (template)
+#' genShinyApp.template(appDir = "myapp")
+#' # run the shiny app
+#' library(shiny)
+#' # runApp("myapp") # Won't launch in environments without browsers
+#' unlink("myapp", recursive=TRUE, force=TRUE) # remove myapp
+#' }
+#' @keywords simulation nonlinear
+#' @concept PK/PD
+#' @concept pharmacometrics
+#' @export genShinyApp.template
 genShinyApp.template <-
-function(appDir = "shinyExample", verbose = TRUE,
-         ODE.config = list(ode="model", params=c(KA=0.294), inits=c(eff=1), method="lsoda", atol=1e-8, rtol=1e-6)
-)
-    {
-        if (missing(ODE.config)){
-            ODE.config = list(ode = "
+  function(appDir = "shinyExample", verbose = TRUE,
+           ODE.config = list(ode = "model", params = c(KA = 0.294), inits = c(eff = 1), method = "lsoda", atol = 1e-8, rtol = 1e-6)) {
+    if (missing(ODE.config)) {
+      ODE.config <- list(
+        ode = "
    C2 = centr/V2;
    C3 = peri/V3;
    d/dt(depot) =-KA*depot;
@@ -71,77 +72,79 @@ function(appDir = "shinyExample", verbose = TRUE,
    d/dt(eff)  = Kin - Kout*(1-C2/(EC50+C2))*eff;
    ",
 
-   params =
-       c(KA=.294, CL=18.6, V2=40.2, Q=10.5, V3=297.0,
-         Kin=1.0, Kout=1.0, EC50=200.0),
+        params =
+          c(
+            KA = .294, CL = 18.6, V2 = 40.2, Q = 10.5, V3 = 297.0,
+            Kin = 1.0, Kout = 1.0, EC50 = 200.0
+          ),
 
-   inits = c(depot=0, centr=0, pari=0, eff=1),
-   method="lsoda",
-   atol  = 1e-08,
-   rtol  = 1e-06
-   )
-        }
-   if(!file.exists(appDir))
-         dir.create(appDir, recursive = TRUE)
-   #if(.Platform$OS.type=="windows") appDir <- gsub("\\\\", "/", utils::shortPathName(.normalizePath(appDir)))  # safe pathname
+        inits = c(depot = 0, centr = 0, pari = 0, eff = 1),
+        method = "lsoda",
+        atol = 1e-08,
+        rtol = 1e-06
+      )
+    }
+    if (!file.exists(appDir)) {
+      dir.create(appDir, recursive = TRUE)
+    }
+    # if(.Platform$OS.type=="windows") appDir <- gsub("\\\\", "/", utils::shortPathName(.normalizePath(appDir)))  # safe pathname
 
-   pkpd = ODE.config$ode
+    pkpd <- ODE.config$ode
 
-   if(verbose){
+    if (verbose) {
       cat("\nGenerating an example (template) for a dosing regimen shiny app\n\n")
       cat("Using the following PK/PD model:")
       cat(pkpd, "\n")
 
       cat("Translating the PK/PD ODE model into C, compiling, etc.\n\n")
-   }
+    }
 
-   mod1 <- RxODE(pkpd, modName = "mod1", wd = appDir)
+    mod1 <- RxODE(pkpd, modName = "mod1", wd = appDir)
 
-   stateVars = mod1$cmpMgr$get.modelVars()$state
-   stateVarStr = paste(sprintf("\"%s\"", stateVars), collapse=", ")
+    stateVars <- mod1$cmpMgr$get.modelVars()$state
+    stateVarStr <- paste(sprintf("\"%s\"", stateVars), collapse = ", ")
 
-   params <- ODE.config$params
-   inits <- ODE.config$inits
+    params <- ODE.config$params
+    inits <- ODE.config$inits
 
-   if(verbose){
+    if (verbose) {
       cat("\nParameters and their values:\n")
       print(params)
       cat("\nInitial values in each compartment:\n")
       print(inits)
       cat("\n")
-   }
+    }
 
-   # save the model, parameters, init values, etc. in the
-   # file rx_shiny_data.rda to be loaded by the server.R
+    # save the model, parameters, init values, etc. in the
+    # file rx_shiny_data.rda to be loaded by the server.R
 
-        fn <- file.path(appDir, "rx_shiny_data.rda")
-   method = ODE.config$method
-   atol  = ODE.config$atol
-   rtol  = ODE.config$rtol
-   save(mod1, params, inits, method, atol, rtol, file = fn)
+    fn <- file.path(appDir, "rx_shiny_data.rda")
+    method <- ODE.config$method
+    atol <- ODE.config$atol
+    rtol <- ODE.config$rtol
+    save(mod1, params, inits, method, atol, rtol, file = fn)
 
-   # write the shiny server.R and ui.R files
-   write.template.server(appDir)
-   write.template.ui(appDir, statevars=c(stateVarStr, stateVars[1]))
+    # write the shiny server.R and ui.R files
+    write.template.server(appDir)
+    write.template.ui(appDir, statevars = c(stateVarStr, stateVars[1]))
 
-   if(verbose){
+    if (verbose) {
       cat("Shiny files (ui.R, server.R) plus R data saved.\n")
-   }
+    }
 
-   cat("\nTo launch the Shiny app, type the following two R commands:\n\n")
-   cat("\tlibrary(shiny)\n")
-   cat(sprintf('\trunApp("%s")\n\n', appDir))
-}
+    cat("\nTo launch the Shiny app, type the following two R commands:\n\n")
+    cat("\tlibrary(shiny)\n")
+    cat(sprintf('\trunApp("%s")\n\n', appDir))
+  }
 #' @rdname genShinyApp.template
 #' @export write.template.server
 write.template.server <-
-function(appDir)
-{
-   # create a shiny server interface server.R script in the appDir
+  function(appDir) {
+    # create a shiny server interface server.R script in the appDir
 
-   server <- file.path(appDir, "server.R")
+    server <- file.path(appDir, "server.R")
 
-   server.code <-
+    server.code <-
       sprintf(appDir, fmt = '
       #
       # Dosing regimen template generated by RxODE::genShinyApp.template()
@@ -206,18 +209,17 @@ function(appDir)
         })
       })
    ', appDir)
-   writeLines(server.code, con = server)
-}
+    writeLines(server.code, con = server)
+  }
 #' @rdname genShinyApp.template
 #' @export write.template.ui
 write.template.ui <-
-function(appDir, statevars)
-{
-   # create a shiny user interface ui.R script in the appDir
+  function(appDir, statevars) {
+    # create a shiny user interface ui.R script in the appDir
 
-   ui <- file.path(appDir, "ui.R")
+    ui <- file.path(appDir, "ui.R")
 
-   ui.code <-
+    ui.code <-
       sprintf(fmt = '
       #
       # Dosing regimen template automatically generated by
@@ -277,5 +279,5 @@ function(appDir, statevars)
    ', statevars[1], statevars[2])
 
     writeLines(ui.code, con = ui)
-}
+  }
 ## nocov end

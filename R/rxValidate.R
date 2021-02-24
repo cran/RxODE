@@ -1,57 +1,60 @@
-##' Validate RxODE
-##'
-##' This allows easy validation/qualification of nlmixr by running the
-##' testing suite on your system.
-##' @param full Should a full validation be performed?  (By default
-##'     \code{TRUE})
-##' @author Matthew L. Fidler
-##' @export
-rxValidate <- function(full=TRUE){
-    ## rxVersion(" Validation", TRUE);
-    if (is.character(full)){
-        if (full=="covr"){
-            Sys.setenv("NOT_CRAN"="true", "covr"="true");
-            covr::report()
-        } else {
-            old.wd <- getwd();
-            on.exit({setwd(old.wd); Sys.setenv(RxODE_VALIDATION_FULL="false", NOT_CRAN="")});
-            Sys.setenv(RxODE_VALIDATION_FULL="false", "NOT_CRAN"="true")
-            path <- file.path(system.file("tests", package = "RxODE"),"testthat")
-            setwd(path)
-            testthat::test_dir(path, filter=full);
-            Sys.setenv(RxODE_VALIDATION_FULL="true")
-            Sys.getenv("RxODE_VALIDATION_FULL")
-            testthat::test_dir(path, filter=full);
-        }
-    } else {
-        old.wd <- getwd();
-        on.exit({setwd(old.wd)});
-        path <- file.path(system.file("tests", package = "RxODE"),"testthat")
-        setwd(path)
-        Sys.setenv("NOT_CRAN"="funny")
-        message("CRAN only tests")
-        message("================================================================================")
-        pt <- proc.time();
-        testthat::test_dir(path);
-        message("================================================================================")
-        message("Timing of CRAN tests (should be under 60 seconds)")
-        message("================================================================================")
-        print(proc.time() - pt);
-        message("================================================================================")
-        message("Normal tests")
-        message("================================================================================")
-        Sys.setenv("NOT_CRAN"="true")
-        testthat::test_dir(path);
-        if (full){
-            message("================================================================================")
-            message("Full Validation tests")
-            message("================================================================================")
-            Sys.setenv(RxODE_VALIDATION_FULL="true")
-            testthat::test_dir(path);
-        }
-    }
+#' Validate RxODE
+#' This allows easy validation/qualification of nlmixr by running the
+#' testing suite on your system.
+#'
+#' @param type Type of test or filter of test type
+#' @author Matthew L. Fidler
+#' @return nothing
+#' @export
+rxValidate <- function(type = NULL) {
+  pt <- proc.time()
+  .filter <- NULL
+  if (is.null(type)) type <- FALSE
+  if (is.character(type)) {
+    .filter <- type
+    type <- TRUE
+  }
+  if (type == TRUE) {
+    .oldCran <- Sys.getenv("NOT_CRAN")
+    Sys.setenv("NOT_CRAN"="true")
+    on.exit(Sys.setenv("NOT_CRAN"=.oldCran))
+  }
+  .rxWithOptions(list(testthat.progress.max_fails=10000000000), {
+    path <- file.path(system.file("tests", package = "RxODE"), "testthat")
+    .rxWithWd(path, {
+      try(testthat::test_dir(path, filter = .filter))
+      message("================================================================================")
+      print(proc.time() - pt)
+      message("================================================================================")
+    })
+  })
 }
 
-##' @rdname rxValidate
-##' @export
+#' @rdname rxValidate
+#' @export
 rxTest <- rxValidate
+
+#' Wrap a test in RxODE
+#'
+#' This wraps tests in RxODE to allow testing on cran or not on cran
+#'
+#' @param code Code to be evaluated
+#' @param test Test to be run.  Currently only accepts CRAN and not cran
+#' @param silent is an ignored argument now
+#' @return value of code or NULL
+#' @keywords internal
+#' @author Matthew Fidler
+#' @export
+rxodeTest <- function(code, test="cran", silent="ignore") {
+  on.exit({
+    rxUnloadAll()
+  })
+  .notCran <- Sys.getenv("NOT_CRAN") == "true"
+  if (test == "cran") {
+    return(force(code))
+  } else if (.notCran) {
+    return(force(code))
+  } else {
+    return(invisible())
+  }
+}

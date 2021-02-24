@@ -4,6 +4,8 @@ knitr::opts_chunk$set(
   comment = "#>"
   )
 options(knitr.table.format = "html")
+options(width=80, cli.width=80)
+Sys.setenv(RSTUDIO_CONSOLE_WIDTH=80)
 
 ## -----------------------------------------------------------------------------
 library(RxODE)
@@ -16,7 +18,7 @@ mod1 <-RxODE({
     d/dt(centr) = KA*depot - CL*C2 - Q*C2 + Q*C3;
     d/dt(peri)  =                    Q*C2 - Q*C3;
     d/dt(eff)  = Kin - Kout*(1-C2/(EC50+C2))*eff;
-});
+})
 
 ## -----------------------------------------------------------------------------
 theta <- 
@@ -32,14 +34,16 @@ ev <- eventTable(amount.units='mg', time.units='hours')
 
 ## -----------------------------------------------------------------------------
 ev$add.dosing(dose=10000, nbr.doses=10, dosing.interval=12)
-ev$add.dosing(dose=20000, nbr.doses=5, start.time=120, dosing.interval=24)
+ev$add.dosing(dose=20000, nbr.doses=5, start.time=120,
+              dosing.interval=24)
 ev$add.sampling(0:240)
 
 ## -----------------------------------------------------------------------------
 ev <- eventTable(amount.units="mg", time.units="hours") %>%
-    add.dosing(dose=10000, nbr.doses=10, dosing.interval=12) %>%
-    add.dosing(dose=20000, nbr.doses=5, start.time=120,dosing.interval=24) %>%
-    add.sampling(0:240);
+  add.dosing(dose=10000, nbr.doses=10, dosing.interval=12) %>%
+  add.dosing(dose=20000, nbr.doses=5, start.time=120,
+             dosing.interval=24) %>%
+  add.sampling(0:240)
 
 ## -----------------------------------------------------------------------------
 head(ev$get.dosing())
@@ -49,22 +53,22 @@ head(ev$get.sampling())
 
 ## -----------------------------------------------------------------------------
 ev  <- et(amountUnits="mg", timeUnits="hours") %>%
-    et(amt=10000, addl=9,ii=12,cmt="depot") %>%
-    et(time=120, amt=2000, addl=4, ii=14, cmt="depot") %>%
-    et(0:240) # Assumes sampling when there is no dosing information
+  et(amt=10000, addl=9,ii=12,cmt="depot") %>%
+  et(time=120, amt=2000, addl=4, ii=14, cmt="depot") %>%
+  et(0:240) # Add sampling 
 
 ## ---- results="asis"----------------------------------------------------------
 x <- mod1$solve(theta, ev, inits);
 knitr::kable(head(x))
 
 ## -----------------------------------------------------------------------------
-x <- mod1 %>% solve(theta, ev, inits);
+x <- mod1 %>% rxSolve(theta, ev, inits);
 x
 
-## -----------------------------------------------------------------------------
+## ----intro-central------------------------------------------------------------
 library(ggplot2)
-plot(x,C2) + ylab("Central Concentration") + xlab("Time");
+plot(x,C2) + ylab("Central Concentration")
 
-## -----------------------------------------------------------------------------
-plot(x,eff)  + ylab("Effect") + xlab("Time");
+## ----intro-effect-------------------------------------------------------------
+plot(x,eff)  + ylab("Effect")
 

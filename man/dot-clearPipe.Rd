@@ -30,7 +30,7 @@ compartments);}
 
 \item{events}{an \code{eventTable} object describing the input
 (e.g., doses) to the dynamic system and observation sampling
-time points (see \code{\link{eventTable}});}
+time points (see \code{\link[=eventTable]{eventTable()}});}
 
 \item{params}{a numeric named vector with values for every
 parameter in the ODE system; the names must correspond to the
@@ -57,19 +57,22 @@ covariance matrix.  The names of the columns indicate
 parameters that are simulated.  These are simulated for every
 observation in the solved system.}
 
-\item{dfObs}{Degrees of freedom to sample the unexplained variability matrix from the 
+\item{dfObs}{Degrees of freedom to sample the unexplained variability matrix from the
 inverse Wishart distribution (scaled) or scaled inverse chi squared distribution.}
 
-\item{dfSub}{Degrees of freedom to sample the between subject variability matrix from the 
+\item{dfSub}{Degrees of freedom to sample the between subject variability matrix from the
 inverse Wishart distribution (scaled) or scaled inverse chi squared distribution.}
 
-\item{nSub}{Number between subject variabilities (ETAs) simulated for every 
+\item{nSub}{Number between subject variabilities (\code{ETAs}) simulated for every
 realization of the parameters.}
 
-\item{nStud}{Number virtual studies to characterize uncertainty in estimated 
+\item{nStud}{Number virtual studies to characterize uncertainty in estimated
 parameters.}
+}
+\value{
+None, clears RxODE pipeline
 }
 \description{
 Clear/Set pipeline
 }
-\keyword{intenral}
+\keyword{internal}

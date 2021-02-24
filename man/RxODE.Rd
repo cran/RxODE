@@ -15,27 +15,26 @@ RxODE(
   calcSens = NULL,
   collapseModel = FALSE,
   package = NULL,
-  ...
+  ...,
+  linCmtSens = c("linCmtA", "linCmtB", "linCmtC"),
+  indLin = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
 \item{model}{This is the ODE model specification.  It can be:
-
 \itemize{
+\item a string containing the set of ordinary differential
+equations (ODE) and other expressions defining the changes in
+the dynamic system.
+\item a file name where the ODE system equation is contained
+}
 
- \item a string containing the set of ordinary differential
-    equations (ODE) and other expressions defining the changes in
-    the dynamic system.
-
- \item a file name where the ODE system equation is contained
-
- \item An ODE expression enclosed in \code{\{\}}
-
-  }
+An ODE expression enclosed in \verb{\\\{\\\}}
 
 (see also the \code{filename} argument). For
-    details, see the sections \dQuote{Details} and
-    \dQuote{\code{RxODE Syntax}} below.}
+details, see the sections \dQuote{Details} and
+\verb{RxODE Syntax} below.}
 
 \item{modName}{a string to be used as the model name. This string
 is used for naming various aspects of the computations,
@@ -50,7 +49,7 @@ specified, a subdirectory named after the
 C file, a dynamic loading library, plus various other working
 files. If missing, the files are created (and removed) in the
 temporary directory, and the RxODE DLL for the model is
-created in the current directory named \code{rx_????_platform}, for
+created in the current directory named \verb{rx_????_platform}, for
 example \code{rx_129f8f97fb94a87ca49ca8dafe691e1e_i386.dll}}
 
 \item{filename}{A file name or connection object where the
@@ -76,9 +75,90 @@ LHS variables when calculating sensitivities.}
 
 \item{package}{Package name for pre-compiled binaries.}
 
-\item{...}{ignored arguments.
+\item{...}{ignored arguments.}
 
-The \dQuote{Rx} in the name \code{RxODE} is meant to suggest the
+\item{linCmtSens}{The method to calculate the linCmt() solutions}
+
+\item{indLin}{Calculate inductive linearization matrices and
+compile with inductive linearization support.}
+
+\item{verbose}{When \code{TRUE} be verbose with the linear
+compartmental model}
+}
+\value{
+An object (environment) of class \code{RxODE} (see Chambers and Temple Lang (2001))
+consisting of the following list of strings and functions:\preformatted{* `model` a character string holding the source model specification.
+* `get.modelVars`a function that returns a list with 3 character
+    vectors, `params`, `state`, and `lhs` of variable names used in the model
+    specification. These will be output when the model is computed (i.e., the ODE solved by integration).
+
+  * `solve`\{this function solves (integrates) the ODE. This
+      is done by passing the code to [rxSolve()].
+      This is as if you called `rxSolve(RxODEobject, ...)`,
+      but returns a matrix instead of a rxSolve object.
+
+      `params`: a numeric named vector with values for every parameter
+      in the ODE system; the names must correspond to the parameter
+      identifiers used in the ODE specification;
+
+      `events`: an `eventTable` object describing the
+      input (e.g., doses) to the dynamic system and observation
+      sampling time points (see  [eventTable()]);
+
+      `inits`: a vector of initial values of the state variables
+      (e.g., amounts in each compartment), and the order in this vector
+      must be the same as the state variables (e.g., PK/PD compartments);
+
+
+      `stiff`: a logical (`TRUE` by default) indicating whether
+      the ODE system is stiff or not.
+
+      For stiff ODE systems (`stiff = TRUE`), `RxODE` uses
+      the LSODA (Livermore Solver for Ordinary Differential Equations)
+      Fortran package, which implements an automatic method switching
+      for stiff and non-stiff problems along the integration interval,
+      authored by Hindmarsh and Petzold (2003).
+
+      For non-stiff systems (`stiff = FALSE`), `RxODE` uses `DOP853`,
+      an explicit Runge-Kutta method of order 8(5, 3) of Dormand and Prince
+      as implemented in C by Hairer and Wanner (1993).
+
+      `trans_abs`: a logical (`FALSE` by default) indicating
+      whether to fit a transit absorption term
+      (TODO: need further documentation and example);
+
+      `atol`: a numeric absolute tolerance (1e-08 by default);
+
+      `rtol`: a numeric relative tolerance (1e-06 by default).e
+
+      The output of \\dQuote\{solve\} is a matrix with as many rows as there
+      are sampled time points and as many columns as system variables
+      (as defined by the ODEs and additional assignments in the RxODE model
+          code).\}
+
+  * `isValid` a function that (naively) checks for model validity,
+      namely that the C object code reflects the latest model
+      specification.
+  * `version` a string with the version of the `RxODE`
+      object (not the package).
+  * `dynLoad` a function with one `force = FALSE` argument
+      that dynamically loads the object code if needed.
+  * `dynUnload` a function with no argument that unloads
+      the model object code.
+  * `delete` removes all created model files, including C and DLL files.
+      The model object is no longer valid and should be removed, e.g.,
+      `rm(m1)`.
+  * `run` deprecated, use `solve`.
+  * `get.index` deprecated.
+  * `getObj` internal (not user callable) function.
+}
+}
+\description{
+Create a dynamic ODE-based model object suitably for translation
+into fast C code
+}
+\details{
+The \code{Rx} in the name \code{RxODE} is meant to suggest the
 abbreviation \emph{Rx} for a medical prescription, and thus to
 suggest the package emphasis on pharmacometrics modeling, including
 pharmacokinetics (PK), pharmacodynamics (PD), disease progression,
@@ -90,151 +170,155 @@ coding details.  An internal \code{RxODE} compilation manager
 object translates the ODE system into C, compiles it, and
 dynamically loads the object code into the current R session.  The
 call to \code{RxODE} produces an object of class \code{RxODE} which
-consists of a list-like structure (closure) with various member
+consists of a list-like structure (environment) with various member
 functions (see Section \emph{Value} below).
 
 For evaluating \code{RxODE} models, two types of inputs may be
 provided: a required set of time points for querying the state of
 the ODE system and an optional set of doses (input amounts).  These
 inputs are combined into a single \emph{event table} object created
-with the function \code{\link{eventTable}}.}
-}
-\value{
-An object (closure) of class \dQuote{\code{RxODE}} (see Chambers and Temple Lang (2001))
-     consisting of the following list of strings and functions:
+with the function \code{\link[=eventTable]{eventTable()}} or \code{\link[=et]{et()}}.
 
-    \item{modName}{the name of the model (a copy of the input argument).}
-    \item{model}{a character string holding the source model specification.}
-    \item{get.modelVars}{a function that returns a list with 3 character
-        vectors, \code{params}, \code{state}, and \code{lhs} of variable names used in the model
-        specification. These will be output when the model is computed (i.e., the ODE solved by integration).}
+An \code{RxODE} model specification consists of one or more statements
+optionally terminated by semi-colons \verb{;} and optional comments (comments
+are delimited by \verb{#} and an end-of-line).
 
-      \item{solve}{this function solves (integrates) the ODE. This
-          is done by passing the code to \code{\link{rxSolve}}.
-          This is as if you called \code{rxSolve(RxODEobject, ...)},
-          but returns a matrix instead of a rxSolve object.
+A block of statements is a set of statements delimited by curly braces,
+\code{{ ... }}.
 
-          \code{params}: a numeric named vector with values for every parameter
-          in the ODE system; the names must correspond to the parameter
-          identifiers used in the ODE specification;
+Statements can be either assignments, conditional \code{if}/\verb{else if}/\verb{else},
+\code{while} loops (can be exited by \code{break}), special statements, or
+printing statements (for debugging/testing)
 
-          \code{events}: an \code{eventTable} object describing the
-          input (e.g., doses) to the dynamic system and observation
-          sampling time points (see  \code{\link{eventTable}});
-
-          \code{inits}: a vector of initial values of the state variables
-          (e.g., amounts in each compartment), and the order in this vector
-          must be the same as the state variables (e.g., PK/PD compartments);
-
-
-          \code{stiff}: a logical (\code{TRUE} by default) indicating whether
-          the ODE system is stiff or not.
-
-          For stiff ODE systems (\code{stiff = TRUE}), \code{RxODE} uses
-          the LSODA (Livermore Solver for Ordinary Differential Equations)
-          Fortran package, which implements an automatic method switching
-          for stiff and non-stiff problems along the integration interval,
-          authored by Hindmarsh and Petzold (2003).
-
-          For non-stiff systems (\code{stiff = FALSE}), \code{RxODE} uses \code{DOP853},
-          an explicit Runge-Kutta method of order 8(5, 3) of Dormand and Prince
-          as implemented in C by Hairer and Wanner (1993).
-
-          \code{trans_abs}: a logical (\code{FALSE} by default) indicating
-          whether to fit a transit absorption term
-          (TODO: need further documentation and example);
-
-          \code{atol}: a numeric absolute tolerance (1e-08 by default);
-
-          \code{rtol}: a numeric relative tolerance (1e-06 by default).e
-
-          The output of \dQuote{solve} is a matrix with as many rows as there
-          are sampled time points and as many columns as system variables
-          (as defined by the ODEs and additional assignments in the RxODE model
-              code).}
-
-      \item{isValid}{a function that (naively) checks for model validity,
-          namely that the C object code reflects the latest model
-          specification.}
-      \item{version}{a string with the version of the \code{RxODE}
-          object (not the package).}
-      \item{dynLoad}{a function with one \code{force = FALSE} argument
-          that dynamically loads the object code if needed.}
-      \item{dynUnload}{a function with no argument that unloads
-          the model object code.}
-      \item{delete}{removes all created model files, including C and DLL files.
-          The model object is no longer valid and should be removed, e.g.,
-          \code{rm(m1)}.}
-      \item{run}{deprecated, use \code{solve}.}
-      \item{parse}{deprecated.}
-      \item{compile}{deprecated.}
-      \item{get.index}{deprecated.}
-      \item{getObj}{internal (not user callable) function.}
-}
-\description{
-Create a dynamic ODE-based model object suitably for translation
-into fast C code
-}
-\section{RxODE Syntax}{
-
-
-An \code{RxODE} model specification consists of one or more
-statements terminated by semi-colons, \sQuote{\code{;}}, and
-optional comments (comments are delimited by \code{#} and an
-end-of-line marker).  \strong{NB:} Comments are not allowed inside
-statements.
-
-A block of statements is a set of statements delimited by curly
-braces, \sQuote{\code{\{ ... \}}}. Statements can be either
-assignments or conditional \code{if} statements. Assignment
-statements can be: (1) \dQuote{simple} assignments, where the left
-hand is an identifier (i.e., variable), (2) special
-\dQuote{time-derivative} assignments, where the left hand specifies
-the change of that variable with respect to time e.g.,
-\code{d/dt(depot)}, or (3) special \dQuote{jacobian} assignments,
-where the left hand specifies the change of of the ODE with respect
-to one of the parameters, e.g. \code{df(depot)/dy(kel)}.  The
-\dQuote{jacobian} assignments are not required, and are only useful
-for very stiff differential systems.
-
-Expressions in assignment and \sQuote{\code{if}} statements can be
-numeric or logical (no character expressions are currently
-supported). Numeric expressions can include the following numeric
-operators (\sQuote{\code{+}}, \sQuote{\code{-}}, \sQuote{\code{*}},
-\sQuote{\code{/}}, \sQuote{\code{^}}), and those mathematical
-functions defined in the C or the R math libraries (e.g.,
-\code{fabs}, \code{exp}, \code{log}, \code{sin}).  (Notice that the
-modulo operator \sQuote{\code{\%}} is currently not supported.)
-
-Identifiers in an \code{RxODE} model specification can refer to:
+Assignment statements can be:
 \itemize{
-   \item state variables in the dynamic system (e.g., compartments in a
-         pharmacokinetics/pharamcodynamics model);
-   \item implied input variable, \code{t} (time),
-   \code{podo} (oral dose, for absorption models), and
-   \code{tlast} (last time point);
-   \item model parameters, (\code{ka} rate of absorption, \code{CL}
-       clearance, etc.);
-   \item \code{pi}, for the constant pi.
-   \item others, as created by assignments as part of the model
-         specification.
+\item \strong{simple} assignments, where the left hand is an identifier (i.e.,
+variable)
+\item special \strong{time-derivative} assignments, where the left hand
+specifies the change of the amount in the corresponding state
+variable (compartment) with respect to time e.g., \code{d/dt(depot)}:
+\item special \strong{initial-condition} assignments where the left hand
+specifies the compartment of the initial condition being specified,
+e.g. \code{depot(0) = 0}
+\item special model event changes including \strong{bioavailability}
+(\code{f(depot)=1}), \strong{lag time} (\code{alag(depot)=0}), \strong{modeled rate}
+(\code{rate(depot)=2}) and \strong{modeled duration} (\code{dur(depot)=2}). An
+example of these model features and the event specification for the
+modeled infusions the RxODE data specification is found in \href{https://nlmixrdevelopment.github.io/RxODE/articles/RxODE-event-types.html}{RxODE events vignette}.
+\item special \strong{change point syntax, or model times}. These model times
+are specified by \code{mtime(var)=time}
+\item special \strong{Jacobian-derivative} assignments, where the left hand
+specifies the change in the compartment ode with respect to a
+variable. For example, if \code{d/dt(y) = dy}, then a Jacobian for this
+compartment can be specified as \code{df(y)/dy(dy) = 1}. There may be
+some advantage to obtaining the solution or specifying the Jacobian
+for very stiff ODE systems. However, for the few stiff systems we
+tried with LSODA, this actually slightly slowed down the solving.
 }
 
-Identifiers consists of case-sensitive alphanumeric characters,
-plus the underscore \sQuote{_} character.  \strong{NB:} the dot
-\sQuote{.} character is \strong{not} a valid character identifier.
+Note that assignment can be done by \code{=}, \verb{<-} or \code{~}.
 
-The values of these variables at pre-specified time points are
-saved as part of the fitted/integrated/solved model (see
-\code{\link{eventTable}}, in particular its member function
-\code{add.sampling} that defines a set of time points at which to
-capture a snapshot of the system via the values of these variables).
+When assigning with the \code{~} operator, the \strong{simple assignments} and
+\strong{time-derivative} assignments will not be output.
 
-The ODE specification mini-language is parsed with the help of the
-open source tool \code{dparser}, Plevyak (2015).
+Special statements can be:
+\itemize{
+\item \strong{Compartment declaration statements}, which can change the default
+dosing compartment and the assumed compartment number(s) as well as
+add extra compartment names at the end (useful for multiple-endpoint
+nlmixr models); These are specified by \code{cmt(compartmentName)}
+\item \strong{Parameter declaration statements}, which can make sure the input
+parameters are in a certain order instead of ordering the parameters
+by the order they are parsed. This is useful for keeping the
+parameter order the same when using 2 different ODE models. These
+are specified by \code{param(par1, par2,...)}
 }
 
+An example model is shown below:\preformatted{   # simple assignment
+   C2 = centr/V2;
+
+   # time-derivative assignment
+   d/dt(centr) = F*KA*depot - CL*C2 - Q*C2 + Q*C3; 
+}
+
+Expressions in assignment and \code{if} statements can be numeric or logical,
+however, no character nor integer expressions are currently supported.
+
+Numeric expressions can include the following numeric operators \verb{+, -, *, /, ^} and those mathematical functions defined in the C or the R math
+libraries (e.g., \code{fabs}, \code{exp}, \code{log}, \code{sin}, \code{abs}).
+
+You may also access the R’s functions in the \href{https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Numerical-analysis-subroutines}{R math libraries},
+like \code{lgammafn} for the log gamma function.
+
+The \code{RxODE} syntax is case-sensitive, i.e., \code{ABC} is different than
+\code{abc}, \code{Abc}, \code{ABc}, etc.
+\subsection{Identifiers}{
+
+Like R, Identifiers (variable names) may consist of one or more
+alphanumeric, underscore \verb{_} or period \code{.} characters, but the first
+character cannot be a digit or underscore \verb{_}.
+
+Identifiers in a model specification can refer to:
+\itemize{
+\item State variables in the dynamic system (e.g., compartments in a
+pharmacokinetics model).
+\item Implied input variable, \code{t} (time), \code{tlast} (last time point), and
+\code{podo} (oral dose, in the undocumented case of absorption transit
+models).
+\item Special constants like \code{pi} or \href{https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Mathematical-constants}{R’s predefined constants}.
+\item Model parameters (e.g., \code{ka} rate of absorption, \code{CL} clearance,
+etc.)
+\item Others, as created by assignments as part of the model
+specification; these are referred as \emph{LHS} (left-hand side)
+variable.
+}
+
+Currently, the \code{RxODE} modeling language only recognizes system state
+variables and “parameters”, thus, any values that need to be passed from
+R to the ODE model (e.g., \code{age}) should be either passed in the \code{params}
+argument of the integrator function \code{rxSolve()} or be in the supplied
+event data-set.
+
+There are certain variable names that are in the \code{RxODE} event tables.
+To avoid confusion, the following event table-related items cannot be
+assigned, or used as a state but can be accessed in the RxODE code:
+\itemize{
+\item \code{cmt}
+\item \code{dvid}
+\item \code{addl}
+\item \code{ss}
+\item \code{rate}
+\item \code{id}
+}
+
+However the following variables are cannot be used in a model
+specification - \code{evid} - \code{ii}
+
+Sometimes RxODE generates variables that are fed back to RxODE.
+Similarly, nlmixr generates some variables that are used in nlmixr
+estimation and simulation. These variables start with the either the
+\code{rx} or \code{nlmixr} prefixes. To avoid any problems, it is suggested to not
+use these variables starting with either the \code{rx} or \code{nlmixr} prefixes.
+}
+
+\subsection{Logical Operators}{
+
+Logical operators support the standard R operators \code{==}, \code{!=} \code{>=} \code{<=}
+\code{>} and \code{<}. Like R these can be in \verb{if()} or \verb{while()} statements,
+\code{ifelse()} expressions. Additionally they can be in a standard
+assignment. For instance, the following is valid:\preformatted{cov1 = covm*(sexf == "female") + covm*(sexf != "female")
+}
+
+Notice that you can also use character expressions in comparisons. This
+convenience comes at a cost since character comparisons are slower than
+numeric expressions. Unlike R, \code{as.numeric} or \code{as.integer} for these
+logical statements is not only not needed, but will cause an syntax
+error if you try to use the function.
+}
+}
 \examples{
+
+\donttest{
 # Step 1 - Create a model specification
 ode <- "
    # A 4-compartment model, 3 PK and a PD (effect) compartment
@@ -294,6 +378,8 @@ print(qd.cp)
 plot(qd.cp)
 
 }
+
+}
 \references{
 Chamber, J. M. and Temple Lang, D. (2001)
 \emph{Object Oriented Programming in R}.
@@ -319,7 +405,7 @@ Plevyak, J.
 \emph{\code{dparser}}, \url{http://dparser.sourceforge.net}. Web. 12 Oct. 2015.
 }
 \seealso{
-\code{\link{eventTable}}, \code{\link{et}}, \code{\link{add.sampling}}, \code{\link{add.dosing}}
+\code{\link[=eventTable]{eventTable()}}, \code{\link[=et]{et()}}, \code{\link[=add.sampling]{add.sampling()}}, \code{\link[=add.dosing]{add.dosing()}}
 }
 \author{
 Melissa Hallow, Wenping Wang and Matthew Fidler

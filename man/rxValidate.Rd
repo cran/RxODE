@@ -3,17 +3,22 @@
 \name{rxValidate}
 \alias{rxValidate}
 \alias{rxTest}
-\title{Validate RxODE}
+\title{Validate RxODE
+This allows easy validation/qualification of nlmixr by running the
+testing suite on your system.}
 \usage{
-rxValidate(full = TRUE)
+rxValidate(type = NULL)
 
-rxTest(full = TRUE)
+rxTest(type = NULL)
 }
 \arguments{
-\item{full}{Should a full validation be performed?  (By default
-\code{TRUE})}
+\item{type}{Type of test or filter of test type}
+}
+\value{
+nothing
 }
 \description{
+Validate RxODE
 This allows easy validation/qualification of nlmixr by running the
 testing suite on your system.
 }

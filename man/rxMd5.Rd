@@ -4,40 +4,31 @@
 \alias{rxMd5}
 \title{Return the md5 of an RxODE object or file}
 \usage{
-rxMd5(model, extraC = NULL, ...)
+rxMd5(model, ...)
 }
 \arguments{
 \item{model}{This is the ODE model specification.  It can be:
-
 \itemize{
+\item a string containing the set of ordinary differential
+equations (ODE) and other expressions defining the changes in
+the dynamic system.
+\item a file name where the ODE system equation is contained
+}
 
- \item a string containing the set of ordinary differential
-    equations (ODE) and other expressions defining the changes in
-    the dynamic system.
-
- \item a file name where the ODE system equation is contained
-
- \item An ODE expression enclosed in \code{\{\}}
-
-  }
+An ODE expression enclosed in \verb{\\\{\\\}}
 
 (see also the \code{filename} argument). For
-    details, see the sections \dQuote{Details} and
-    \dQuote{\code{RxODE Syntax}} below.}
-
-\item{extraC}{Extra c code to include in the model.  This can be
-useful to specify functions in the model.  These C functions
-should usually take \code{double} precision arguments, and
-return \code{double} precision values.}
+details, see the sections \dQuote{Details} and
+\verb{RxODE Syntax} below.}
 
 \item{...}{ignored arguments}
 }
 \value{
 If this is a RxODE object, return a named list:
-
-\item{\code{file_md5}}{ is the model's file's md5}
-
-\item{\code{parsed_md5}}{ is the parsed model's file's md5.}
+\itemize{
+\item \code{file_md5} is the model's file's md5
+\item \code{parsed_md5}  is the parsed model's file's md5.
+}
 
 Otherwise return the md5 based on the arguments provided
 }

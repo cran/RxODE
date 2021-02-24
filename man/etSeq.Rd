@@ -14,22 +14,15 @@ etSeq(..., samples = c("clear", "use"), waitII = c("smart", "+ii"), ii = 24)
 tables, called waiting times in this help document.}
 
 \item{samples}{How to handle samples when repeating an event
-    table.  The options are:
+table.  The options are:
 \itemize{
-
-\item{"clear"} Clear
-    sampling records before combining the datasets
-
-\item{"use"}
-    Use the sampling records when combining the datasets
-
+\item \code{"clear"} Clear sampling records before combining the datasets
+\item \code{"use"} Use the sampling records when combining the datasets
 }}
 
 \item{waitII}{This determines how waiting times between events are
-    handled. The options are:
-
+handled. The options are:
 \itemize{
-
 \item \code{"smart"} This "smart" handling of waiting times is the
 default option.  In this case, if the waiting time is above the
 last observed inter-dose interval in the first combined event
@@ -37,16 +30,17 @@ table, then the actual time between doses is given by the wait
 time.  If it is smaller than the last observed inter-dose
 interval, the time between event tables is given by the inter-dose
 interval + the waiting time between event tables.
-
 \item \code{"+ii"} In this case, the wait time is added to the
 inter-dose interval no matter the length of the wait time or
 inter-dose interval
-
 }}
 
 \item{ii}{If there was no inter-dose intervals found in the event
 table, assume that the interdose interval is given by this
 \code{ii} value.  By default this is \code{24}.}
+}
+\value{
+An event table
 }
 \description{
 This combines a sequence of event tables.
@@ -61,6 +55,8 @@ least the wait time defined by that number or the last inter-dose
 interval.
 }
 \examples{
+
+\donttest{
 
 ## Model from RxODE tutorial
 mod1 <-RxODE({
@@ -136,7 +132,7 @@ repCycle4 <- rxSolve(mod1, et)
 
 plot(repCycle4, C2)
 
-
+}
 }
 \references{
 Wang W, Hallow K, James D (2015). "A Tutorial on RxODE: Simulating
@@ -146,9 +142,9 @@ Pharmacometrics \& Systems Pharmacology, 5(1), 3-10. ISSN 2163-8306,
 }
 \seealso{
 \code{\link{eventTable}}, \code{\link{add.sampling}},
-    \code{\link{add.dosing}}, \code{\link{et}},
-    \code{\link{etRep}}, \code{\link{etRbind}},
-    \code{\link{RxODE}}
+\code{\link{add.dosing}}, \code{\link{et}},
+\code{\link{etRep}}, \code{\link{etRbind}},
+\code{\link{RxODE}}
 }
 \author{
 Matthew L Fidler, Wenping Wang
