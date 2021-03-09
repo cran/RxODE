@@ -3,13 +3,11 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
   )
-options(knitr.table.format = "html")
 options(width=80, cli.width=80)
 Sys.setenv(RSTUDIO_CONSOLE_WIDTH=80)
 
 ## -----------------------------------------------------------------------------
 library(RxODE)
-library(units)
 
 mod1 <-RxODE({
     C2 = centr/V2;

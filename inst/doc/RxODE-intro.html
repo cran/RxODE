@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2021-02-18" />
+<meta name="date" content="2021-03-09" />
 
 <title>Introduction to RxODE</title>
 
@@ -39,7 +39,14 @@ document.addEventListener('DOMContentLoaded', function(e) {
     </style>
 
 
-<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
 pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
@@ -323,7 +330,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">Introduction to RxODE</h1>
-<h4 class="date">2021-02-18</h4>
+<h4 class="date">2021-03-09</h4>
 
 
 
@@ -336,20 +343,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>The model equations can be specified through a text string, a model file or an R expression. Both differential and algebraic equations are permitted. Differential equations are specified by <code>d/dt(var_name) =</code>. Each equation can be separated by a semicolon.</p>
 <p>To load <code>RxODE</code> package and compile the model:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RxODE)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; RxODE 1.0.4 using 2 threads (see ?getRxThreads)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; RxODE 1.0.5 using 2 threads (see ?getRxThreads)</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   no cache: create with `rxCreateCache()`</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(units)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; udunits system database from /usr/share/udunits</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>mod1 <span class="ot">&lt;-</span><span class="fu">RxODE</span>({</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    C2 <span class="ot">=</span> centr<span class="sc">/</span>V2;</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    C3 <span class="ot">=</span> peri<span class="sc">/</span>V3;</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(depot) <span class="ot">=</span><span class="sc">-</span>KA<span class="sc">*</span>depot;</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(centr) <span class="ot">=</span> KA<span class="sc">*</span>depot <span class="sc">-</span> CL<span class="sc">*</span>C2 <span class="sc">-</span> Q<span class="sc">*</span>C2 <span class="sc">+</span> Q<span class="sc">*</span>C3;</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(peri)  <span class="ot">=</span>                    Q<span class="sc">*</span>C2 <span class="sc">-</span> Q<span class="sc">*</span>C3;</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(eff)  <span class="ot">=</span> Kin <span class="sc">-</span> Kout<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>C2<span class="sc">/</span>(EC50<span class="sc">+</span>C2))<span class="sc">*</span>eff;</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; qs v0.23.6.</span></span></code></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>mod1 <span class="ot">&lt;-</span><span class="fu">RxODE</span>({</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    C2 <span class="ot">=</span> centr<span class="sc">/</span>V2;</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    C3 <span class="ot">=</span> peri<span class="sc">/</span>V3;</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(depot) <span class="ot">=</span><span class="sc">-</span>KA<span class="sc">*</span>depot;</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(centr) <span class="ot">=</span> KA<span class="sc">*</span>depot <span class="sc">-</span> CL<span class="sc">*</span>C2 <span class="sc">-</span> Q<span class="sc">*</span>C2 <span class="sc">+</span> Q<span class="sc">*</span>C3;</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(peri)  <span class="ot">=</span>                    Q<span class="sc">*</span>C2 <span class="sc">-</span> Q<span class="sc">*</span>C3;</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    d<span class="sc">/</span><span class="fu">dt</span>(eff)  <span class="ot">=</span> Kin <span class="sc">-</span> Kout<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>C2<span class="sc">/</span>(EC50<span class="sc">+</span>C2))<span class="sc">*</span>eff;</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div>
 <div id="specify-ode-parameters-and-initial-conditions" class="section level2">
 <h2>Specify ODE parameters and initial conditions</h2>
 <p>Model parameters can be defined as named vectors. Names of parameters in the vector must be a superset of parameters in the ODE model, and the order of parameters within the vector is not important.</p>
@@ -405,168 +409,70 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">head</span>(x))</span></code></pre></div>
 <table>
 <thead>
-<tr>
-<th style="text-align:right;">
-time
-</th>
-<th style="text-align:right;">
-C2
-</th>
-<th style="text-align:right;">
-C3
-</th>
-<th style="text-align:right;">
-depot
-</th>
-<th style="text-align:right;">
-centr
-</th>
-<th style="text-align:right;">
-peri
-</th>
-<th style="text-align:right;">
-eff
-</th>
+<tr class="header">
+<th align="right">time</th>
+<th align="right">C2</th>
+<th align="right">C3</th>
+<th align="right">depot</th>
+<th align="right">centr</th>
+<th align="right">peri</th>
+<th align="right">eff</th>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0.00000
-</td>
-<td style="text-align:right;">
-0.0000000
-</td>
-<td style="text-align:right;">
-10000.000
-</td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-0.0000
-</td>
-<td style="text-align:right;">
-1.000000
-</td>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">0.00000</td>
+<td align="right">0.0000000</td>
+<td align="right">10000.000</td>
+<td align="right">0.000</td>
+<td align="right">0.0000</td>
+<td align="right">1.000000</td>
 </tr>
-<tr>
-<td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-44.37555
-</td>
-<td style="text-align:right;">
-0.9198298
-</td>
-<td style="text-align:right;">
-7452.765
-</td>
-<td style="text-align:right;">
-1783.897
-</td>
-<td style="text-align:right;">
-273.1895
-</td>
-<td style="text-align:right;">
-1.084664
-</td>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">44.37555</td>
+<td align="right">0.9198298</td>
+<td align="right">7452.765</td>
+<td align="right">1783.897</td>
+<td align="right">273.1895</td>
+<td align="right">1.084664</td>
 </tr>
-<tr>
-<td style="text-align:right;">
-2
-</td>
-<td style="text-align:right;">
-54.88296
-</td>
-<td style="text-align:right;">
-2.6729825
-</td>
-<td style="text-align:right;">
-5554.370
-</td>
-<td style="text-align:right;">
-2206.295
-</td>
-<td style="text-align:right;">
-793.8758
-</td>
-<td style="text-align:right;">
-1.180825
-</td>
+<tr class="odd">
+<td align="right">2</td>
+<td align="right">54.88296</td>
+<td align="right">2.6729825</td>
+<td align="right">5554.370</td>
+<td align="right">2206.295</td>
+<td align="right">793.8758</td>
+<td align="right">1.180825</td>
 </tr>
-<tr>
-<td style="text-align:right;">
-3
-</td>
-<td style="text-align:right;">
-51.90343
-</td>
-<td style="text-align:right;">
-4.4564927
-</td>
-<td style="text-align:right;">
-4139.542
-</td>
-<td style="text-align:right;">
-2086.518
-</td>
-<td style="text-align:right;">
-1323.5783
-</td>
-<td style="text-align:right;">
-1.228914
-</td>
+<tr class="even">
+<td align="right">3</td>
+<td align="right">51.90343</td>
+<td align="right">4.4564927</td>
+<td align="right">4139.542</td>
+<td align="right">2086.518</td>
+<td align="right">1323.5783</td>
+<td align="right">1.228914</td>
 </tr>
-<tr>
-<td style="text-align:right;">
-4
-</td>
-<td style="text-align:right;">
-44.49738
-</td>
-<td style="text-align:right;">
-5.9807076
-</td>
-<td style="text-align:right;">
-3085.103
-</td>
-<td style="text-align:right;">
-1788.795
-</td>
-<td style="text-align:right;">
-1776.2702
-</td>
-<td style="text-align:right;">
-1.234610
-</td>
+<tr class="odd">
+<td align="right">4</td>
+<td align="right">44.49738</td>
+<td align="right">5.9807076</td>
+<td align="right">3085.103</td>
+<td align="right">1788.795</td>
+<td align="right">1776.2702</td>
+<td align="right">1.234610</td>
 </tr>
-<tr>
-<td style="text-align:right;">
-5
-</td>
-<td style="text-align:right;">
-36.48434
-</td>
-<td style="text-align:right;">
-7.1774981
-</td>
-<td style="text-align:right;">
-2299.255
-</td>
-<td style="text-align:right;">
-1466.670
-</td>
-<td style="text-align:right;">
-2131.7169
-</td>
-<td style="text-align:right;">
-1.214742
-</td>
+<tr class="even">
+<td align="right">5</td>
+<td align="right">36.48434</td>
+<td align="right">7.1774981</td>
+<td align="right">2299.255</td>
+<td align="right">1466.670</td>
+<td align="right">2131.7169</td>
+<td align="right">1.214742</td>
 </tr>
 </tbody>
 </table>

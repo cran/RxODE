@@ -659,22 +659,26 @@ simulate.rxEt <- # nolint
     }
   }
 
-#' @export
 drop_units.rxEt <- function(x) {
+  if (requireNamespace("units", quietly = TRUE)) {
+    stop("requires package 'units'", call.=FALSE)
+  }
   .Call(`_RxODE_et_`, list(amountUnits = NA_character_, timeUnits = NA_character_), x)
 }
 
-#' @export
-set_units.rxEt <- function(x, value, ..., mode = units::units_options("set_units_mode")) {
+set_units.rxEt <- function(x, value, ..., mode = .setUnitsMode()) {
+  if (is.null(mode)) {
+    stop("requires package 'units'", call.=FALSE)
+  }
   if (missing(value)) {
-    value <- units::unitless
+    value <- .unitless()
   } else if (mode == "symbols") {
     value <- substitute(value)
     if (is.numeric(value) && !identical(value, 1) && !identical(value, 1L)) {
       stop("the only valid number defining a unit is '1', signifying a unitless unit", call. = FALSE)
     }
   }
-  if (identical(value, units::unitless)) {
+  if (identical(value, .unitless())) {
     warning("clearing both amount and time units\nfor more precise control use 'et(amountUnits=\"\")' or 'et(timeUnits=\"\")'",
       call. = FALSE
     )
@@ -1233,7 +1237,6 @@ as.character.rxEvid <- function(x, ...) {
   as.rxEvid(NextMethod())
 }
 
-#' @export
 `units<-.rxEvid` <- function(x, value) {
   stop("'evid' is unitless", call. = FALSE)
 }
@@ -1363,8 +1366,10 @@ pillar_shaft.rxRateDur <- function(x, ...) {
 #' @export
 as.data.frame.rxRateDur <- base::as.data.frame.difftime
 
-#' @export
-set_units.rxRateDur <- function(x, value, ..., mode = units::units_options("set_units_mode")) {
+set_units.rxRateDur <- function(x, value, ..., mode = .setUnitsMode()) {
+  if (is.null(mode)) {
+    stop("requires package 'units'", call.=FALSE)
+  }
   if (inherits(x, "units")) {
     .ret <- x
     .ret0 <- unclass(x)

@@ -1,5 +1,6 @@
 rxodeTest(
-  {
+{
+  if (requireNamespace("units", quietly = TRUE)) {
     context("Test reset event EVID=3")
 
     ## 6.1
@@ -26,7 +27,6 @@ rxodeTest(
     library(units)
 
     ms <- c("liblsoda", "lsoda", "dop853")
-    if (grepl("SunOS", Sys.info()["sysname"])) ms <- "lsoda"
 
     for (m in ms) {
       x2 <- solve(mod, et, method = m)
@@ -70,6 +70,7 @@ rxodeTest(
     })
 
     ## library(ggplot2);x2 %>% ggplot(aes(time,blood)) + geom_line()
+  }
   },
   test = "lvl2"
 )

@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 1.0.4
+Version: 1.0.5
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -36,15 +36,15 @@ Authors@R: c(
 Maintainer: Wenping Wang <wwang8198@gmail.com>
 Depends: R (>= 3.6.0)
 Suggests: spelling, Matrix, DT, covr, crayon, curl, data.table (>=
-        1.12.4), devtools, digest, dplyr (>= 0.8.0), ggrepel,
-        gridExtra, htmltools, knitr, learnr, microbenchmark, nlme,
-        remotes, rlang, rmarkdown, scales, shiny, stringi, symengine,
-        testthat, tidyr, usethis, vdiffr, xgxr, pillar, tibble,
-        rsconnect, patchwork
+        1.12.4), digest, dplyr (>= 0.8.0), ggrepel, gridExtra,
+        htmltools, knitr, learnr, microbenchmark, nlme, remotes, rlang,
+        rmarkdown, scales, shiny, stringi, symengine, testthat, tidyr,
+        usethis, vdiffr, xgxr, pillar, tibble, units (>= 0.6-0),
+        rsconnect, devtools, patchwork
 Imports: PreciseSums (>= 0.3), Rcpp (>= 0.12.3), assertthat, backports,
         checkmate, cli (>= 2.0.0), dparser (>= 0.1.8), ggplot2, inline,
         lotri (>= 0.2.2), magrittr, memoise, methods, rex, qs, sys,
-        units (>= 0.6-0), tools, utils
+        tools, utils
 Description: Facilities for running simulations from ordinary
     differential equation ('ODE') models, such as pharmacometrics and other
     compartmental models.  A compilation manager translates the ODE model
@@ -66,11 +66,11 @@ RoxygenNote: 7.1.1
 Biarch: true
 LinkingTo: dparser (>= 0.1.8), PreciseSums (>= 0.3), RcppEigen (>=
         0.3.3.3.0), RcppArmadillo (>= 0.9.300.2.0), sitmo, StanHeaders
-        (>= 2.18.0), BH, checkmate, qs
+        (>= 2.21.0), BH, checkmate
 Encoding: UTF-8
 LazyData: true
 Language: en-US
-Packaged: 2021-02-18 13:44:52 UTC; annie
+Packaged: 2021-03-09 20:22:17 UTC; annie
 Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -98,4 +98,4 @@ Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Kevin Ushey [ctb],
   Yu Feng [ctb]
 Repository: CRAN
-Date/Publication: 2021-02-24 09:40:10 UTC
+Date/Publication: 2021-03-09 23:40:07 UTC
