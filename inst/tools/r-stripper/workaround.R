@@ -19,12 +19,6 @@ for (f in c("inst/include/RxODE_RcppExports.h", "src/RcppExports.cpp")) {
 .in <- gsub("@EG@", file.path(find.package("RcppEigen"),"include"), .in)
 
 .badStan <- ""
-if (R.version$major < 4 && isTRUE(.Platform$OS.type == "windows")) {
-  # See https://github.com/nlmixrdevelopment/nlmixr/issues/429#issuecomment-729993005
-  if (compareVersion(as.character(packageVersion("BH")), "1.66.0-1") > 0) {
-    .badStan <- " -D__Rx_noSTAN__ "
-  }
-}
 .in <- gsub("@SH@", gsub("-I", "-@ISYSTEM@",
                          paste(## capture.output(StanHeaders:::CxxFlags()),
                                ## capture.output(RcppParallel:::CxxFlags()),
@@ -115,9 +109,9 @@ deparse2 <- function (expr, collapse = " ", width.cutoff = 500L, ...) {
 
 final <- c("#include <time.h>",
            "#include <stdlib.h>",
+           "unsigned long int __timeId=0;",
            "void writeHeader(const char *md5, const char *extra) {",
-           "unsigned long int timeId=0;",
-           paste0("sAppend(&sbOut, \"#define ", def, " _rx%s%s%ld\\n\", extra, md5, timeId++);"),
+           paste0("sAppend(&sbOut, \"#define ", def, " _rx%s%s%ld\\n\", extra, md5, __timeId++);"),
            "}",
            "void writeBody() {",
            paste0("sAppendN(&sbOut, ", vapply(paste0(l, "\n"), deparse2, character(1)), ", ", nchar(l) + 1, ");"),

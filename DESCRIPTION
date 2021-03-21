@@ -1,5 +1,5 @@
 Package: RxODE
-Version: 1.0.5
+Version: 1.0.6
 Title: Facilities for Simulating from ODE-Based Models
 Authors@R: c(
    person("Matthew L.","Fidler",
@@ -34,7 +34,7 @@ Authors@R: c(
    person("Yu", "Feng", role="ctb")
    )
 Maintainer: Wenping Wang <wwang8198@gmail.com>
-Depends: R (>= 3.6.0)
+Depends: R (>= 4.0.0)
 Suggests: spelling, Matrix, DT, covr, crayon, curl, data.table (>=
         1.12.4), digest, dplyr (>= 0.8.0), ggrepel, gridExtra,
         htmltools, knitr, learnr, microbenchmark, nlme, remotes, rlang,
@@ -61,16 +61,17 @@ BugReports: https://github.com/nlmixrdevelopment/RxODE/issues
 NeedsCompilation: yes
 VignetteBuilder: knitr
 License: GPL (>= 3)
-URL: https://nlmixrdevelopment.github.io/RxODE/
+URL: https://nlmixrdevelopment.github.io/RxODE,
+        https://github.com/nlmixrdevelopment/RxODE
 RoxygenNote: 7.1.1
 Biarch: true
 LinkingTo: dparser (>= 0.1.8), PreciseSums (>= 0.3), RcppEigen (>=
         0.3.3.3.0), RcppArmadillo (>= 0.9.300.2.0), sitmo, StanHeaders
-        (>= 2.21.0), BH, checkmate
+        (>= 2.21.0), BH
 Encoding: UTF-8
 LazyData: true
 Language: en-US
-Packaged: 2021-03-09 20:22:17 UTC; annie
+Packaged: 2021-03-21 16:33:47 UTC; annie
 Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Melissa Hallow [aut],
   Wenping Wang [aut, cre],
@@ -98,4 +99,4 @@ Author: Matthew L. Fidler [aut] (<https://orcid.org/0000-0001-8538-6691>),
   Kevin Ushey [ctb],
   Yu Feng [ctb]
 Repository: CRAN
-Date/Publication: 2021-03-09 23:40:07 UTC
+Date/Publication: 2021-03-21 22:40:06 UTC
