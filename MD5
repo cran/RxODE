@@ -1,11 +1,11 @@
-571290580b0c3b1ce6a9aa93ccbc6e37 *DESCRIPTION
+550b2ec42dc7779c3a5448de32116500 *DESCRIPTION
 bf7b4190bd2d02f0a0bc39714e176b25 *NAMESPACE
-0ab82e2a872152e5ef171a7f0837062a *NEWS.md
+565f043aafc50eaf82d08a99036969e8 *NEWS.md
 ae05e6fe03d1d5a5011a152c8878d4a0 *R/DollarNames.R
 9fc57beba80bf9b0824be18d17d2239a *R/RcppExports.R
 830bc2f098459bbee36bb103abc8faf3 *R/RxODE-win-setup.R
 a2ea06a010ee68bc52356ad98706940f *R/RxODE.R
-8836960f9db437248dc2237e8acd32ff *R/RxODE_md5.R
+1b61db3588f7843382b811c9506ef008 *R/RxODE_md5.R
 36584b9291e0928c00f27ee723528480 *R/confint.R
 8c36f0c4b19220433ba9fa1fc5b55abb *R/dsl.R
 26517cfaeeaf5ce796ee2a2b36c6a663 *R/et.R
@@ -32,7 +32,7 @@ ba310f8d78046126b6f372fab490d4af *R/rxShiny.R
 a039bd5abe7f30ee586da5d83116d74a *R/rxSymInv.R
 9e61d7bcc9e2ce64e3c794a607247442 *R/rxSyntaxFunctions.R
 ff998833ceb3d6abf0f322babf9ac331 *R/rxValidate.R
-7932aeba5c8c745f235cfd65f2e05a11 *R/rxode-options.R
+1ced2f33d47162fc54a1cf2c3bb4f60b *R/rxode-options.R
 938eed272042f700c571409e0e857066 *R/rxrandom.R
 22c6270352d82938896b5f1adb1c2df0 *R/rxsolve.R
 acf7911d426a1c078a150f05e051b8af *R/str.R
@@ -45,10 +45,10 @@ f2a1586bab537ded5ca159a426bf4299 *R/version.R
 6b5c6b95c1f5f04fd8e0129c06692526 *build/buildRxODE.R
 071add7af95c6c0ff8e830671bd4d745 *build/depends.R
 abb9bc284c1ba219658140eef041c079 *build/dual.R
-e927b9559664501a54f7a55e88bc1415 *build/partial.rdb
+7eb0aab633d76bf9531b0835741f0163 *build/partial.rdb
 93a54fccd5b8faf040df6a15f1bb1cac *build/refresh.R
 5ea50b5c6a02bd1ca3f31c6c2ef1b5ef *build/sensitivites.R
-fb7be4a28ff939e6ea7f6b863f8f9ab3 *build/vignette.rds
+dc802cf30cc9f6bde3a7166c8b1e9143 *build/vignette.rds
 22221f4e98aadad64790ec625ce641a6 *cleanup
 c57a96dde3a290cb24bc059ba354a73b *cleanup.win
 16f2bd3c37fe77fe12a08509a9919c13 *configure
@@ -62,9 +62,8 @@ b197295b2b76f8cb2b16e834fc13d46b *demo/00Index
 d7d648a3d2c5a1481822628ccc0ee78b *inst/Changes.txt
 016787a447a81ffdd73db455cd709a5b *inst/THANKS
 5da00adc5c07e53f1b2dd272032c1d99 *inst/WORDLIST
-9ec9b8ce800408d8daa649bd129605b8 *inst/doc/RxODE-syntax.R
-2f5b340f12c41d307cf28c6e989da52e *inst/doc/RxODE-syntax.Rmd
-c0705b849e562156efc143b0b202febb *inst/doc/RxODE-syntax.html
+2c5e2b1a09813ee23e5fd94ba7eca0fe *inst/doc/RxODE-syntax.Rmd
+fa7d9c6520ac5a4371eee114ed8651ea *inst/doc/RxODE-syntax.html
 6de767d192cc251b65b4a366df696fb0 *inst/include/RxODE.h
 6c0b7c0f2ff1826bacc39ce7933a0c16 *inst/include/RxODE_RcppExports.h
 aae1c6330ffd0603669d99199928f9bd *inst/include/RxODE_as.h
@@ -318,7 +317,7 @@ c6b1400554f2bc604f11b49aa43b3194 *src/lsoda.h
 d04e3c541c9b3642a00170d4b12b04cb *src/matexp.f
 972fedbdadef9c2f0f8c394b57a7019a *src/matexp_HM98.c
 fb16448e49213ffafdc60858e065210d *src/methodswitch.c
-cc7857abf5d42d750cb6d53f3f7d8f30 *src/ode.h
+dc5f133bad2ad0014ec628ee8962bed7 *src/ode.h
 a4f042cdf4504dfbd2f1acbc14185a99 *src/omegaChol.c
 758995da84240900068f42dd30803d0e *src/opkda2.f
 f6d1f112deb7f07e5f0999d298e33111 *src/orderswitch.c
@@ -510,7 +509,7 @@ c11616f8f79f3b26fdaa45b3b04f3cc5 *tests/testthat/test-zzzz-rxUse.R
 dc7f405f486c02296d5779f9c51925b2 *tests/testthat/test-zzzzz.R
 6cf0e469d0180015b118434c8a0159a7 *tests/testthat/theoSd.rds
 172c7a92465a356c108940843986a97f *tests/testthat/warfarin.rda
-2f5b340f12c41d307cf28c6e989da52e *vignettes/RxODE-syntax.Rmd
+2c5e2b1a09813ee23e5fd94ba7eca0fe *vignettes/RxODE-syntax.Rmd
 3b902677cbfda2b461c6cf47c80ecd87 *vignettes/df.Rmdh
 58905f9ace6c23f8942c7c3ca5ac18a8 *vignettes/eventTable-output-notebook-01.png
 d8ca241ce9e35ce9e437710e934cc859 *vignettes/eventTable-output-notebook-02.png
