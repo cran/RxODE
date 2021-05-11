@@ -7,6 +7,8 @@
 #include <Rmath.h> //Rmath includes math.
 #include <R_ext/Rdynload.h>
 #include "../inst/include/RxODE.h"
+#include "strncmp.h"
+
 extern "C" {
   #include "dop853.h"
   #include "common.h"
@@ -410,18 +412,17 @@ extern "C" int compareFactorVal(int val,
       return 0;
     }
   }
-  int totN = rx->factorNames.n;
+  int totN = rx->factorNames.n-2;
   base += curLen;
   for (int i = 0; i < totN; ++i) {
     const char *curFactor = rx->factorNames.line[++curG];
     curLen = rx->factorNs[curG];
-    if (!strcmp(valStr, curFactor)) {
+    if (!strncmpci(valStr, curFactor, strlen(valStr))) {
       if (val-1 < curLen){
 	if (base+val-1 >= rx->factors.n) {
 	  return 0;
 	}
-	return (!strcmp(rx->factors.line[base+val-1],
-			cmpValue));
+	return (!strcmp(rx->factors.line[base+val-1], cmpValue));
       } else {
 	return 0;
       }
@@ -2573,7 +2574,7 @@ extern "C" SEXP getDfLevels(const char *item, rx_solve *rx){
   for (int i = 2; i < totN; ++i) {
     const char *curFactor = rx->factorNames.line[i];
     curLen = rx->factorNs[i];
-    if (!strcmp(item, curFactor)) {
+    if (!strncmpci(item, curFactor, strlen(item))) {
       SEXP lvl = PROTECT(allocVector(STRSXP, curLen));
       for (int j = 0; j < curLen; j++){
 	SET_STRING_ELT(lvl, j, mkChar(rx->factors.line[base+j]));
@@ -2640,7 +2641,6 @@ extern "C" SEXP RxODE_df(int doDose0, int doTBS) {
   int add_cov = rx->add_cov;
   int ncov = op->ncov;
   int ncov0 = rx->nCov0;
-  int nkeep0 = rx->nKeep0;
   int nkeep  = rx->nKeepF;
   int nlhs = op->nlhs;
   int nobs = rx->nobs - rx->nevid9;
@@ -2710,7 +2710,7 @@ extern "C" SEXP RxODE_df(int doDose0, int doTBS) {
   int sm = 0;
   if (rx->nsim > 1) sm = 1;
   int ncols =1+nPrnState+nlhs;
-  int ncols2 = add_cov*(ncov+ncov0)+nkeep0+nkeep;
+  int ncols2 = add_cov*(ncov+ncov0)+nkeep;
   int doseCols = 0;
   int nevid2col = 0;
   if (doDose){
@@ -2764,7 +2764,6 @@ extern "C" SEXP RxODE_df(int doDose0, int doTBS) {
   }
   doseCols += nevid2col;
   SEXP paramNames = PROTECT(rxParamNames(op->modNamePtr)); pro++;
-  SEXP ikeepNames = PROTECT(get_ikeepn()); pro++;
   SEXP fkeepNames = PROTECT(get_fkeepn()); pro++;
   for (i = md + sm + ms + doseCols + 2*nmevid; i < ncols + doseCols + nidCols + 2*nmevid; i++){
     SET_VECTOR_ELT(df, i, PROTECT(allocVector(REALSXP, rx->nr))); pro++;
@@ -2781,10 +2780,6 @@ extern "C" SEXP RxODE_df(int doDose0, int doTBS) {
   par_cov = rx->cov0;
   for (i = 0; i < ncov0*add_cov; i++){
     charItem =CHAR(STRING_ELT(paramNames, par_cov[i]));
-    SET_VECTOR_ELT(df, j++, PROTECT(getDfLevels(charItem, rx))); pro++;
-  }
-  for (i = 0; i < nkeep0; i++){
-    charItem =CHAR(STRING_ELT(ikeepNames, i));
     SET_VECTOR_ELT(df, j++, PROTECT(getDfLevels(charItem, rx))); pro++;
   }
   for (i = 0; i < nkeep; i++){
@@ -3192,17 +3187,6 @@ extern "C" SEXP RxODE_df(int doDose0, int doTBS) {
 	      jj++;
 	    }
 	  }
-	  for (j = 0; j < nkeep0; j++){
-	    tmp = VECTOR_ELT(df, jj);
-	    if (TYPEOF(tmp) == REALSXP){
-	      dfp = REAL(tmp);
-	      dfp[ii] = get_ikeep(j, neq[1]);
-	    } else {
-	      dfi = INTEGER(tmp);
-	      dfi[ii] = (int)(get_ikeep(j, neq[1]));
-	    }
-	    jj++;
-	  }
 	  if (nkeep && didUpdate==0) _update_par_ptr(curT, solveId, rx, ind->idx);
 	  for (j = 0; j < nkeep; j++){
 	    tmp = VECTOR_ELT(df, jj);
@@ -3328,10 +3312,6 @@ extern "C" SEXP RxODE_df(int doDose0, int doTBS) {
     SET_STRING_ELT(sexp_colnames,jj, STRING_ELT(paramNames, par_cov[i]));
     jj++;
   }
-  for (i = 0; i < nkeep0; i++){
-    SET_STRING_ELT(sexp_colnames,jj, STRING_ELT(ikeepNames, i));
-    jj++;
-  }
   for (i = 0; i < nkeep; i++){
     SET_STRING_ELT(sexp_colnames,jj, STRING_ELT(fkeepNames, i));
     jj++;
@@ -3440,11 +3420,6 @@ extern "C" SEXP RxODE_df(int doDose0, int doTBS) {
     par_cov = rx->cov0;
     for (i = 0; i < ncov0*add_cov; i++){
       SET_STRING_ELT(sexp_colnames2,jj, STRING_ELT(paramNames2, par_cov[i]));
-      SET_VECTOR_ELT(df2, jj, VECTOR_ELT(df, kk));
-      jj++;kk++;
-    }
-    for (i = 0; i < nkeep0; i++){
-      SET_STRING_ELT(sexp_colnames2,jj, STRING_ELT(ikeepNames, i));
       SET_VECTOR_ELT(df2, jj, VECTOR_ELT(df, kk));
       jj++;kk++;
     }

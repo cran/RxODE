@@ -1,11 +1,36 @@
-# RxODE development version
+# RxODE 1.0.9
+
+* At the request of CRAN, stripping the debugging symbols for the CRAN
+  release is no longer performed.  This means a larger binary size for
+  RxODE in this release.
+
+* At the request of CRAN the `liblsoda` code has been changed so that
+  the memory in C defined by `_C()` is now defined by `_rxC()`. This
+  will be seen in some of the error messages, which will no longer
+  match the error messages of unmodified liblsoda.
+
+* `iCov` behavior has shifted to merge on the input event dataset.
+  See Issue #409; This is more in line with expectations of `iCov`
+  behavior, and reduces the amount of code needed to maintain `iCov`.
+
+  The `iCov` in the pipeline is no longer supported because it simply
+  is a merge with the event dataset.
+
+  This can be a breaking change depending on the code you use.  Note
+  that clinical trial simulations, resampling is likely better than
+  trying to fill out `iCov` for every individual which was the prior
+  use.
+
+* Bug fix for crashes with string covariates or factor covariates,
+  issue #410. Also factor column names are compared with case
+  insensitivity just like the rest of the column names for event
+  tables or data sets in `RxODE`.
 
 # RxODE 1.0.8
 
 * Fix issue #399
 
-
-# RxODE 1.0.7 
+# RxODE 1.0.7
 
 * Change syntax vignette to use markdown option
   `screenshot.force=FALSE`.  This should get rid of the `webshot`
