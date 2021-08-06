@@ -1,8 +1,10 @@
 //#undef NDEBUG
+#define STRICT_R_HEADER
 #include <stan/math.hpp>
 #include <Rcpp.h>
 #include <RcppEigen.h>
 #include "../inst/include/RxODE.h"
+#include "handle_evid.h"
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #define _(String) dgettext ("RxODE", String)
@@ -11,11 +13,9 @@
 #define _(String) (String)
 #endif
 
-extern "C" int syncIdx(rx_solving_options_ind *ind);
-extern "C" double getTime(int idx, rx_solving_options_ind *ind);
+#include "getTime.h"
 extern "C" int _locateTimeIndex(double obs_time,  rx_solving_options_ind *ind);
 extern "C" double _getDur(int l, rx_solving_options_ind *ind, int backward, unsigned int *p);
-extern "C" void getWh(int evid, int *wh, int *cmt, int *wh100, int *whI, int *wh0);
 extern "C" void RSprintf(const char *format, ...);
 
 namespace stan {
@@ -1946,7 +1946,7 @@ namespace stan {
 	    Eigen::Matrix<double, Eigen::Dynamic, 1>& bolus,
 	    Eigen::Matrix<double, Eigen::Dynamic, 1>& rate) {
       double t = ct - tlast;
-      if (r1 > DOUBLE_EPS  || (oral0 && r2 > DOUBLE_EPS)){
+      if (r1 > DBL_EPSILON  || (oral0 && r2 > DBL_EPSILON)){
 	if (oral0){
 	  switch (ncmt){
 	  case 1: {
@@ -2092,11 +2092,11 @@ namespace stan {
       double rateAdjust = 0.0;
       double tinf;
       int evid, wh, cmt, wh100, whI, wh0, cmtOff;
-      curTime = getTime(ind->ix[idx], ind);
+      curTime = getTime_(ind->ix[idx], ind);
       if (idx == 0) {
 	tlast = curTime;
       } else {
-	tlast = getTime(ind->ix[idx-1], ind);
+	tlast = getTime_(ind->ix[idx-1], ind);
       }
       int extraAdvan = 1, doRate=0, doMultiply = 0, doReplace=0,
 	doInf=0;
@@ -2139,11 +2139,11 @@ namespace stan {
 	      (!oral0 && cmtOff != 0)) {
 	  } else {
 	    syncIdx(ind);
-	    amt = ind->dose[ind->ixds];
-	    if (!ISNA(ind->dose[ind->ixds]) && (amt > 0) && (wh0 == 10 || wh0 == 20)) {
+	    amt = getDoseNumber(ind, ind->ixds);
+	    if (!ISNA(getDoseNumber(ind, ind->ixds)) && (amt > 0) && (wh0 == 10 || wh0 == 20)) {
 	      // dosing to cmt
 	      // Steady state doses; wh0 == 20 is equivalent to SS=2 in NONMEM
-	      double tau = ind->ii[ind->ixds];
+	      double tau = getIiNumber(ind, ind->ixds);
 	      Eigen::Matrix<T, Eigen::Dynamic, 1> aSave(oral0+ncmt, 1);
 	      if (wh0 == 20) {
 		aSave = doAdvan(ncmt, oral0, tlast, curTime,
@@ -2174,7 +2174,7 @@ namespace stan {
 	      } break;
 	      case 8: // Duration is modeled
 	      case 9: { // Rate is modeled
-		amt = -ind->dose[ind->ixds+1];
+		amt = -getDoseNumber(ind, ind->ixds+1);
 		if (whI == 9) {
 		  // cmtOff = 0
 		  if (cmtOff == 0)  {
@@ -2204,7 +2204,7 @@ namespace stan {
 	      } break;
 	      case 1:
 	      case 2: {
-		if (ISNA(ind->dose[ind->ixds])){
+		if (ISNA(getDoseNumber(ind, ind->ixds))){
 		} else if (amt > 0) {
 		  doInf=1;
 		  unsigned int p;
@@ -2265,7 +2265,7 @@ namespace stan {
 	    }
 	    // dosing to cmt
 	    // use handle_evid here
-	    amt = ind->dose[ind->ixds];
+	    amt = getDoseNumber(ind, ind->ixds);
 	    switch (whI){
 	    case 0: { // Bolus dose
 	      // base dose
@@ -2284,7 +2284,7 @@ namespace stan {
 	    case 9:
 	    case 8: { // modeled duration.
 	      //InfusionRate[cmt] -= dose[ind->ixds+1];
-	      rateAdjust = -ind->dose[ind->ixds+1];
+	      rateAdjust = -getDoseNumber(ind, ind->ixds+1);
 	      doRate = cmtOff+1;
 	    } break;
 	    case 6: // end modeled duration
@@ -2491,9 +2491,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     if (op->linBflag & 64) { // tlag
       if (val == 7) {
 	if (interpolate) {
-	  double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	  double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	  double *Alast = getAdvan(ind->idx-1);
-	  double tcur  = getTime(ind->ix[ind->idx], ind);
+	  double tcur  = getTime_(ind->ix[ind->idx], ind);
 	  return (A[cur] - Alast[cur])/(tcur-tlast)*(t-tlast)+Alast[cur];
 	} else {
 	  return A[cur];
@@ -2503,9 +2503,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     }
     if (op->linBflag & 128) { // f 8
       if (interpolate && ind->idx > 0) {
-	double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	double *Alast = getAdvan(ind->idx-1);
-	double tcur  = getTime(ind->ix[ind->idx], ind);
+	double tcur  = getTime_(ind->ix[ind->idx], ind);
 	double diff = (A[cur] - Alast[cur]);
 	return diff/(tcur-tlast)*(t-tlast)+Alast[cur];
 	return A[cur];
@@ -2519,9 +2519,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     if (op->linBflag & 256) { // rate 9
       if (val == 9) {
 	if (interpolate) {
-	  double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	  double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	  double *Alast = getAdvan(ind->idx-1);
-	  double tcur  = getTime(ind->ix[ind->idx], ind);
+	  double tcur  = getTime_(ind->ix[ind->idx], ind);
 	  return (A[cur] - Alast[cur])/(tcur-tlast)*(t-tlast)+Alast[cur];
 	} else {
 	  return A[cur];
@@ -2532,9 +2532,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     if (op->linBflag & 512) { // dur 10
       if (val == 10) {
 	if (interpolate) {
-	  double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	  double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	  double *Alast = getAdvan(ind->idx-1);
-	  double tcur  = getTime(ind->ix[ind->idx], ind);
+	  double tcur  = getTime_(ind->ix[ind->idx], ind);
 	  return (A[cur] - Alast[cur])/(tcur-tlast)*(t-tlast)+Alast[cur];
 	} else {
 	  return A[cur];
@@ -2545,9 +2545,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     if (op->linBflag & 2048) { // tlag2 12
       if (val == 12) {
 	if (interpolate) {
-	  double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	  double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	  double *Alast = getAdvan(ind->idx-1);
-	  double tcur  = getTime(ind->ix[ind->idx], ind);
+	  double tcur  = getTime_(ind->ix[ind->idx], ind);
 	  return (A[cur] - Alast[cur])/(tcur-tlast)*(t-tlast)+Alast[cur];
 	} else {
 	  return A[cur];
@@ -2558,9 +2558,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     if (op->linBflag & 4096) { // f2 13
       if (val == 13) {
 	if (interpolate) {
-	  double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	  double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	  double *Alast = getAdvan(ind->idx-1);
-	  double tcur  = getTime(ind->ix[ind->idx], ind);
+	  double tcur  = getTime_(ind->ix[ind->idx], ind);
 	  return (A[cur] - Alast[cur])/(tcur-tlast)*(t-tlast)+Alast[cur];
 	} else {
 	  return A[cur];
@@ -2571,9 +2571,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     if (op->linBflag & 8192) { // rate2 14
       if (val == 14) {
 	if (interpolate) {
-	  double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	  double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	  double *Alast = getAdvan(ind->idx-1);
-	  double tcur  = getTime(ind->ix[ind->idx], ind);
+	  double tcur  = getTime_(ind->ix[ind->idx], ind);
 	  return (A[cur] - Alast[cur])/(tcur-tlast)*(t-tlast)+Alast[cur];
 	} else {
 	  return A[cur];
@@ -2584,9 +2584,9 @@ static inline double linCmtBg(double *A, double &t, int& val, int& trans, int& n
     if (op->linBflag & 16384) { // dur2 15
       if (val == 15) {
 	if (interpolate) {
-	  double tlast  = getTime(ind->ix[ind->idx-1], ind);
+	  double tlast  = getTime_(ind->ix[ind->idx-1], ind);
 	  double *Alast = getAdvan(ind->idx-1);
-	  double tcur  = getTime(ind->ix[ind->idx], ind);
+	  double tcur  = getTime_(ind->ix[ind->idx], ind);
 	  return (A[cur] - Alast[cur])/(tcur-tlast)*(t-tlast)+Alast[cur];
 	} else {
 	  return A[cur];
@@ -2652,14 +2652,14 @@ extern "C" double linCmtB(rx_solve *rx, unsigned int id,
     int idx = ind->idx;
     rx_solving_options *op = rx->op;
     int oral0 = (dd_ka != 0) ? 1 : 0;
-    double it = getTime(ind->ix[idx], ind);
+    double it = getTime_(ind->ix[idx], ind);
 
     if (t != it) {
       // Try to get another idx by bisection
       idx = _locateTimeIndex(t, ind);
-      it = getTime(ind->ix[idx], ind);
+      it = getTime_(ind->ix[idx], ind);
     }
-    int sameTime = fabs(t-it) < sqrt(DOUBLE_EPS);
+    int sameTime = fabs(t-it) < sqrt(DBL_EPSILON);
     if (idx <= ind->solved && sameTime){
       // Pull from last solved value (cached)
       double *A = getAdvan(idx);

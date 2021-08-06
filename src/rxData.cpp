@@ -1,6 +1,7 @@
 // [[Rcpp::interfaces(r, cpp)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 //#undef NDEBUG
+#define STRICT_R_HEADER
 #define NCMT 100
 // NONMEM 7.1 has a max of 50 obesrrvations/individual
 #define MAXIDS 500
@@ -31,6 +32,9 @@ void resetSolveLinB();
 using namespace Rcpp;
 using namespace arma;
 
+#include "cbindThetaOmega.h"
+#include "handle_evid.h"
+
 extern "C" uint64_t dtwiddle(const void *p, int i);
 extern "C" void calcNradix(int *nbyte, int *nradix, int *spare, uint64_t *maxD, uint64_t *minD);
 extern "C" void RSprintf(const char *format, ...);
@@ -50,8 +54,6 @@ extern "C" void addLine(vLines *sbb, const char *format, ...);
 extern "C" void seedEng(int ncores);
 extern "C" int getRxThreads(const int64_t n, const bool throttle);
 extern "C" void RxODE_assign_fn_pointers_(const char *mv);
-extern "C" double getTime(int idx, rx_solving_options_ind *ind);
-extern "C" void getWh(int evid, int *wh, int *cmt, int *wh100, int *whI, int *wh0);
 extern "C" void setSilentErr(int silent);
 
 bool useForder();
@@ -1687,20 +1689,19 @@ List rxSimThetaOmega(const Nullable<NumericVector> &params    = R_NilValue,
 		     bool simSubjects=true){
   rx_solve* rx = getRxSolve_();
   NumericVector par;
+  CharacterVector parN;
   if (params.isNull()){
-    rxSolveFree();
-    stop(_("requires 'params'"));
   } else {
     par = NumericVector(params);
     if (!par.hasAttribute("names")){
       rxSolveFree();
       stop(_("'params' must be a named vector"));
     }
+    parN = CharacterVector(par.attr("names"));
   }
   NumericMatrix thetaM;
   CharacterVector thetaN;
   bool simTheta = false;
-  CharacterVector parN = CharacterVector(par.attr("names"));
   IntegerVector thetaPar(parN.size());
   int i, j, k;
   rxSimTheta(thetaN, parN, thetaPar, thetaM, simTheta,
@@ -2274,7 +2275,7 @@ LogicalVector rxSolveFree(){
     rxUnlock(rxSolveFreeObj);
     rxSolveFreeObj=R_NilValue;
   }
-  if (_globals.gindLin != NULL) Free(_globals.gindLin);
+  if (_globals.gindLin != NULL) R_Free(_globals.gindLin);
   rxOptionsFree(); // f77 losda free
   rxOptionsIni();// realloc f77 lsoda cache
   parseFree(0); //free parser
@@ -2685,6 +2686,7 @@ static inline void rxSolve_simulate(const RObject &obj,
   RObject sigma= rxControl[Rxc_sigma];
   Nullable<NumericVector> sigmaDf= asNNv(rxControl[Rxc_sigmaDf], "sigmaDf");
   bool sigmaIsChol= asBool(rxControl[Rxc_sigmaIsChol], "sigmaIsChol");
+
   op->isChol = (int)(sigmaIsChol);
   SEXP tmp = rxControl[Rxc_linDiff];
   LogicalVector linLV;
@@ -2791,9 +2793,14 @@ static inline void rxSolve_simulate(const RObject &obj,
 
   if (!thetaMat.isNull() || !rxIsNull(omega) || !rxIsNull(sigma)){
     // Simulated Variable3
+    bool cbindPar1 = false;
     if (!rxIsNum(rxSolveDat->par1)){
-      rxSolveFree();
-      stop(_("when specifying 'thetaMat', 'omega', or 'sigma' the parameters cannot be a 'data.frame'/'matrix'."));
+      if (!thetaMat.isNull()) {
+	rxSolveFree();
+	stop(_("when specifying 'thetaMat' the parameters cannot be a 'data.frame'/'matrix'."));
+      } else {
+	cbindPar1 = true;
+      }
     }
     unsigned int nSub0 = 0;
     int curObs = 0;
@@ -2868,26 +2875,33 @@ static inline void rxSolve_simulate(const RObject &obj,
 	}
       }
     }
-    List lst = rxSimThetaOmega(as<Nullable<NumericVector>>(rxSolveDat->par1),
-			       omega,
-			       omegaDf,
-			       asNv(rxControl[Rxc_omegaLower], "omegaLower"),
-			       asNv(rxControl[Rxc_omegaUpper], "omegaUpper"),
-			       omegaIsChol,
-			       asStr(rxControl[Rxc_omegaSeparation], "omegaSeparation"),
-			       asInt(rxControl[Rxc_omegaXform], "omegaXform"),
-			       nSub0, thetaMat,
-			       asNv(rxControl[Rxc_thetaLower], "thetaLower"),
-			       asNv(rxControl[Rxc_thetaUpper], "thetaUpper"),
-			       thetaDf, thetaIsChol, nStud,
-			       sigma,
-			       asNv(rxControl[Rxc_sigmaLower], "sigmaLower"),
-			       asNv(rxControl[Rxc_sigmaUpper], "sigmaUpper"),
-			       sigmaDf, sigmaIsChol,
-			       asStr(rxControl[Rxc_sigmaSeparation], "sigmaSeparation"),
-			       asInt(rxControl[Rxc_sigmaXform], "sigmaXform"),
-			       nCoresRV, curObs,
-			       dfSub, dfObs, simSubjects);
+    Nullable<NumericVector> params0 = R_NilValue;
+    if (!cbindPar1) {
+      params0 = as<Nullable<NumericVector>>(rxSolveDat->par1);
+    }
+    List lst = rxSimThetaOmega(params0,
+			    omega,
+			    omegaDf,
+			    asNv(rxControl[Rxc_omegaLower], "omegaLower"),
+			    asNv(rxControl[Rxc_omegaUpper], "omegaUpper"),
+			    omegaIsChol,
+			    asStr(rxControl[Rxc_omegaSeparation], "omegaSeparation"),
+			    asInt(rxControl[Rxc_omegaXform], "omegaXform"),
+			    nSub0, thetaMat,
+			    asNv(rxControl[Rxc_thetaLower], "thetaLower"),
+			    asNv(rxControl[Rxc_thetaUpper], "thetaUpper"),
+			    thetaDf, thetaIsChol, nStud,
+			    sigma,
+			    asNv(rxControl[Rxc_sigmaLower], "sigmaLower"),
+			    asNv(rxControl[Rxc_sigmaUpper], "sigmaUpper"),
+			    sigmaDf, sigmaIsChol,
+			    asStr(rxControl[Rxc_sigmaSeparation], "sigmaSeparation"),
+			    asInt(rxControl[Rxc_sigmaXform], "sigmaXform"),
+			    nCoresRV, curObs,
+			    dfSub, dfObs, simSubjects);
+    if (cbindPar1) {
+      lst = cbindThetaOmega(rxSolveDat->par1, lst);
+    }
     rxSolveDat->warnIdSort = false;
     rxSolveDat->par1 =  as<RObject>(lst);
     rxSolveDat->usePar1=true;
@@ -2906,7 +2920,6 @@ static inline void rxSolve_parSetup(const RObject &obj,
 				    const RObject &ev1,
 				    const RObject &inits,
 				    rxSolve_t* rxSolveDat){
-  rx_solve* rx = getRxSolve_();
   //  determine which items will be sampled from
   if (rxIsNumInt(rxSolveDat->par1)){
     rxSolveDat->parNumeric = as<NumericVector>(rxSolveDat->par1);
@@ -2972,6 +2985,7 @@ extern "C" void setupRxInd(rx_solving_options_ind* ind, int first) {
   ind->logitLow         = 0;
   ind->logitHi          = 1;
   ind->isIni            = 0;
+  ind->_update_par_ptr_in = 0;
   if (first){
     ind->solveTime	= 0.0;
     ind->nBadDose	= 0;
@@ -3193,10 +3207,11 @@ static inline void rxSolve_datSetupHmax(const RObject &obj, const List &rxContro
 	tlast = NA_REAL;
       }
       // Create index
+      _globals.gii[i] = datIi[i];
+      _globals.gamt[i] = amt[i];
+
       if (isDose(_globals.gevid[i])){
 	_globals.gidose[j] = i-lasti;
-	_globals.gii[j] = datIi[i];
-	_globals.gamt[j] = amt[i];
 	ind->ndoses++;
 	ndoses++; nall++; j++;
       } else {
@@ -3643,8 +3658,8 @@ static inline void rxSolve_normalizeParms(const RObject &obj, const List &rxCont
   int nbyte=0, nradix=0, spare=0;
   calcNradix(&nbyte, &nradix, &spare, &(rx->maxD), &(rx->minD));
   if (_globals.nradix != NULL) free(_globals.nradix);
-  rx->nradix = _globals.nradix = (int*)malloc(op->cores*sizeof(int));//nbyte-1 + (rx->spare==0); // lost
-  std::fill_n(rx->nradix, op->cores, nradix);
+  rx->nradix = _globals.nradix = (int*)malloc(sizeof(int));//nbyte-1 + (rx->spare==0); // lost
+  std::fill_n(rx->nradix, 1, nradix);
   ////////////////////////////////////////////////////////////////////////////////
   if (_globals.keys!=NULL) {
     int i=0;
@@ -3660,23 +3675,21 @@ static inline void rxSolve_normalizeParms(const RObject &obj, const List &rxCont
     free(_globals.keys);
   }
   rx->keys = _globals.keys = NULL;
-  rx->keys = _globals.keys = (uint8_t ***)calloc(op->cores+1, sizeof(uint8_t **)); // lost
-  rx->keys[op->cores] = NULL;
-  for (i = op->cores; i--;){
-    // In RxODE the keyAlloc size IS 9
-    rx->keys[i] = (uint8_t **)calloc(10, sizeof(uint8_t *));
-    for (int j = 0; j < 10; j++) rx->keys[i][j] = NULL;
-    for (int b = 0; b < nbyte; b++){
-      rx->keys[i][b] = (uint8_t *)calloc(rx->maxAllTimes+1, sizeof(uint8_t));
-    }
+  rx->keys = _globals.keys = (uint8_t ***)calloc(2, sizeof(uint8_t **)); // lost
+  rx->keys[1] = NULL;
+  // In RxODE the keyAlloc size IS 9
+  rx->keys[0] = (uint8_t **)calloc(10, sizeof(uint8_t *));
+  for (int j = 0; j < 10; j++) rx->keys[0][j] = NULL;
+  for (int b = 0; b < nbyte; b++){
+    rx->keys[0][b] = (uint8_t *)calloc(rx->maxAllTimes+1, sizeof(uint8_t));
   }
   // Use same variables from data.table
   if (_globals.TMP != NULL) free(_globals.TMP);
   _globals.TMP = NULL;
-  rx->TMP = _globals.TMP =  (int *)malloc(op->cores*UINT16_MAX*sizeof(int)); // used by counting sort (my_n<=65536) in radix_r()
+  rx->TMP = _globals.TMP =  (int *)malloc(UINT16_MAX*sizeof(int)); // used by counting sort (my_n<=65536) in radix_r()
   if (_globals.UGRP != NULL) free(_globals.UGRP);
   _globals.UGRP = NULL;
-  rx->UGRP = _globals.UGRP = (uint8_t *)malloc(op->cores*256); // TODO: align TMP and UGRP to cache lines (and do the same for stack allocations too)
+  rx->UGRP = _globals.UGRP = (uint8_t *) malloc(256); // TODO: align TMP and UGRP to cache lines (and do the same for stack allocations too)
   // Now there is a key per core
 }
 
@@ -4453,7 +4466,7 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
     rx->safeZero = asInt(rxControl[Rxc_safeZero], "safeZero");
     op->stiff = method;
     rxSolveDat->throttle = false;
-    if (method != 2){
+    if (method != 2 || rx->needSort != 0){
       op->cores = 1;//getRxThreads(1, false);
     } else {
       op->cores = asInt(rxControl[Rxc_cores], "cores");
@@ -4462,8 +4475,10 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 	switch (thread) {
 	case 2:
 	  // Thread safe, but possibly not reproducible
-	  warning(_("thread safe method, but results may depend on system/load, using 1 core (can change with `cores=`)"));
-	  op->cores = 1;
+	  if (op->cores > 1) {
+	    op->stiff = method = 4;
+	    warning(_("results depend on the number of cores used"));
+	  }
 	  rxSolveDat->throttle = false;
 	  break;
 	case 1:
@@ -4482,7 +4497,10 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 	switch (thread) {
 	case 2:
 	  // Thread safe, but possibly not reproducible
-	  if (op->cores > 1) warning(_("thread safe method, but results may depend on system/load"));
+	  if (op->cores > 1) {
+	    op->stiff = method = 4;
+	    warning(_("results depend on the number of cores used"));
+	  }
 	  break;
 	case 1:
 	  // Thread safe, and reproducible
@@ -4497,7 +4515,7 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 	}
       }
     }
-    seedEng(op->cores);
+    seedEng(max2(op->cores, 1));
     // Now set up events and parameters
     RObject par0 = params;
     RObject ev0  = events;
@@ -4560,8 +4578,8 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 	// Inductive linearization
 	IntegerVector indLinItems = as<IntegerVector>(indLin[3]);
 	op->indLinN = indLinItems.size();
-	if (_globals.gindLin != NULL) Free(_globals.gindLin);
-	_globals.gindLin = Calloc(op->indLinN,int);
+	if (_globals.gindLin != NULL) R_Free(_globals.gindLin);
+	_globals.gindLin = R_Calloc(op->indLinN,int);
 	op->indLin = _globals.gindLin;
 	std::copy(indLinItems.begin(), indLinItems.end(), op->indLin);
 	if (me){
@@ -4664,10 +4682,13 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
     // .sigma could be reassigned in an update, so check outside simulation function.
     if (_rxModels.exists(".sigma")){
       if (Rf_isMatrix(_rxModels[".sigma"])) {
-	rxSolveDat->sigmaN= as<CharacterVector>((as<List>((as<NumericMatrix>(_rxModels[".sigma"])).attr("dimnames")))[1]);
+	rxSolveDat->sigmaN=  as<CharacterVector>((as<List>((as<NumericMatrix>(_rxModels[".sigma"])).attr("dimnames")))[1]);
       } else {
 	_rxModels.remove(".sigma");
       }
+    } else if (Rf_isMatrix(rxControl[Rxc_sigma])) {
+      rxSolveDat->sigmaN= as<CharacterVector>((as<List>((as<NumericMatrix>(rxControl[Rxc_sigma])).attr("dimnames")))[1]);
+      _rxModels[".sigma"] = rxControl[Rxc_sigma];
     }
     if (_rxModels.exists(".omega")){
       if (Rf_isMatrix(_rxModels[".omega"])) {
@@ -4677,6 +4698,9 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
       }
     } else if (_rxModels.exists(".omegaN")) {
       rxSolveDat->omegaN = as<CharacterVector>(_rxModels[".omegaN"]);
+    } else if (Rf_isMatrix(rxControl[Rxc_omega])) {
+      _rxModels[".omega"] = rxControl[Rxc_omega];
+      rxSolveDat->omegaN= as<CharacterVector>((as<List>((as<NumericMatrix>(rxControl[Rxc_omega])).attr("dimnames")))[1]);
     }
 #ifdef rxSolveT
     RSprintf("Time8: %f\n", ((double)(clock() - _lastT0))/CLOCKS_PER_SEC);
@@ -4907,7 +4931,7 @@ SEXP rxSolve_(const RObject &obj, const List &rxControl,
 #endif // rxSolveT
     rxSolve_normalizeParms(object, rxControl, specParams, extraArgs,
 			   pars, ev1, inits, rxSolveDat);
-    if (op->stiff == 2) { // liblsoda
+    if (op->stiff == 2 || op->stiff == 4) { // liblsoda
       // Order by the number of times per subject
       sortIds(rx, 1);
     }

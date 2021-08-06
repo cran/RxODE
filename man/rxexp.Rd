@@ -34,23 +34,22 @@ call to random number generated may have identical seeds.  As the number of
 random number generator calls are increased the probability that the
 birthday problem will increase.
 
-The key to avoid this problem is to run all simulations in the
+The key to avoid this problem is to either run all simulations in the
 \code{RxODE} environment once (therefore one seed or series of seeds
-for the whole simulation) or to pre-generate all random variables
-used for the simulation.
+for the whole simulation), pre-generate all random variables
+used for the simulation, or seed the RxODE engine with \code{rxSetSeed()}
 
 Also care should be made that the computer you will be running on
 can run the same number of cores as you are running so they can
 reproduce your results.
 }
 \examples{
-
 \donttest{
 
 ## Use threefry engine
 
-rxexp(0.5, n=10) # with rxexp you have to explicitly state n
-rxexp(5, n=10, ncores=2) # You can parallelize the simulation using openMP
+rxexp(0.5, n = 10) # with rxexp you have to explicitly state n
+rxexp(5, n = 10, ncores = 2) # You can parallelize the simulation using openMP
 
 rxexp(1)
 
@@ -58,13 +57,12 @@ rxexp(1)
 ## This example uses `rxexp` directly in the model
 
 rx <- RxODE({
-  a = rxexp(2)
+  a <- rxexp(2)
 })
 
-et <- et(1,id=1:2)
+et <- et(1, id = 1:2)
 
-s <- rxSolve(rx,et)
-
+s <- rxSolve(rx, et)
 }
 
 }

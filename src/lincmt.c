@@ -1,3 +1,4 @@
+#define STRICT_R_HEADER
 #include <stdio.h>
 #include <stdarg.h>
 #include <R.h>
@@ -5,9 +6,11 @@
 #include <Rmath.h>
 #include <R_ext/Rdynload.h>
 #include "../inst/include/RxODE.h"
-#define safe_zero(a) ((a) == 0 ? DOUBLE_EPS : (a))
-#define _as_zero(a) (fabs(a) < sqrt(DOUBLE_EPS) ? 0.0 : a)
-#define _as_dbleps(a) (fabs(a) < sqrt(DOUBLE_EPS) ? ((a) < 0 ? -sqrt(DOUBLE_EPS)  : sqrt(DOUBLE_EPS)) : a)
+#include "handle_evid.h"
+#include "getTime.h"
+#define safe_zero(a) ((a) == 0 ? DBL_EPSILON : (a))
+#define _as_zero(a) (fabs(a) < sqrt(DBL_EPSILON) ? 0.0 : a)
+#define _as_dbleps(a) (fabs(a) < sqrt(DBL_EPSILON) ? ((a) < 0 ? -sqrt(DBL_EPSILON)  : sqrt(DBL_EPSILON)) : a)
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -18,6 +21,7 @@
 #endif
 
 #include "lincmtB1.h"
+#include "getTime.h"
 //#include "lincmtB2.h"
 //#include "lincmtB3d.h"
 
@@ -33,16 +37,16 @@ void getWh(int evid, int *wh, int *cmt, int *wh100, int *whI, int *wh0);
 
 // Linear compartment models/functions
 extern double _getDur(int l, rx_solving_options_ind *ind, int backward, unsigned int *p){
-  double dose = ind->dose[l];
+  double dose = getDoseNumber(ind, l);
   if (backward){
     if (l <= 0) {
       Rf_errorcall(R_NilValue, _("could not find a start to the infusion"));
     }
     p[0] = l-1;
-    while (p[0] > 0 && ind->dose[p[0]] != -dose){
+    while (p[0] > 0 && getDoseNumber(ind, p[0]) != -dose){
       p[0]--;
     }
-    if (ind->dose[p[0]] != -dose){
+    if (getDoseNumber(ind, p[0]) != -dose){
       Rf_errorcall(R_NilValue, _("could not find a start to the infusion"));
     }
     return ind->all_times[ind->idose[l]] - ind->all_times[ind->idose[p[0]]];
@@ -51,43 +55,40 @@ extern double _getDur(int l, rx_solving_options_ind *ind, int backward, unsigned
       Rf_errorcall(R_NilValue, _("could not find an end to the infusion"));
     }
     p[0] = l+1;
-    while (p[0] < ind->ndoses && ind->dose[p[0]] != -dose){
+    while (p[0] < ind->ndoses && getDoseNumber(ind, p[0]) != -dose){
       p[0]++;
     }
-    if (ind->dose[p[0]] != -dose){
+    if (getDoseNumber(ind, p[0]) != -dose){
       Rf_errorcall(R_NilValue, _("could not find an end to the infusion"));
     }
     return ind->all_times[ind->idose[p[0]]] - ind->all_times[ind->idose[l]];
   }
 }
 
-
-extern double getTime(int idx, rx_solving_options_ind *ind);
-
 extern int _locateTimeIndex(double obs_time,  rx_solving_options_ind *ind){
   // Uses bisection for slightly faster lookup of dose index.
   int i, j, ij;
   i = 0;
   j = ind->n_all_times - 1;
-  if (obs_time < getTime(ind->ix[i], ind)){
+  if (obs_time < getTime_(ind->ix[i], ind)){
     return i;
   }
-  if (obs_time > getTime(ind->ix[j], ind)){
+  if (obs_time > getTime_(ind->ix[j], ind)){
     return j;
   }
   while(i < j - 1) { /* x[i] <= obs_time <= x[j] */
     ij = (i + j)/2; /* i+1 <= ij <= j-1 */
-    if(obs_time < getTime(ind->ix[ij], ind))
+    if(obs_time < getTime_(ind->ix[ij], ind))
       j = ij;
     else
       i = ij;
   }
   /* if (i == 0) return 0; */
-  while(i != 0 && obs_time == getTime(ind->ix[i], ind)){
+  while(i != 0 && obs_time == getTime_(ind->ix[i], ind)){
     i--;
   }
   if (i == 0){
-    while(i < ind->ndoses-2 && fabs(obs_time  - getTime(ind->ix[i+1], ind))<= sqrt(DOUBLE_EPS)){
+    while(i < ind->ndoses-2 && fabs(obs_time  - getTime_(ind->ix[i+1], ind))<= sqrt(DBL_EPSILON)){
       i++;
     }
   }
@@ -125,7 +126,7 @@ static inline double getValue(int idx, double *y, rx_solving_options_ind *ind){
   }
   return ret;
 }
-#define T(i) getTime(id->ix[i], id)
+#define T(i) getTime_(id->ix[i], id)
 #define V(i) getValue(i, y, id)
 double rx_approxP(double v, double *y, int n,
 		  rx_solving_options *Meth, rx_solving_options_ind *id){
@@ -195,15 +196,14 @@ double _getParCov(unsigned int id, rx_solve *rx, int parNo, int idx0){
 
 double rxunif(rx_solving_options_ind* ind, double low, double hi);
 
-int _update_par_ptr_in = 0;
-void _update_par_ptr(double t, unsigned int id, rx_solve *rx, int idx){
+void _update_par_ptr(double t, unsigned int id, rx_solve *rx, int idx) {
   if (rx == NULL) Rf_errorcall(R_NilValue, _("solve data is not loaded"));
-  if (_update_par_ptr_in) return;
-  _update_par_ptr_in = 1;
-  if (ISNA(t)){
+  rx_solving_options_ind *ind, *indSample;
+  ind = &(rx->subjects[id]);
+  if (ind->_update_par_ptr_in) return;
+  ind->_update_par_ptr_in = 1;
+  if (ISNA(t)) {
     // functional lag, rate, duration, mtime
-    rx_solving_options_ind *ind, *indSample;
-    ind = &(rx->subjects[id]);
     rx_solving_options *op = rx->op;
     // Update all covariate parameters
     int k, idxSample;
@@ -233,8 +233,6 @@ void _update_par_ptr(double t, unsigned int id, rx_solve *rx, int idx){
       }
     }
   } else {
-    rx_solving_options_ind *ind, *indSample;
-    ind = &(rx->subjects[id]);
     rx_solving_options *op = rx->op;
     // Update all covariate parameters
     int k, idxSample;
@@ -256,11 +254,12 @@ void _update_par_ptr(double t, unsigned int id, rx_solve *rx, int idx){
 	  double *par_ptr = ind->par_ptr;
 	  double *all_times = indSample->all_times;
 	  double *y = indSample->cov_ptr + indSample->n_all_times*k;
-	  if (idxSample > 0 && idxSample < indSample->n_all_times && t == all_times[idx]){
+	  if (idxSample == 0 && fabs(t- all_times[idxSample]) < DBL_EPSILON) {
+	    par_ptr[op->par_cov[k]-1] = y[0];
+	    ind->cacheME=0;
+	  } else if (idxSample > 0 && idxSample < indSample->n_all_times && fabs(t- all_times[idxSample]) < DBL_EPSILON) {
 	    par_ptr[op->par_cov[k]-1] = getValue(idxSample, y, indSample);
-	    if (idxSample == 0){
-	      ind->cacheME=0;
-	    } else if (getValue(idxSample, y, indSample) != getValue(idxSample-1, y, indSample)) {
+	    if (getValue(idxSample, y, indSample) != getValue(idxSample-1, y, indSample)) {
 	      ind->cacheME=0;
 	    }
 	  } else {
@@ -275,7 +274,7 @@ void _update_par_ptr(double t, unsigned int id, rx_solve *rx, int idx){
       }
     }
   }
-  _update_par_ptr_in = 0;
+  ind->_update_par_ptr_in = 0;
 }
 
 /* void doSort(rx_solving_options_ind *ind); */
@@ -1531,7 +1530,7 @@ static inline void doAdvan(double *A,// Amounts
     }
     return;
   }
-  if ((*r1) > DOUBLE_EPS  || (*r2) > DOUBLE_EPS){
+  if ((*r1) > DBL_EPSILON  || (*r2) > DBL_EPSILON){
     if (oral0){
       switch (ncmt){
       case 1: {
@@ -1606,8 +1605,6 @@ static inline void doAdvan(double *A,// Amounts
     }
   }
 }
-
-extern int syncIdx(rx_solving_options_ind *ind);
 
 static inline int parTrans(int *trans, 
 			   double *p1, double *v1,
@@ -2399,8 +2396,6 @@ SEXP _calcDerived(SEXP ncmtSXP, SEXP transSXP, SEXP inp, SEXP sigdigSXP) {
   return R_NilValue;
 }
 
-int handle_evidL(int evid, double *yp, double xout, int id, rx_solving_options_ind *ind);
-
 static inline void ssRateTauD(double *A, int ncmt, int oral0, double *tinf,
 			      double *tau, double *r1, double *r2, double *ka,
 			      double *kel, double *k12, double *k21, double *k13, double *k31) {
@@ -2597,7 +2592,7 @@ static inline void handleSSL(double *A,// Amounts
   // handle_evid has been called, so ind->wh0 and like have already been called
   double *rate = ind->linCmtRate;
   // note ind->ixds has already advanced
-  double amt = ind->dose[ind->ixds-1];
+  double amt = getDoseNumber(ind, ind->ixds-1);
   switch(ind->wh0){
   case 40: { // Steady state constant infusion
     // Already advanced ind->ixds
@@ -2624,7 +2619,7 @@ static inline void handleSSL(double *A,// Amounts
   } break;
   case 20: // Steady state + last observed event
   case 10: { // Steady state
-    double tau = ind->ii[ind->ixds-1];
+    double tau = getIiNumber(ind, ind->ixds-1);
     rate[0] =*r1  = *r2 = 0;
     if (oral0){
       rate[1] = 0;
@@ -2777,7 +2772,7 @@ double linCmtA(rx_solve *rx, unsigned int id, double _t, int linCmt,
   double rx_k31=0;
   double *rate = ind->linCmtRate;
   double b1=0, b2=0, r1 = 0, r2 = 0;
-  double curTime = getTime(ind->ix[idx], ind);
+  double curTime = getTime_(ind->ix[idx], ind);
   int sameTime = isSameTime(t, curTime);
   if (sameTime && idx <= ind->solved){
     // Pull from last solved value (cached)
@@ -2791,7 +2786,7 @@ double linCmtA(rx_solve *rx, unsigned int id, double _t, int linCmt,
   while (t < curTime) {
     idx--;
     if (idx < 0) return 0.0;
-    curTime = getTime(ind->ix[idx], ind);
+    curTime = getTime_(ind->ix[idx], ind);
   }
   A = getAdvan(idx);
   if (!parTrans(&trans, &p1, &v1, &p2, &p3, &p4, &p5,
@@ -2803,9 +2798,9 @@ double linCmtA(rx_solve *rx, unsigned int id, double _t, int linCmt,
     // Not saved, solve
     if (idx == 0) {
       Alast = Alast0;
-      tlast = getTime(ind->ix[0], ind);
+      tlast = getTime_(ind->ix[0], ind);
     } else {
-      tlast = getTime(ind->ix[idx-1], ind);
+      tlast = getTime_(ind->ix[idx-1], ind);
       Alast = getAdvan(idx-1);
     }
     evid = ind->evid[ind->ix[idx]];
@@ -2883,14 +2878,14 @@ double linCmtC(rx_solve *rx, unsigned int id, double _t, int linCmt,
   double A[4]     = {0, 0, 0, 0};
   int oral0;
   oral0 = (d_ka > 0) ? 1 : 0;
-  double it = getTime(ind->ix[idxF], ind);
+  double it = getTime_(ind->ix[idxF], ind);
   double curTime, tlast;
-  curTime = tlast = getTime(ind->ix[0], ind); // t0
+  curTime = tlast = getTime_(ind->ix[0], ind); // t0
 
   if (t != it) {
     // Try to get another idx by bisection
     idxF = _locateTimeIndex(t, ind);
-    it = getTime(ind->ix[idxF], ind);
+    it = getTime_(ind->ix[idxF], ind);
   }
   unsigned int ncmt = 1;
   double rx_k=0, rx_v=0;
@@ -2914,7 +2909,7 @@ double linCmtC(rx_solve *rx, unsigned int id, double _t, int linCmt,
     }
     for (int idx = 0; idx <= idxF; idx++) {
       ind->idx = idx;
-      curTime = getTime(ind->ix[idx], ind);
+      curTime = getTime_(ind->ix[idx], ind);
       evid = ind->evid[ind->ix[idx]];
       if (op->nlinR == 2){
 	r1 = rate[0];
@@ -3464,11 +3459,11 @@ double linCmtF(rx_solve *rx, unsigned int id, double _t, int linCmt,
   double *Alast;
   /* A = Alast0; Alast=Alast0; */
   double tlast;
-  double curTime= getTime(ind->ix[idx], ind); // t0
+  double curTime= getTime_(ind->ix[idx], ind); // t0
   while (t < curTime) {
     idx--;
     if (idx < 0) return 0.0;
-    curTime = getTime(ind->ix[idx], ind);
+    curTime = getTime_(ind->ix[idx], ind);
   }
   int sameTime = isSameTime(t, curTime);
   if (idx <= ind->solved && sameTime){
@@ -3497,12 +3492,12 @@ double linCmtF(rx_solve *rx, unsigned int id, double _t, int linCmt,
     A = getAdvan(idx);
     if (idx == 0) {
       Alast = Alast0;
-      tlast = getTime(ind->ix[0], ind);
+      tlast = getTime_(ind->ix[0], ind);
     } else {
-      tlast = getTime(ind->ix[idx-1], ind);
+      tlast = getTime_(ind->ix[idx-1], ind);
       Alast = getAdvan(idx-1);
     }
-    curTime = getTime(ind->ix[idx], ind);
+    curTime = getTime_(ind->ix[idx], ind);
     if (!parTrans(&trans, &p1, &v1, &p2, &p3, &p4, &p5,
 		  &ncmt, &rx_k, &rx_v, &rx_k12,
 		  &rx_k21, &rx_k13, &rx_k31)){
