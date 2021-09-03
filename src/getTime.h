@@ -1,60 +1,18 @@
-#ifndef __GETTIME_H___
-#define __GETTIME_H___
+#ifndef __GETTIME_H__
+#define __GETTIME_H__
 
-#include "handle_evid.h"
+
 
 #if defined(__cplusplus)
-#define FLOOR(x) std::floor(x)
-extern "C" {
-#else
-#define FLOOR(x) floor(x)
-#endif
 
-  double getTime(int idx, rx_solving_options_ind *ind);
-
-
-  void radix_r(const int from, const int to, const int radix,
-	       rx_solving_options_ind *ind, rx_solve *rx);
-
-  void calcNradix(int *nbyte, int *nradix, int *spare, uint64_t *maxD, uint64_t *minD);
-
-  uint64_t dtwiddle(const void *p, int i);
-
-  void sortRadix(rx_solving_options_ind *ind);
-#if defined(__cplusplus)
-}
-#endif
-
-
-extern t_dydt dydt;
-
-extern t_calc_jac calc_jac;
-
-extern t_calc_lhs calc_lhs;
-
-extern t_update_inis update_inis;
-
-extern t_dydt_lsoda_dum dydt_lsoda_dum;
-
-extern t_dydt_liblsoda dydt_liblsoda;
-
-extern t_jdum_lsoda jdum_lsoda;
-
-extern t_get_solve get_solve;
-
-extern t_assignFuns assignFuns;
-
+extern t_F AMT;
 extern t_LAG LAG;
 extern t_RATE RATE;
 extern t_DUR DUR;
 extern t_calc_mtime calc_mtime;
 
-extern t_ME ME;
-extern t_IndF IndF;
+#ifndef __DOINIT__
 
-static inline void calcMtime(int solveid, double *mtime){
-  calc_mtime(solveid,mtime);
-}
 
 static inline double getLag(rx_solving_options_ind *ind, int id, int cmt, double time){
   double ret = LAG(id, cmt, time);
@@ -85,6 +43,7 @@ static inline double getDur(rx_solving_options_ind *ind, int id, int cmt, double
   }
   return ret;
 }
+
 
 static inline int isEvidType(int evid, int type) {
   int wh, cmt, wh100, whI, wh0;
@@ -265,7 +224,7 @@ static inline double handleInfusionItem(int idx, rx_solve *rx, rx_solving_option
       op->naTime = 1;
     }
     double durOld = (ind->all_times[ind->idose[j]] -
-		     ind->all_times[ind->idose[k]]); 
+		     ind->all_times[ind->idose[k]]);
     double dur = f*durOld;
     double t = ind->all_times[ind->idose[k]]+dur;
     return getLag(ind, ind->id, ind->cmt, t);
@@ -331,5 +290,19 @@ static inline double getTime_(int idx, rx_solving_options_ind *ind) {
 }
 
 
+#endif
+
+
+extern "C" {
+#endif
+
+double getTime(int idx, rx_solving_options_ind *ind);
+
+#define calcMtime(solveid, mtime) calc_mtime(solveid,mtime);
+
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif

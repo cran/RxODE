@@ -1,4 +1,5 @@
 #define STRICT_R_HEADER
+#include "rxomp.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -30,7 +31,6 @@ extern "C" {
 // OpenMP is excellent for parallelizing existing loops where the iterations are independent;
 // OpenMP is used by part of the R core, therefore support will come for all platforms at some time in the future.
 // Since these are independent, we will just use Open MP.
-#include "rxomp.h"
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
@@ -471,6 +471,7 @@ t_calc_mtime calc_mtime = NULL;
 t_ME ME = NULL;
 t_IndF IndF = NULL;
 
+
 static inline void postSolve(int *idid, int *rc, int *i, double *yp, const char** err_msg, int nerr, bool doPrint,
 			     rx_solving_options_ind *ind, rx_solving_options *op, rx_solve *rx) {
   if (*idid <= 0) {
@@ -590,12 +591,94 @@ extern "C" void F77_NAME(dlsoda)(
 extern "C" rx_solve *getRxSolve2_(){
   return &rx_global;
 }
-
 extern "C" rx_solve *getRxSolve_(){
   rx_solve *rx = &rx_global;
   rx->subjects = inds_global;
   rx->op = &op_global;
   return &rx_global;
+}
+
+
+extern "C" double getTime(int idx, rx_solving_options_ind *ind) {
+  return getTime__(idx, ind, 0);
+}
+
+
+extern "C" void radix_r(const int from, const int to, const int radix,
+			rx_solving_options_ind *ind, rx_solve *rx);
+extern "C" void calcNradix(int *nbyte, int *nradix, int *spare, uint64_t *maxD, uint64_t *minD);
+
+extern "C" uint64_t dtwiddle(const void *p, int i);
+// Adapted from 
+// https://github.com/Rdatatable/data.table/blob/588e0725320eacc5d8fc296ee9da4967cee198af/src/forder.c#L630-L649
+extern "C" void sortRadix(rx_solving_options_ind *ind){
+#ifdef _OPENMP
+  int core = omp_get_thread_num();
+#else
+  int core = 0;
+#endif
+  rx_solve *rx = &rx_global;
+  rx_solving_options *op = &op_global;
+  uint8_t **key = rx->keys[core];
+  // Reset times for infusion
+  int wh, cmt, wh100, whI, wh0;
+  int doSort = 1;
+  double *time = new double[ind->n_all_times];
+  uint64_t *all = new uint64_t[ind->n_all_times];
+  uint64_t minD, maxD;
+  ind->ixds = 0;
+  ind->curShift = 0;
+  for (int i = 0; i < ind->n_all_times; i++) {
+    ind->ix[i] = i;
+    ind->idx = i;
+    if (!isObs(ind->evid[i])) {
+      time[i] = getTime__(ind->ix[i], ind, 1);
+      ind->ixds++;
+    } else {
+      if (ind->evid[i] == 3) {
+	ind->curShift -= rx->maxShift;
+      }
+      time[i] = getTime__(ind->ix[i], ind, 1);
+    }
+    all[i]  = dtwiddle(time, i);
+    if (i == 0){
+      minD = maxD = all[0];
+    } else if (all[i] < minD){
+      minD = all[i];
+    } else if (all[i] > maxD) {
+      maxD = all[i];
+    }
+    if (op->naTime == 1){
+      doSort=0;
+      break;
+    }
+  }
+  if (doSort){
+    int nradix=0, nbyte=0, spare=0;
+    calcNradix(&nbyte, &nradix, &spare, &maxD, &minD);
+    rx->nradix[core] = nradix;
+    // Allocate more space if needed
+    for (int b = 0; b < nbyte; b++){
+      if (key[b] == NULL) {
+	key[b] = (uint8_t *)calloc(rx->maxAllTimes+1, sizeof(uint8_t));
+      }
+    }
+    for (int i = 0; i < ind->n_all_times; i++) {
+      uint64_t elem = all[i] - minD;
+      elem <<= spare;
+      for (int b= nbyte-1; b>0; b--) {
+	key[b][i] = (uint8_t)(elem & 0xff);
+	elem >>= 8;
+      }
+      // RxODE uses key[0][i] = 0 | (uint8_t)(elem & 0xff) instead of
+      //  key[0][i] |= (uint8_t)(elem & 0xff)
+      // because unlike data.table, key[0][i] is not necessarily zero. 
+      key[0][i] = 0 | (uint8_t)(elem & 0xff);
+    }
+    radix_r(0, ind->n_all_times-1, 0, ind, rx);
+  }
+  delete[] time;
+  delete[] all;
 }
 
 
@@ -1228,6 +1311,7 @@ extern "C" void ind_liblsoda0(rx_solve *rx, rx_solving_options *op, struct lsoda
   int nx;
   rx_solving_options_ind *ind;
   double *inits;
+  int *evid;
   double *x;
   int *BadDose;
   double *InfusionRate;
@@ -1248,6 +1332,7 @@ extern "C" void ind_liblsoda0(rx_solve *rx, rx_solving_options *op, struct lsoda
     return;
   }
   nx = ind->n_all_times;
+  evid = ind->evid;
   BadDose = ind->BadDose;
   InfusionRate = ind->InfusionRate;
   x = ind->all_times;
@@ -1719,6 +1804,7 @@ extern "C" void ind_dop0(rx_solve *rx, rx_solving_options *op, int solveid, int 
       "problem is probably stiff (interrupted)"
     };
   rx_solving_options_ind *ind;
+  int *evid;
   double *x;
   int *BadDose;
   double *InfusionRate;
@@ -1730,6 +1816,7 @@ extern "C" void ind_dop0(rx_solve *rx, rx_solving_options *op, int solveid, int 
   if (!iniSubject(neq[1], 0, ind, op, rx, u_inis)) return;
   nx = ind->n_all_times;
   inits = op->inits;
+  evid = ind->evid;
   BadDose = ind->BadDose;
   InfusionRate = ind->InfusionRate;
   x = ind->all_times;
