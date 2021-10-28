@@ -1,3 +1,16 @@
+# RxODE 1.1.2
+
+* Fix subject initialization of `focei` problem (#464)
+
+* Fix LHS offset to allow internal threading and more parallel
+  processing in the future.
+
+* Remove warnings for duration and rate
+
+* Don't export pillar methods any more (simply register at load if present)
+
+* As requested by CRAN, change fortran and C binding for BLAS an LINPACK
+
 # RxODE 1.1.1 
 
 * Fix the LTO issue that CRAN identified.
