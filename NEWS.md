@@ -1,3 +1,12 @@
+# RxODE 1.1.4
+
+* As requested by CRAN, fix the -Wpointer-sign warnings
+
+# RxODE 1.1.3
+
+* Change handling of missing covariates while interpolating "nocb" so
+  that the time-varying covariates use "nocb" interpolation (#469)
+
 # RxODE 1.1.2
 
 * Fix subject initialization of `focei` problem (#464)

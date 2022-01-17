@@ -1,11 +1,11 @@
-965d3f9be79590cbf1570a09f0c002d9 *DESCRIPTION
+fdc88cf1ee86cc7b957bac5d91863767 *DESCRIPTION
 46f86ea6c7bc07d6655f13c20a2b87e6 *NAMESPACE
-58ff6e0e2309a7d2bbd24c9741764ab1 *NEWS.md
+2c0ee920ade77dcaf67bb46aac3032d4 *NEWS.md
 ae05e6fe03d1d5a5011a152c8878d4a0 *R/DollarNames.R
 9fc57beba80bf9b0824be18d17d2239a *R/RcppExports.R
 d9a078c26e656045883449d471c05eee *R/RxODE-win-setup.R
 4639fcb153e2abf14c0615e4eb343cd5 *R/RxODE.R
-4e69289a785c3d5c6daa62cd58aed59c *R/RxODE_md5.R
+0e5cd80de3d2905e1a11b87229dda706 *R/RxODE_md5.R
 36584b9291e0928c00f27ee723528480 *R/confint.R
 e7ddb27f89609b3689dd2a8eb91b488c *R/dsl.R
 a0709d23a11e9ede1e56f29ad4e4fdbd *R/et.R
@@ -46,10 +46,10 @@ f2a1586bab537ded5ca159a426bf4299 *R/version.R
 6b5c6b95c1f5f04fd8e0129c06692526 *build/buildRxODE.R
 071add7af95c6c0ff8e830671bd4d745 *build/depends.R
 abb9bc284c1ba219658140eef041c079 *build/dual.R
-c0819216ba354a2016cbd85d3db44634 *build/partial.rdb
+aea0160214fa417f0e3b7293dc4a5885 *build/partial.rdb
 93a54fccd5b8faf040df6a15f1bb1cac *build/refresh.R
 5ea50b5c6a02bd1ca3f31c6c2ef1b5ef *build/sensitivites.R
-b3996ca99d37afd998539d1f3172ea17 *build/vignette.rds
+bbe0930b3bc5f492d1f806d09ce45092 *build/vignette.rds
 22221f4e98aadad64790ec625ce641a6 *cleanup
 c57a96dde3a290cb24bc059ba354a73b *cleanup.win
 44ca245e3ca03b09b77605e42dc392aa *configure
@@ -64,7 +64,7 @@ d7d648a3d2c5a1481822628ccc0ee78b *inst/Changes.txt
 016787a447a81ffdd73db455cd709a5b *inst/THANKS
 5da00adc5c07e53f1b2dd272032c1d99 *inst/WORDLIST
 2c5e2b1a09813ee23e5fd94ba7eca0fe *inst/doc/RxODE-syntax.Rmd
-d5ced15fc6176dc561b25e97012a3810 *inst/doc/RxODE-syntax.html
+b7d50680a55eb51b284a82b8db9482ef *inst/doc/RxODE-syntax.html
 81ea82d29fd62c9691c6d6590b29dd8e *inst/include/RxODE.h
 6c0b7c0f2ff1826bacc39ce7933a0c16 *inst/include/RxODE_RcppExports.h
 aae1c6330ffd0603669d99199928f9bd *inst/include/RxODE_as.h
@@ -248,7 +248,7 @@ c04dfb1d176ee2759425d6d524218d88 *man/summary.rxDll.Rd
 6f2ce05206d7897cb49ff50421096e74 *man/uppergamma.Rd
 edd21c3a37ee53f3852263ba8aa1042a *po/R-RxODE.pot
 3ce7e7ef8028e513f4f88d6db4e31adf *po/RxODE.pot
-52d1c1ad571d9242beb3f4530ac6546d *src/Makevars.in
+dc9e5d27ba9a1127c7fc2e4fd9e6eed9 *src/Makevars.in
 92a40c3711c86fa00bf6c7f8d3db4187 *src/RcppExports.cpp
 f8af31df4c1f0fbb38244f3323822456 *src/RxODE_types.h
 6c6c28ff58d856d4c3314689e84957b1 *src/WinDrive.cpp
@@ -263,7 +263,7 @@ ac2037f4d9542d47c68e688f34bb5759 *src/cfode_static.c
 8634dbe1054fda05c9966eb52afbd8f9 *src/cfode_static.h
 72c0d75027adb569675a3ba272596d12 *src/checkmate.cpp
 281b813a9cf916b1350c1f8c496e0b02 *src/checkmate.h
-e34172ef9bf28ca251473ae8cdb1e967 *src/checkmate_stub.c
+3a82b23aef338890939721d7ac07169f *src/checkmate_stub.c
 f0e7a36926ca973174a2e7d2ef69c982 *src/codegen.c
 b6447aebfb570e3970b04bb488ac51c8 *src/codegen.h
 6f730c686b05a5073d00ec0888e72f74 *src/codegen2.h
@@ -301,7 +301,7 @@ c1c511c05d2325213c6311b73a603ab8 *src/handle_evid.h
 ff522561ce68c55b2f490da67b4a1633 *src/init.c
 89c71cc11c48efbc395b5d8784e3351b *src/install.libs.R
 ca15ad679ea1973f354e83cdeca59a08 *src/intdy.c
-61b1216b5c0fff498b392df55cc2204e *src/lincmt.c
+e550804dd29319b04f33d3082bcfbbc4 *src/lincmt.c
 6d487546a22ffcf49ca208d1b50a656a *src/lincmtB.cpp
 2ceac9da0007ac5605ea1623992bdd52 *src/lincmtB1.h
 3781923dd50dec371eefc62e2e159c92 *src/lsoda.c
@@ -311,7 +311,7 @@ d04e3c541c9b3642a00170d4b12b04cb *src/matexp.f
 d740cea34057c92b83acd1eee6b3fcbb *src/matexp_HM98.c
 21d028b8f261c7590050a6d6e3d30c5e *src/methodswitch.c
 f2519760fc2a12a82de69f60f33dac15 *src/needSortDefines.h
-1dc54f20af42a5c82ed0ae17dd2e88a2 *src/ode.h
+30f644e5c89b35f237aebfd33505dda1 *src/ode.h
 1a37356fad9734bd806f295b04ba3e95 *src/omegaChol.c
 758995da84240900068f42dd30803d0e *src/opkda2.f
 937d1571dbaadd3c6190b728036811a8 *src/orderswitch.c
@@ -364,7 +364,7 @@ a96f53a50e5a1e5bb5ea509d6f7dfaa5 *src/seed.h
 9ec85a94ced3482f9a9c327b98b21bf0 *src/solsy.c
 c7222cc8ca05a6cc3100ed7ef967ba4f *src/stoda.c
 b54d819075639d8548e92734422b647e *src/strdup_printf.c
-aa162cb3fc9143cf7fcfdd779fbdd986 *src/strncmp.c
+85d60e1e73c192d3367c0cb33b0faa4c *src/strncmp.c
 414ea81f3c7647e036a101055d4dce39 *src/strncmp.h
 8df4e563d292d8b3f2566d959e572c20 *src/timsort.h
 cd2835946031554f54c28fdce23ef158 *src/tran.c
@@ -463,6 +463,8 @@ db3d0af15ef8b0e780fc883b33168f2d *tests/testthat/test-issue-430.qs
 ffd67f347b22366ae0e14480a902d17d *tests/testthat/test-issue-431.R
 e23cc38c73fc979032bc105045762c15 *tests/testthat/test-issue-433.R
 0a680b42506296454033c8bea317b203 *tests/testthat/test-issue-450.R
+68a8a7f964c888e0d8999ab0c398f7e0 *tests/testthat/test-issue-468.R
+ae9d0a49c333013324aa24b02a71fdf2 *tests/testthat/test-issue-468.qs
 fb512f97581811faf89e0b926717e536 *tests/testthat/test-issue-5.R
 9f62695dca05ded48a33fcce30532d4b *tests/testthat/test-issue-50.R
 73f164b6a8f8b3aaabe3b8ca4b4bfdb6 *tests/testthat/test-issue-54.R
